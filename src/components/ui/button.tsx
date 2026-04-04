@@ -15,6 +15,9 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        spotify: "bg-primary text-primary-foreground hover:bg-primary/80 font-semibold text-base transition-all duration-150",
+        pill: "bg-secondary text-muted-foreground hover:bg-secondary/80 rounded-full text-xs font-medium transition-all duration-150",
+        "pill-active": "bg-primary/20 text-primary rounded-full text-xs font-medium transition-all duration-150",
       },
       size: {
         default: "h-10 px-4 py-2",
