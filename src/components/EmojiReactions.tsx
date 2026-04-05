@@ -42,19 +42,13 @@ const EmojiReactions = ({ likeId }: { likeId: string }) => {
 
   const toggleReaction = async (emoji: string) => {
     if (!user) return;
-
     const current = reactions.find((r) => r.emoji === emoji);
     if (!current) return;
 
-    // Optimistic update
     setReactions((prev) =>
       prev.map((r) =>
         r.emoji === emoji
-          ? {
-              ...r,
-              count: r.reacted ? r.count - 1 : r.count + 1,
-              reacted: !r.reacted,
-            }
+          ? { ...r, count: r.reacted ? r.count - 1 : r.count + 1, reacted: !r.reacted }
           : r
       )
     );
@@ -83,7 +77,7 @@ const EmojiReactions = ({ likeId }: { likeId: string }) => {
             r.reacted
               ? "bg-primary/20 text-primary"
               : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-          } ${r.count === 0 && !r.reacted ? "opacity-60" : ""}`}
+          } ${r.count === 0 && !r.reacted ? "opacity-50" : ""}`}
         >
           <span>{r.emoji}</span>
           {r.count > 0 && <span>{r.count}</span>}

@@ -13,7 +13,7 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/90 backdrop-blur-md">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background">
       <div className="mx-auto flex max-w-feed items-center justify-around py-2">
         {links.map(({ to, icon: Icon, label }) => {
           const active = location.pathname === to || location.pathname.startsWith(to + "/");
@@ -21,8 +21,8 @@ const BottomNav = () => {
             <Link
               key={to}
               to={to}
-              className={`flex flex-col items-center gap-0.5 px-4 py-1 text-xs transition-colors duration-150 ${
-                active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              className={`flex flex-col items-center gap-0.5 px-4 py-1 text-xs transition-all duration-150 ${
+                active ? "text-primary" : "text-muted-dim hover:text-foreground"
               }`}
             >
               <Icon className="h-5 w-5" />
