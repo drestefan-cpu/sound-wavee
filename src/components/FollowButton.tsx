@@ -44,9 +44,8 @@ const FollowButton = ({ targetUserId }: { targetUserId: string }) => {
 
   return (
     <Button
-      variant={following ? "outline" : "spotify"}
+      variant={following ? "outline" : "default"}
       size="sm"
-      className="rounded-full"
       onClick={toggle}
     >
       {following ? "Following" : "Follow"}

@@ -1,7 +1,4 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import EmojiReactions from "@/components/EmojiReactions";
 
 interface FeedItem {
@@ -43,11 +40,11 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
       {/* User header */}
       <div className="mb-3 flex items-center gap-3">
         <Link to={`/profile/${profile?.username || profile?.id}`}>
-          <div className="h-9 w-9 overflow-hidden rounded-full bg-secondary">
+          <div className="h-9 w-9 overflow-hidden rounded-full bg-primary/20">
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm font-bold text-muted-foreground">
+              <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
                 {(profile?.display_name || "U")[0].toUpperCase()}
               </div>
             )}
@@ -56,13 +53,13 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
         <div className="flex-1 min-w-0">
           <Link
             to={`/profile/${profile?.username || profile?.id}`}
-            className="text-sm font-semibold hover:text-primary transition-colors"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors duration-150"
           >
             {profile?.display_name || "User"}
           </Link>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">{timeAgo(item.liked_at)}</span>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
               Spotify
             </span>
           </div>
@@ -75,14 +72,14 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
           <img
             src={track.album_art_url}
             alt={track.album || ""}
-            className="h-16 w-16 rounded-lg object-cover"
+            className="h-[52px] w-[52px] rounded-md object-cover"
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{track?.title}</p>
+          <p className="truncate font-medium text-foreground">{track?.title}</p>
           <p className="truncate text-sm text-muted-foreground">{track?.artist}</p>
           {track?.album && (
-            <p className="truncate text-xs text-muted-foreground/60">{track.album}</p>
+            <p className="truncate text-xs text-muted-dim">{track.album}</p>
           )}
         </div>
       </div>

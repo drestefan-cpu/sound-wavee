@@ -53,19 +53,19 @@ const SettingsPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-feed items-center gap-3 px-4 py-3">
-          <button onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground transition-colors duration-150">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-sm font-semibold">Settings</h1>
+          <h1 className="text-sm font-medium text-foreground">Settings</h1>
         </div>
       </header>
 
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
         <div className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm text-muted-foreground">Display name</label>
+            <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
             <Input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -73,7 +73,7 @@ const SettingsPage = () => {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm text-muted-foreground">Username</label>
+            <label className="mb-1.5 block text-sm text-muted-foreground">username</label>
             <Input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -81,8 +81,7 @@ const SettingsPage = () => {
             />
           </div>
           <Button
-            variant="spotify"
-            className="w-full rounded-full"
+            className="w-full"
             onClick={handleSave}
             disabled={saving}
           >

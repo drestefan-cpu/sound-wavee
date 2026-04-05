@@ -2,10 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Music, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { toast } from "sonner";
 import TrackCard from "@/components/TrackCard";
 import BottomNav from "@/components/BottomNav";
+import PlaiLogo from "@/components/PlaiLogo";
 
 interface FeedItem {
   id: string;
@@ -30,7 +31,7 @@ interface FeedItem {
 }
 
 const Feed = () => {
-  const { user } = useAuth();
+  const { user, syncing } = useAuth();
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
@@ -70,7 +71,6 @@ const Feed = () => {
     init();
   }, [user]);
 
-  // Realtime subscription for new likes
   useEffect(() => {
     if (!user) return;
 
@@ -85,7 +85,6 @@ const Feed = () => {
             followingIds.includes(newLike.user_id) ||
             newLike.user_id === user.id
           ) {
-            // Fetch full data for the new like
             const { data } = await supabase
               .from("likes")
               .select("*, profiles(*), tracks(*)")
@@ -119,9 +118,9 @@ const Feed = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-feed items-center justify-between px-4 py-3">
-          <h1 className="font-display text-xl font-bold">Soundwave</h1>
+          <PlaiLogo className="text-xl" />
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="h-2 w-2 rounded-full bg-primary animate-pulse-live" />
@@ -131,21 +130,28 @@ const Feed = () => {
         </div>
       </header>
 
+      {syncing && (
+        <div className="mx-auto max-w-feed px-4 pt-3">
+          <div className="flex items-center justify-center gap-2 rounded-full bg-card border border-border px-4 py-2 text-xs text-muted-foreground">
+            <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+            syncing your likes...
+          </div>
+        </div>
+      )}
+
       <main className="mx-auto max-w-feed px-4 py-4">
         {items.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-20 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card">
-              <Users className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h2 className="text-lg font-semibold">Your feed is empty</h2>
+            <PlaiLogo className="text-2xl" />
+            <h2 className="text-lg font-medium text-foreground">your feed is quiet</h2>
             <p className="text-sm text-muted-foreground">
-              Follow some friends to see what they're listening to
+              follow some friends to hear what they're loving
             </p>
             <Link
               to="/discover"
-              className="mt-2 rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="mt-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
             >
-              Find friends
+              find friends
             </Link>
           </div>
         ) : (

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import UserCard from "@/components/UserCard";
 import BottomNav from "@/components/BottomNav";
+import PlaiLogo from "@/components/PlaiLogo";
 
 const Discover = () => {
   const { user } = useAuth();
@@ -40,9 +41,9 @@ const Discover = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto max-w-feed px-4 py-3">
-          <h1 className="font-display text-xl font-bold">Discover</h1>
+          <h1 className="font-display text-xl text-foreground">Discover</h1>
         </div>
       </header>
 
@@ -52,7 +53,7 @@ const Discover = () => {
           <Input
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search users..."
+            placeholder="search users..."
             className="bg-card border-border pl-10"
           />
         </div>
@@ -68,7 +69,7 @@ const Discover = () => {
             ))}
             {users.length === 0 && (
               <p className="py-12 text-center text-sm text-muted-foreground">
-                No users found
+                no users found
               </p>
             )}
           </div>
