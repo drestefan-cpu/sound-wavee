@@ -92,6 +92,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          onboarding_complete: boolean
           spotify_id: string | null
           username: string | null
         }
@@ -100,6 +101,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          onboarding_complete?: boolean
           spotify_id?: string | null
           username?: string | null
         }
@@ -108,6 +110,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          onboarding_complete?: boolean
           spotify_id?: string | null
           username?: string | null
         }
