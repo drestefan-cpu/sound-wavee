@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN status text DEFAULT null;
