@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import TaglineSpace from "@/components/TaglineSpace";
+import AboutPlai from "@/components/AboutPlai";
 
 const SettingsPage = () => {
   const { user, loading, signOut } = useAuth();
@@ -20,6 +21,7 @@ const SettingsPage = () => {
   const [status, setStatus] = useState("");
   const [statusSaved, setStatusSaved] = useState(false);
   const [profileColor, setProfileColor] = useState("#080B12");
+  const [showAbout, setShowAbout] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -96,7 +98,16 @@ const SettingsPage = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Settings" />
 
+      {showAbout && <AboutPlai onClose={() => setShowAbout(false)} />}
+
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
+        <button
+          onClick={() => setShowAbout(true)}
+          className="text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          about plai →
+        </button>
+
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
           <div className="flex gap-2">

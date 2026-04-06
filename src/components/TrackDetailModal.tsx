@@ -1,4 +1,4 @@
-import { Heart, Send, ExternalLink, X } from "lucide-react";
+import { Heart, Send, Play, X } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 
 interface TrackDetailModalProps {
@@ -52,8 +52,8 @@ const TrackDetailModal = ({
           <p className="text-xs text-muted-dim truncate mt-0.5">{track.album}</p>
         )}
 
-        {/* Actions */}
-        <div className="flex items-center justify-center gap-6 mt-6">
+        {/* Actions: heart, play, share */}
+        <div className="flex items-center justify-center gap-8 mt-6">
           <button
             onClick={onToggleSave}
             className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
@@ -66,6 +66,16 @@ const TrackDetailModal = ({
             <span className="text-[10px] text-muted-foreground">{isSaved ? "saved" : "save"}</span>
           </button>
 
+          <a
+            href={spotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
+          >
+            <Play className="h-6 w-6 text-muted-foreground hover:text-[#1DB954]" />
+            <span className="text-[10px] text-muted-foreground">play</span>
+          </a>
+
           {onShare && (
             <button
               onClick={onShare}
@@ -75,16 +85,6 @@ const TrackDetailModal = ({
               <span className="text-[10px] text-muted-foreground">share</span>
             </button>
           )}
-
-          <a
-            href={spotifyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
-          >
-            <ExternalLink className="h-6 w-6 text-muted-foreground hover:text-[#1DB954]" />
-            <span className="text-[10px] text-muted-foreground">play</span>
-          </a>
         </div>
       </div>
     </div>
