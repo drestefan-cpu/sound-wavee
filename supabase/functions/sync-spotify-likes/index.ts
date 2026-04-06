@@ -23,7 +23,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Get user's Spotify tokens from profiles table
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("spotify_access_token, spotify_refresh_token")
@@ -31,6 +30,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileError || !profile) {
+      console.error("Profile lookup error:", profileError);
       return new Response(JSON.stringify({ error: "Profile not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -40,58 +40,49 @@ Deno.serve(async (req) => {
     let accessToken = profile.spotify_access_token;
 
     if (!accessToken) {
-      return new Response(JSON.stringify({ error: "No Spotify token found. User may need to re-authenticate.", count: 0 }), {
+      return new Response(JSON.stringify({ error: "No Spotify token found", count: 0 }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Helper to fetch liked tracks
-    const fetchLikedTracks = async (token: string) => {
-      const res = await fetch("https://api.spotify.com/v1/me/tracks?limit=50", {
+    const fetchTracks = async (token: string) => {
+      return await fetch("https://api.spotify.com/v1/me/tracks?limit=50", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      return res;
     };
 
-    let spotifyRes = await fetchLikedTracks(accessToken);
+    let spotifyRes = await fetchTracks(accessToken);
 
-    // If 401, try refreshing the token
     if (spotifyRes.status === 401 && profile.spotify_refresh_token) {
-      console.log("Access token expired, attempting refresh...");
-      
-      // Get Spotify client credentials from Supabase auth config
-      // We need to use the refresh token to get a new access token
+      console.log("Access token expired, refreshing...");
+      const clientId = Deno.env.get("SPOTIFY_CLIENT_ID") || "";
+      const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET") || "";
+
       const refreshRes = await fetch("https://accounts.spotify.com/api/token", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           grant_type: "refresh_token",
           refresh_token: profile.spotify_refresh_token,
-          client_id: Deno.env.get("SPOTIFY_CLIENT_ID") || "",
-          client_secret: Deno.env.get("SPOTIFY_CLIENT_SECRET") || "",
+          client_id: clientId,
+          client_secret: clientSecret,
         }),
       });
 
       if (refreshRes.ok) {
         const refreshData = await refreshRes.json();
         accessToken = refreshData.access_token;
-        
-        // Update the stored token
         const updateData: Record<string, string> = { spotify_access_token: accessToken };
         if (refreshData.refresh_token) {
           updateData.spotify_refresh_token = refreshData.refresh_token;
         }
         await supabaseAdmin.from("profiles").update(updateData).eq("id", user_id);
-        
-        // Retry the request
-        spotifyRes = await fetchLikedTracks(accessToken);
+        spotifyRes = await fetchTracks(accessToken);
       } else {
         const errText = await refreshRes.text();
         console.error("Token refresh failed:", errText);
-        return new Response(JSON.stringify({ error: "Token refresh failed. User may need to re-authenticate.", count: 0 }), {
+        return new Response(JSON.stringify({ error: "Token refresh failed", count: 0 }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -100,9 +91,9 @@ Deno.serve(async (req) => {
 
     if (!spotifyRes.ok) {
       const errText = await spotifyRes.text();
-      console.error("Spotify API error:", errText);
-      return new Response(JSON.stringify({ error: "Spotify API error", details: errText, count: 0 }), {
-        status: spotifyRes.status,
+      console.error("Spotify API error:", spotifyRes.status, errText);
+      return new Response(JSON.stringify({ error: "Spotify API error", status: spotifyRes.status, count: 0 }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -114,7 +105,6 @@ Deno.serve(async (req) => {
       const track = item.track;
       if (!track) continue;
 
-      // Upsert track
       const { data: trackData, error: trackError } = await supabaseAdmin
         .from("tracks")
         .upsert(
@@ -136,7 +126,6 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Upsert like
       const { error: likeError } = await supabaseAdmin
         .from("likes")
         .upsert(
@@ -155,9 +144,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Update last_synced_at
     await supabaseAdmin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", user_id);
 
+    console.log(`Sync complete for ${user_id}: ${syncedCount} tracks`);
     return new Response(JSON.stringify({ count: syncedCount }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

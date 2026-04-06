@@ -22,6 +22,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/feed" element={<Feed />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:username" element={<Profile />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/settings" element={<SettingsPage />} />

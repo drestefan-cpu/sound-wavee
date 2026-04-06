@@ -174,22 +174,35 @@ export type Database = {
         Row: {
           id: string
           saved_at: string
+          source_context: string | null
+          source_user_id: string | null
           track_id: string
           user_id: string
         }
         Insert: {
           id?: string
           saved_at?: string
+          source_context?: string | null
+          source_user_id?: string | null
           track_id: string
           user_id: string
         }
         Update: {
           id?: string
           saved_at?: string
+          source_context?: string | null
+          source_user_id?: string | null
           track_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "saved_tracks_source_user_id_fkey"
+            columns: ["source_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "saved_tracks_track_id_fkey"
             columns: ["track_id"]

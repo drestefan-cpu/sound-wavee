@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Bookmark } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EmojiReactions from "@/components/EmojiReactions";
@@ -46,11 +46,16 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
   const toggleSave = async () => {
     if (!user) return;
     setBouncing(true);
-    setTimeout(() => setBouncing(false), 300);
+    setTimeout(() => setBouncing(false), 200);
     const newSaved = !saved;
     setSaved(newSaved);
     if (newSaved) {
-      await supabase.from("saved_tracks").insert({ user_id: user.id, track_id: track.id });
+      await supabase.from("saved_tracks").insert({
+        user_id: user.id,
+        track_id: track.id,
+        source_user_id: profile.id,
+        source_context: "feed",
+      } as any);
     } else {
       await supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", track.id);
     }
@@ -59,9 +64,8 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
   const spotifyUrl = getSpotifyUrl(track?.spotify_track_id, track?.title, track?.artist);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 transition-all duration-150 animate-slide-in">
-      {/* User header */}
-      <div className="mb-3 flex items-center gap-3">
+    <div className="rounded-xl border border-border bg-card p-3 transition-all duration-150 animate-slide-in">
+      <div className="mb-2 flex items-center gap-3">
         <Link to={`/profile/${profile?.username || profile?.id}`}>
           <div className="h-9 w-9 overflow-hidden rounded-full bg-primary/20">
             {profile?.avatar_url ? (
@@ -89,13 +93,12 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
         </div>
         <button
           onClick={toggleSave}
-          className={`text-muted-dim hover:text-primary transition-all duration-150 ${bouncing ? "scale-125" : "scale-100"}`}
+          className={`transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
         >
-          <Bookmark className={`h-4 w-4 ${saved ? "fill-primary text-primary" : ""}`} />
+          <Heart className={`h-7 w-7 ${saved ? "fill-primary text-primary" : "text-muted-dim hover:text-primary"}`} />
         </button>
       </div>
 
-      {/* Track info */}
       <div className="flex gap-3">
         {track?.album_art_url && (
           <a href={spotifyUrl} target="_blank" rel="noopener noreferrer">
@@ -123,7 +126,6 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
         </div>
       </div>
 
-      {/* Emoji reactions */}
       <EmojiReactions likeId={item.id} />
     </div>
   );

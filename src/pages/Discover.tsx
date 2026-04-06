@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ const Discover = () => {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<any[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const loadUsers = async (q?: string) => {
     setPageLoading(true);
@@ -23,7 +24,7 @@ const Discover = () => {
       .neq("id", user?.id || "")
       .limit(30);
 
-    if (q) {
+    if (q && q.trim()) {
       request = request.or(`username.ilike.%${q}%,display_name.ilike.%${q}%`);
     }
 
@@ -38,13 +39,13 @@ const Discover = () => {
 
   const handleSearch = (val: string) => {
     setQuery(val);
-    loadUsers(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => loadUsers(val), 300);
   };
 
   if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
 
-  // Pad with demo users if fewer than 4 real users
   const needsPadding = users.length < 4 && !query;
 
   return (

@@ -6,5 +6,4 @@ export function getSpotifyUrl(spotifyTrackId?: string, title?: string, artist?: 
   return `https://open.spotify.com/search/${query}`;
 }
 
-// Keep backward compat alias
 export const getSonglinkUrl = getSpotifyUrl;

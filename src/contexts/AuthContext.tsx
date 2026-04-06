@@ -22,19 +22,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState(false);
   const [syncCount, setSyncCount] = useState<number | null>(null);
-  const hasSynced = useRef(false);
+  const syncingRef = useRef(false);
 
   const storeTokensAndSync = async (s: Session) => {
-    if (hasSynced.current) return;
-    hasSynced.current = true;
+    if (syncingRef.current) return;
+    syncingRef.current = true;
 
-    // Capture provider tokens from the session
     const providerToken = s.provider_token;
     const providerRefreshToken = s.provider_refresh_token;
 
+    // Always store tokens when available (keeps them fresh every login)
     if (providerToken) {
-      // Store tokens in profiles table
-      const updateData: Record<string, string> = { spotify_access_token: providerToken };
+      const updateData: Record<string, string> = {
+        spotify_access_token: providerToken,
+        display_name: s.user.user_metadata?.full_name || s.user.user_metadata?.name || undefined,
+        avatar_url: s.user.user_metadata?.avatar_url || s.user.user_metadata?.picture || undefined,
+      };
+      // Remove undefined values
+      Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
       if (providerRefreshToken) {
         updateData.spotify_refresh_token = providerRefreshToken;
       }
@@ -59,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSyncError(true);
     }
     setSyncing(false);
+    syncingRef.current = false;
   };
 
   const triggerSync = async (): Promise<number> => {
@@ -87,7 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setLoading(false);
 
-        if (session?.user && !hasSynced.current) {
+        // Always sync on SIGNED_IN event when provider tokens are available
+        if (session?.user && session.provider_token) {
           storeTokensAndSync(session);
         }
       }
@@ -96,7 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
-      if (session?.user && !hasSynced.current) {
+      // On page load with existing session, sync if provider tokens present
+      if (session?.user && session.provider_token) {
         storeTokensAndSync(session);
       }
     });
@@ -115,8 +123,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    hasSynced.current = false;
+    syncingRef.current = false;
     await supabase.auth.signOut();
+    // Clear all storage to ensure clean account switching
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith("sb-")) localStorage.removeItem(key);
+    });
+    sessionStorage.clear();
+    window.location.href = "/";
   };
 
   return (
