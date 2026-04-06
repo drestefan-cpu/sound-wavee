@@ -93,6 +93,7 @@ export type Database = {
           display_name: string | null
           id: string
           onboarding_complete: boolean
+          public: boolean
           spotify_id: string | null
           username: string | null
         }
@@ -102,6 +103,7 @@ export type Database = {
           display_name?: string | null
           id: string
           onboarding_complete?: boolean
+          public?: boolean
           spotify_id?: string | null
           username?: string | null
         }
@@ -111,6 +113,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           onboarding_complete?: boolean
+          public?: boolean
           spotify_id?: string | null
           username?: string | null
         }
@@ -148,6 +151,42 @@ export type Database = {
           },
           {
             foreignKeyName: "reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_tracks: {
+        Row: {
+          id: string
+          saved_at: string
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          saved_at?: string
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          saved_at?: string
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_tracks_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_tracks_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"

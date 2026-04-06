@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
+import PageHeader from "@/components/PageHeader";
+import PlaiLogo from "@/components/PlaiLogo";
 
 const SettingsPage = () => {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
+  const [useSonglink, setUseSonglink] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -26,24 +29,23 @@ const SettingsPage = () => {
       if (data) {
         setDisplayName(data.display_name || "");
         setUsername(data.username || "");
+        setIsPublic((data as any).public !== false);
       }
     };
     load();
   }, [user]);
 
-  const handleSave = async () => {
+  const handleSave = async (field: string, value: any) => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ display_name: displayName, username: username.toLowerCase().replace(/[^a-z0-9]/g, "") })
-      .eq("id", user.id);
+    const update: any = {};
+    if (field === "display_name") update.display_name = value;
+    if (field === "username") update.username = value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (field === "public") update.public = value;
+    const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
     setSaving(false);
-    if (error) {
-      toast.error("Failed to update profile");
-    } else {
-      toast.success("Profile updated");
-    }
+    if (error) toast.error("Failed to update");
+    else toast.success("Updated");
   };
 
   const handleSignOut = async () => {
@@ -51,53 +53,129 @@ const SettingsPage = () => {
     navigate("/");
   };
 
+  if (loading) return null;
+  if (!user) return <Navigate to="/" replace />;
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-feed items-center gap-3 px-4 py-3">
-          <button onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground transition-colors duration-150">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-sm font-medium text-foreground">Settings</h1>
-        </div>
-      </header>
+      <PageHeader title="Settings" />
 
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
-            <Input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="bg-card border-border"
-            />
+        {/* Display name */}
+        <div>
+          <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
+          <div className="flex gap-2">
+            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="bg-card border-border" />
+            <button onClick={() => handleSave("display_name", displayName)} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
+              save
+            </button>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm text-muted-foreground">username</label>
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="bg-card border-border"
-            />
-          </div>
-          <Button
-            className="w-full"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? "Saving..." : "Save changes"}
-          </Button>
         </div>
 
+        {/* Username */}
+        <div>
+          <label className="mb-1.5 block text-sm text-muted-foreground">username</label>
+          <div className="flex gap-2">
+            <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))} className="bg-card border-border" />
+            <button onClick={() => handleSave("username", username)} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
+              save
+            </button>
+          </div>
+        </div>
+
+        {/* Connected platforms */}
         <div className="border-t border-border pt-6">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">connected platforms</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="h-2 w-2 rounded-full bg-green-500" />
+              <span className="text-sm text-foreground">Spotify</span>
+              <span className="text-xs text-muted-foreground ml-auto">connected</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="h-2 w-2 rounded-full bg-muted" />
+              <span className="text-sm text-foreground">Apple Music</span>
+              <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="h-2 w-2 rounded-full bg-muted" />
+              <span className="text-sm text-foreground">YouTube Music</span>
+              <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="h-2 w-2 rounded-full bg-muted" />
+              <span className="text-sm text-foreground">Tidal</span>
+              <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Song link preference */}
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">song links</h3>
+          <label className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-foreground">open via Songlink</p>
+              <p className="text-xs text-muted-foreground">works on all platforms</p>
+            </div>
+            <button
+              onClick={() => setUseSonglink(!useSonglink)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${useSonglink ? "bg-primary" : "bg-muted"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${useSonglink ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </label>
+        </div>
+
+        {/* Notifications */}
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">notifications</h3>
+          <label className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-foreground">push notifications</p>
+              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[10px] text-muted-foreground">coming soon</span>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted cursor-not-allowed opacity-50">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
+            </button>
+          </label>
+        </div>
+
+        {/* Privacy */}
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">privacy</h3>
+          <label className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-foreground">public profile</p>
+              <p className="text-xs text-muted-foreground">visible in discover and search</p>
+            </div>
+            <button
+              onClick={() => { setIsPublic(!isPublic); handleSave("public", !isPublic); }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${isPublic ? "bg-primary" : "bg-muted"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${isPublic ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </label>
+        </div>
+
+        {/* About */}
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">about</h3>
+          <div className="flex items-center gap-2">
+            <PlaiLogo className="text-lg" glow={false} />
+            <span className="text-xs text-muted-foreground">· v0.1 beta · "from old provençal — it pleases me"</span>
+          </div>
+        </div>
+
+        {/* Sign out */}
+        <div className="border-t border-border pt-6">
+          <button
             onClick={handleSignOut}
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-medium text-primary transition-all duration-150 hover:bg-primary/10"
           >
             <LogOut className="h-4 w-4" />
-            Sign out
-          </Button>
+            sign out
+          </button>
         </div>
       </main>
 

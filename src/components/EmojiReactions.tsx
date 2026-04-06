@@ -10,13 +10,24 @@ interface ReactionCount {
   reacted: boolean;
 }
 
-const EmojiReactions = ({ likeId }: { likeId: string }) => {
+interface EmojiReactionsProps {
+  likeId: string;
+  /** If true, reactions are local-only (no DB) */
+  localOnly?: boolean;
+  initialReactions?: { emoji: string; count: number }[];
+}
+
+const EmojiReactions = ({ likeId, localOnly = false, initialReactions }: EmojiReactionsProps) => {
   const { user } = useAuth();
   const [reactions, setReactions] = useState<ReactionCount[]>(
-    EMOJIS.map((e) => ({ emoji: e, count: 0, reacted: false }))
+    EMOJIS.map((e) => {
+      const init = initialReactions?.find((r) => r.emoji === e);
+      return { emoji: e, count: init?.count || 0, reacted: false };
+    })
   );
 
   const loadReactions = useCallback(async () => {
+    if (localOnly) return;
     const { data } = await supabase
       .from("reactions")
       .select("emoji, user_id")
@@ -34,14 +45,13 @@ const EmojiReactions = ({ likeId }: { likeId: string }) => {
         })
       );
     }
-  }, [likeId, user]);
+  }, [likeId, user, localOnly]);
 
   useEffect(() => {
     loadReactions();
   }, [loadReactions]);
 
   const toggleReaction = async (emoji: string) => {
-    if (!user) return;
     const current = reactions.find((r) => r.emoji === emoji);
     if (!current) return;
 
@@ -52,6 +62,8 @@ const EmojiReactions = ({ likeId }: { likeId: string }) => {
           : r
       )
     );
+
+    if (localOnly || !user) return;
 
     if (current.reacted) {
       await supabase

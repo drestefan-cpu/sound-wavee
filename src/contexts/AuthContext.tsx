@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   syncing: boolean;
+  syncError: boolean;
   signInWithSpotify: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -17,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(false);
   const hasSynced = useRef(false);
 
   useEffect(() => {
@@ -25,16 +27,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setLoading(false);
 
-        // Auto-sync on sign in
         if (session?.user && !hasSynced.current) {
           hasSynced.current = true;
           setSyncing(true);
+          setSyncError(false);
           try {
-            await supabase.functions.invoke("sync-spotify-likes", {
+            const { data } = await supabase.functions.invoke("sync-spotify-likes", {
               body: { user_id: session.user.id },
             });
+            if (!data?.count || data.count === 0) {
+              setSyncError(true);
+            }
           } catch (e) {
             console.error("Auto-sync error:", e);
+            setSyncError(true);
           }
           setSyncing(false);
         }
@@ -71,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: session?.user ?? null,
         loading,
         syncing,
+        syncError,
         signInWithSpotify,
         signOut,
       }}

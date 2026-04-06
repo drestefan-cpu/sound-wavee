@@ -1,5 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Bookmark } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import EmojiReactions from "@/components/EmojiReactions";
+import { getSonglinkUrl } from "@/lib/songlink";
 
 interface FeedItem {
   id: string;
@@ -32,8 +37,22 @@ function timeAgo(date: string) {
 }
 
 const TrackCard = ({ item }: { item: FeedItem }) => {
+  const { user } = useAuth();
   const profile = item.profiles;
   const track = item.tracks;
+  const [saved, setSaved] = useState(false);
+
+  const toggleSave = async () => {
+    if (!user) return;
+    setSaved((prev) => !prev);
+    if (saved) {
+      await supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", track.id);
+    } else {
+      await supabase.from("saved_tracks").insert({ user_id: user.id, track_id: track.id });
+    }
+  };
+
+  const songlinkUrl = getSonglinkUrl(track?.spotify_track_id, track?.title, track?.artist);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 transition-all duration-150 animate-slide-in">
@@ -64,19 +83,35 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
             </span>
           </div>
         </div>
+        <button
+          onClick={toggleSave}
+          className="text-muted-foreground hover:text-primary transition-colors duration-150"
+        >
+          <Bookmark className={`h-4 w-4 ${saved ? "fill-primary text-primary" : ""}`} />
+        </button>
       </div>
 
       {/* Track info */}
       <div className="flex gap-3">
         {track?.album_art_url && (
-          <img
-            src={track.album_art_url}
-            alt={track.album || ""}
-            className="h-[52px] w-[52px] rounded-md object-cover"
-          />
+          <a href={songlinkUrl} target="_blank" rel="noopener noreferrer">
+            <img
+              src={track.album_art_url}
+              alt={track.album || ""}
+              className="h-[52px] w-[52px] rounded-md object-cover hover:opacity-80 transition-opacity duration-150"
+            />
+          </a>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-foreground">{track?.title}</p>
+          <a
+            href={songlinkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="truncate font-medium text-foreground hover:text-primary transition-colors duration-150 flex items-center gap-1"
+          >
+            <span className="truncate">{track?.title}</span>
+            <span className="text-muted-foreground text-xs flex-shrink-0">↗</span>
+          </a>
           <p className="truncate text-sm text-muted-foreground">{track?.artist}</p>
           {track?.album && (
             <p className="truncate text-xs text-muted-dim">{track.album}</p>
