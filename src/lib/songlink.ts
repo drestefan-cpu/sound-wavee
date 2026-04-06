@@ -1,7 +1,10 @@
-export function getSonglinkUrl(spotifyTrackId?: string, title?: string, artist?: string): string {
+export function getSpotifyUrl(spotifyTrackId?: string, title?: string, artist?: string): string {
   if (spotifyTrackId) {
-    return `https://song.link/s/${spotifyTrackId}`;
+    return `https://open.spotify.com/track/${spotifyTrackId}`;
   }
   const query = encodeURIComponent(`${title || ""} ${artist || ""}`.trim());
-  return `https://song.link/search?query=${query}`;
+  return `https://open.spotify.com/search/${query}`;
 }
+
+// Keep backward compat alias
+export const getSonglinkUrl = getSpotifyUrl;

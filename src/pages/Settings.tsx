@@ -15,7 +15,8 @@ const SettingsPage = () => {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [useSonglink, setUseSonglink] = useState(true);
+  const [pin, setPin] = useState("");
+  const [pinSaving, setPinSaving] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -40,12 +41,31 @@ const SettingsPage = () => {
     setSaving(true);
     const update: any = {};
     if (field === "display_name") update.display_name = value;
-    if (field === "username") update.username = value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (field === "username") update.username = value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (field === "public") update.public = value;
     const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
     setSaving(false);
     if (error) toast.error("Failed to update");
     else toast.success("Updated");
+  };
+
+  const handleSavePin = async () => {
+    if (!user || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      toast.error("PIN must be exactly 4 digits");
+      return;
+    }
+    setPinSaving(true);
+    // Store hashed PIN via edge function or RPC
+    // For now store as a simple hash using the database
+    const { error } = await (supabase.rpc as any)("set_login_pin", { p_user_id: user.id, p_pin: pin });
+    setPinSaving(false);
+    if (error) {
+      toast.error("Failed to save PIN");
+      console.error(error);
+    } else {
+      toast.success("PIN saved");
+      setPin("");
+    }
   };
 
   const handleSignOut = async () => {
@@ -76,9 +96,34 @@ const SettingsPage = () => {
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">username</label>
           <div className="flex gap-2">
-            <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))} className="bg-card border-border" />
+            <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))} className="bg-card border-border" />
             <button onClick={() => handleSave("username", username)} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
               save
+            </button>
+          </div>
+          <span className="text-[10px] text-muted-foreground mt-1 block">letters, numbers, . _ - only</span>
+        </div>
+
+        {/* Quick Login PIN */}
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h3>
+          <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
+          <div className="flex gap-2">
+            <Input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="••••"
+              className="bg-card border-border w-24 text-center tracking-[0.3em]"
+            />
+            <button
+              onClick={handleSavePin}
+              disabled={pinSaving || pin.length !== 4}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+            >
+              {pinSaving ? "saving..." : "save"}
             </button>
           </div>
         </div>
@@ -108,23 +153,6 @@ const SettingsPage = () => {
               <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
             </div>
           </div>
-        </div>
-
-        {/* Song link preference */}
-        <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">song links</h3>
-          <label className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-foreground">open via Songlink</p>
-              <p className="text-xs text-muted-foreground">works on all platforms</p>
-            </div>
-            <button
-              onClick={() => setUseSonglink(!useSonglink)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${useSonglink ? "bg-primary" : "bg-muted"}`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${useSonglink ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </label>
         </div>
 
         {/* Notifications */}

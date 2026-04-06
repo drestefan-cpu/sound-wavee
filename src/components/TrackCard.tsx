@@ -4,7 +4,7 @@ import { Bookmark } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EmojiReactions from "@/components/EmojiReactions";
-import { getSonglinkUrl } from "@/lib/songlink";
+import { getSpotifyUrl } from "@/lib/songlink";
 
 interface FeedItem {
   id: string;
@@ -41,18 +41,22 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
   const profile = item.profiles;
   const track = item.tracks;
   const [saved, setSaved] = useState(false);
+  const [bouncing, setBouncing] = useState(false);
 
   const toggleSave = async () => {
     if (!user) return;
-    setSaved((prev) => !prev);
-    if (saved) {
-      await supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", track.id);
-    } else {
+    setBouncing(true);
+    setTimeout(() => setBouncing(false), 300);
+    const newSaved = !saved;
+    setSaved(newSaved);
+    if (newSaved) {
       await supabase.from("saved_tracks").insert({ user_id: user.id, track_id: track.id });
+    } else {
+      await supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", track.id);
     }
   };
 
-  const songlinkUrl = getSonglinkUrl(track?.spotify_track_id, track?.title, track?.artist);
+  const spotifyUrl = getSpotifyUrl(track?.spotify_track_id, track?.title, track?.artist);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 transition-all duration-150 animate-slide-in">
@@ -85,7 +89,7 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
         </div>
         <button
           onClick={toggleSave}
-          className="text-muted-foreground hover:text-primary transition-colors duration-150"
+          className={`text-muted-dim hover:text-primary transition-all duration-150 ${bouncing ? "scale-125" : "scale-100"}`}
         >
           <Bookmark className={`h-4 w-4 ${saved ? "fill-primary text-primary" : ""}`} />
         </button>
@@ -94,7 +98,7 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
       {/* Track info */}
       <div className="flex gap-3">
         {track?.album_art_url && (
-          <a href={songlinkUrl} target="_blank" rel="noopener noreferrer">
+          <a href={spotifyUrl} target="_blank" rel="noopener noreferrer">
             <img
               src={track.album_art_url}
               alt={track.album || ""}
@@ -104,7 +108,7 @@ const TrackCard = ({ item }: { item: FeedItem }) => {
         )}
         <div className="min-w-0 flex-1">
           <a
-            href={songlinkUrl}
+            href={spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="truncate font-medium text-foreground hover:text-primary transition-colors duration-150 flex items-center gap-1"

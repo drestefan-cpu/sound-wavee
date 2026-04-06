@@ -1,16 +1,35 @@
+import { useState } from "react";
+import { Bookmark } from "lucide-react";
 import EmojiReactions from "@/components/EmojiReactions";
-import { getSonglinkUrl } from "@/lib/songlink";
+import { getSpotifyUrl } from "@/lib/songlink";
 import type { DemoFeedItem } from "@/lib/demoData";
 
-const DemoCard = ({ item }: { item: DemoFeedItem }) => {
-  const songlinkUrl = getSonglinkUrl(item.track.spotify_track_id, item.track.title, item.track.artist);
+const DemoCard = ({ item, onSave, isSaved }: { item: DemoFeedItem; onSave?: (item: DemoFeedItem) => void; isSaved?: boolean }) => {
+  const [localSaved, setLocalSaved] = useState(isSaved ?? false);
+  const [bouncing, setBouncing] = useState(false);
+  const spotifyUrl = getSpotifyUrl(item.track.spotify_track_id, item.track.title, item.track.artist);
+
+  const toggleSave = () => {
+    setBouncing(true);
+    setTimeout(() => setBouncing(false), 300);
+    setLocalSaved(!localSaved);
+    onSave?.(item);
+  };
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 transition-all duration-150 relative">
       {/* Preview pill */}
-      <span className="absolute top-3 right-3 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-primary">
+      <span className="absolute top-3 right-12 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-primary">
         preview
       </span>
+
+      {/* Save button */}
+      <button
+        onClick={toggleSave}
+        className={`absolute top-3 right-3 text-muted-dim hover:text-primary transition-all duration-150 ${bouncing ? "scale-125" : "scale-100"}`}
+      >
+        <Bookmark className={`h-4 w-4 ${localSaved ? "fill-primary text-primary" : ""}`} />
+      </button>
 
       {/* User header */}
       <div className="mb-3 flex items-center gap-3">
@@ -33,7 +52,7 @@ const DemoCard = ({ item }: { item: DemoFeedItem }) => {
       {/* Track */}
       <div className="min-w-0">
         <a
-          href={songlinkUrl}
+          href={spotifyUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="font-medium text-foreground hover:text-primary transition-colors duration-150 flex items-center gap-1"

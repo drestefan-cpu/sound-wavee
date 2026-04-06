@@ -92,9 +92,13 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          last_synced_at: string | null
+          login_pin: string | null
           onboarding_complete: boolean
           public: boolean
+          spotify_access_token: string | null
           spotify_id: string | null
+          spotify_refresh_token: string | null
           username: string | null
         }
         Insert: {
@@ -102,9 +106,13 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          last_synced_at?: string | null
+          login_pin?: string | null
           onboarding_complete?: boolean
           public?: boolean
+          spotify_access_token?: string | null
           spotify_id?: string | null
+          spotify_refresh_token?: string | null
           username?: string | null
         }
         Update: {
@@ -112,9 +120,13 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          last_synced_at?: string | null
+          login_pin?: string | null
           onboarding_complete?: boolean
           public?: boolean
+          spotify_access_token?: string | null
           spotify_id?: string | null
+          spotify_refresh_token?: string | null
           username?: string | null
         }
         Relationships: []
@@ -232,7 +244,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_login_pin: {
+        Args: { p_pin: string; p_user_id: string }
+        Returns: undefined
+      }
+      verify_login_pin: {
+        Args: { p_email: string; p_pin: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
