@@ -35,7 +35,6 @@ const Demo = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Top banner */}
       <div className="sticky top-0 z-20 bg-card border-b border-border">
         <div className="mx-auto flex max-w-feed items-center justify-between px-4 py-2.5">
           <p className="text-xs text-muted-foreground">
@@ -60,7 +59,6 @@ const Demo = () => {
         </div>
       </header>
 
-      {/* Tabs */}
       <div className="mx-auto max-w-feed px-4 pt-3">
         <div className="flex gap-2">
           <button
@@ -104,20 +102,25 @@ const Demo = () => {
                 your finds
               </h3>
               {savedDemoItems.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-2">
                   {savedDemoItems.map((item) => (
-                    <a
-                      key={item.id}
-                      href={getSpotifyUrl(item.track.spotify_track_id, item.track.title, item.track.artist)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="aspect-square overflow-hidden rounded-lg bg-card border border-border hover:opacity-80 transition-opacity duration-150 flex items-center justify-center"
-                    >
-                      <div className="text-center p-2">
-                        <p className="text-xs font-medium text-foreground truncate">{item.track.title}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{item.track.artist}</p>
+                    <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                      <div className="h-12 w-12 flex-shrink-0 rounded-md bg-card border border-border flex items-center justify-center">
+                        <p className="text-xs text-muted-foreground">🎵</p>
                       </div>
-                    </a>
+                      <div className="flex-1 min-w-0">
+                        <a
+                          href={getSpotifyUrl(item.track.spotify_track_id, item.track.title, item.track.artist)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate flex items-center gap-1"
+                        >
+                          <span className="truncate">{item.track.title}</span>
+                          <span className="text-muted-foreground text-xs">↗</span>
+                        </a>
+                        <p className="text-xs text-muted-foreground truncate">{item.track.artist}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -135,9 +138,6 @@ const Demo = () => {
               <div className="space-y-2">
                 {demoUsers.map((u) => (
                   <div key={u.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 relative">
-                    <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-primary">
-                      example
-                    </span>
                     <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20">
                       <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
                         {u.display_name[0].toUpperCase()}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import PlaiLogo from "@/components/PlaiLogo";
 
 const SettingsPage = () => {
   const { user, loading, signOut } = useAuth();
-  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [isPublic, setIsPublic] = useState(true);
@@ -22,11 +21,7 @@ const SettingsPage = () => {
   useEffect(() => {
     const load = async () => {
       if (!user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       if (data) {
         setDisplayName(data.display_name || "");
         setUsername(data.username || "");
@@ -55,22 +50,14 @@ const SettingsPage = () => {
       return;
     }
     setPinSaving(true);
-    // Store hashed PIN via edge function or RPC
-    // For now store as a simple hash using the database
     const { error } = await (supabase.rpc as any)("set_login_pin", { p_user_id: user.id, p_pin: pin });
     setPinSaving(false);
     if (error) {
       toast.error("Failed to save PIN");
-      console.error(error);
     } else {
       toast.success("PIN saved");
       setPin("");
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
   };
 
   if (loading) return null;
@@ -81,7 +68,6 @@ const SettingsPage = () => {
       <PageHeader title="Settings" />
 
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
-        {/* Display name */}
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
           <div className="flex gap-2">
@@ -92,7 +78,6 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Username */}
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">username</label>
           <div className="flex gap-2">
@@ -104,7 +89,6 @@ const SettingsPage = () => {
           <span className="text-[10px] text-muted-foreground mt-1 block">letters, numbers, . _ - only</span>
         </div>
 
-        {/* Quick Login PIN */}
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h3>
           <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
@@ -128,7 +112,6 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Connected platforms */}
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">connected platforms</h3>
           <div className="space-y-3">
@@ -155,7 +138,6 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Notifications */}
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">notifications</h3>
           <label className="flex items-center justify-between">
@@ -169,7 +151,6 @@ const SettingsPage = () => {
           </label>
         </div>
 
-        {/* Privacy */}
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">privacy</h3>
           <label className="flex items-center justify-between">
@@ -186,7 +167,6 @@ const SettingsPage = () => {
           </label>
         </div>
 
-        {/* About */}
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">about</h3>
           <div className="flex items-center gap-2">
@@ -195,10 +175,9 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Sign out */}
         <div className="border-t border-border pt-6">
           <button
-            onClick={handleSignOut}
+            onClick={signOut}
             className="flex w-full items-center justify-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-medium text-primary transition-all duration-150 hover:bg-primary/10"
           >
             <LogOut className="h-4 w-4" />
