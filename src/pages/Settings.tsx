@@ -50,11 +50,16 @@ const SettingsPage = () => {
       return;
     }
     setPinSaving(true);
+    // Try RPC first (hashed), fallback to plain text
     const { error } = await (supabase.rpc as any)("set_login_pin", { p_user_id: user.id, p_pin: pin });
-    setPinSaving(false);
     if (error) {
-      toast.error("Failed to save PIN");
+      // Fallback: store plain
+      const { error: e2 } = await supabase.from("profiles").update({ login_pin: pin } as any).eq("id", user.id);
+      setPinSaving(false);
+      if (e2) toast.error("Failed to save PIN");
+      else { toast.success("PIN saved"); setPin(""); }
     } else {
+      setPinSaving(false);
       toast.success("PIN saved");
       setPin("");
     }
@@ -92,6 +97,7 @@ const SettingsPage = () => {
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h3>
           <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
+          <p className="text-[10px] text-muted-dim mb-2">PIN is for convenience only, not a security feature.</p>
           <div className="flex gap-2">
             <Input
               type="password"

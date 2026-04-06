@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
 import EmojiReactions from "@/components/EmojiReactions";
 import type { TrendingTrack } from "@/lib/trending";
 
-const positionColors = [
-  "bg-primary", "bg-primary/90", "bg-primary/80", "bg-primary/70", "bg-primary/60",
-  "bg-primary/50", "bg-primary/45", "bg-primary/40", "bg-primary/35", "bg-primary/30",
-  "bg-primary/28", "bg-primary/25", "bg-primary/22", "bg-primary/20", "bg-primary/18",
-];
+const positionPlaceholderColors: Record<number, string> = {};
+[1,4,7,10,13].forEach(p => positionPlaceholderColors[p] = "bg-primary");
+[2,5,8,11,14].forEach(p => positionPlaceholderColors[p] = "bg-[#1a2535]");
+[3,6,9,12,15].forEach(p => positionPlaceholderColors[p] = "bg-[#0F1520]");
 
-const TrendingCard = ({ track, onSave, isSaved }: { track: TrendingTrack; onSave?: (track: TrendingTrack) => void; isSaved?: boolean }) => {
+const TrendingCard = ({ track, onSave, isSaved }: { track: TrendingTrack & { album_art_url?: string | null }; onSave?: (track: TrendingTrack) => void; isSaved?: boolean }) => {
   const [localSaved, setLocalSaved] = useState(isSaved ?? false);
   const [bouncing, setBouncing] = useState(false);
 
@@ -20,12 +19,25 @@ const TrendingCard = ({ track, onSave, isSaved }: { track: TrendingTrack; onSave
     onSave?.(track);
   };
 
+  const artUrl = (track as any).album_art_url || track.albumArtUrl;
+
   return (
     <div className="rounded-xl border border-border bg-card p-3 transition-all duration-150">
       <div className="flex gap-3">
-        <div className={`flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-md ${positionColors[track.position - 1] || "bg-primary/20"}`}>
-          <span className="font-display text-lg text-primary-foreground">{track.position}</span>
-        </div>
+        {artUrl ? (
+          <a
+            href={track.songlink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-md hover:opacity-80 transition-opacity duration-150"
+          >
+            <img src={artUrl} alt="" className="h-full w-full object-cover" />
+          </a>
+        ) : (
+          <div className={`flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-md ${positionPlaceholderColors[track.position] || "bg-primary/20"}`}>
+            <span className="font-display text-lg text-primary-foreground">{track.position}</span>
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <a
             href={track.songlink}

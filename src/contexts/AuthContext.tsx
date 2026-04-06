@@ -31,29 +31,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("Sync result:", data, error);
   };
 
+  // Handle OAuth redirect — FIRST useEffect
   useEffect(() => {
-    // Capture provider token from URL hash immediately on load
-    const hash = window.location.hash;
-    if (hash && hash.includes("provider_token")) {
+    const handleOAuthRedirect = async () => {
+      const hash = window.location.hash;
+      if (!hash || !hash.includes("provider_token")) return;
+
       const params = new URLSearchParams(hash.substring(1));
       const providerToken = params.get("provider_token");
       const providerRefreshToken = params.get("provider_refresh_token");
+      if (!providerToken) return;
 
-      if (providerToken) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            storeTokensAndSync(
-              session.user.id,
-              providerToken,
-              providerRefreshToken,
-              session.user.user_metadata
-            );
-          }
-        });
-        window.history.replaceState(null, "", window.location.pathname);
-      }
-    }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
 
+      await supabase.from("profiles").upsert({
+        id: session.user.id,
+        spotify_access_token: providerToken,
+        spotify_refresh_token: providerRefreshToken,
+        display_name: session.user.user_metadata?.full_name ||
+                      session.user.user_metadata?.name ||
+                      session.user.email?.split("@")[0],
+        avatar_url: session.user.user_metadata?.avatar_url ||
+                    session.user.user_metadata?.picture,
+      } as any, { onConflict: "id" });
+
+      await supabase.functions.invoke("sync-spotify-likes", {
+        body: { user_id: session.user.id },
+      });
+
+      window.history.replaceState(null, "", window.location.pathname);
+    };
+
+    handleOAuthRedirect();
+  }, []);
+
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);

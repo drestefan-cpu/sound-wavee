@@ -8,7 +8,7 @@ import TrendingCard from "@/components/TrendingCard";
 import DemoCard from "@/components/DemoCard";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
-import { trendingTracks } from "@/lib/trending";
+import { trendingTracks, type TrendingTrack } from "@/lib/trending";
 import { demoFeedItems } from "@/lib/demoData";
 
 interface FeedItem {
@@ -41,6 +41,41 @@ const Feed = () => {
   const [tab, setTab] = useState<"following" | "trending">("following");
   const [isNewUser, setIsNewUser] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [savedTrackIds, setSavedTrackIds] = useState<Set<string>>(new Set());
+  const [trendingWithArt, setTrendingWithArt] = useState<(TrendingTrack & { album_art_url?: string | null })[]>(trendingTracks);
+
+  // Fetch trending artwork
+  useEffect(() => {
+    const loadArtwork = async () => {
+      const updated = await Promise.all(
+        trendingTracks.map(async (track) => {
+          if (!track.spotifyTrackId) return track;
+          try {
+            const res = await fetch(
+              `https://open.spotify.com/oembed?url=https://open.spotify.com/track/${track.spotifyTrackId}`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              return { ...track, album_art_url: data.thumbnail_url };
+            }
+          } catch {}
+          return track;
+        })
+      );
+      setTrendingWithArt(updated);
+    };
+    loadArtwork();
+  }, []);
+
+  // Load saved track IDs
+  useEffect(() => {
+    if (!user) return;
+    const loadSaved = async () => {
+      const { data } = await supabase.from("saved_tracks").select("track_id").eq("user_id", user.id);
+      setSavedTrackIds(new Set((data || []).map(d => d.track_id)));
+    };
+    loadSaved();
+  }, [user]);
 
   // Check onboarding
   useEffect(() => {
@@ -54,7 +89,6 @@ const Feed = () => {
       if (data && !(data as any).onboarding_complete) {
         setIsNewUser(true);
         setShowWelcome(true);
-        // Mark as complete and auto-advance
         await supabase.from("profiles").update({ onboarding_complete: true } as any).eq("id", user.id);
         setTimeout(() => setShowWelcome(false), 2000);
       }
@@ -64,10 +98,7 @@ const Feed = () => {
 
   const loadFollowing = useCallback(async () => {
     if (!user) return [];
-    const { data } = await supabase
-      .from("follows")
-      .select("following_id")
-      .eq("follower_id", user.id);
+    const { data } = await supabase.from("follows").select("following_id").eq("follower_id", user.id);
     const ids = (data || []).map((f) => f.following_id);
     setFollowingIds(ids);
     return ids;
@@ -81,10 +112,7 @@ const Feed = () => {
     const { data, error } = await supabase
       .from("likes")
       .select(`
-        id,
-        liked_at,
-        user_id,
-        track_id,
+        id, liked_at, user_id, track_id,
         profiles!likes_user_id_fkey(id, display_name, avatar_url, username),
         tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)
       `)
@@ -92,7 +120,6 @@ const Feed = () => {
       .order("liked_at", { ascending: false })
       .limit(50);
     if (error) console.error("Feed error:", error);
-
     setItems((data as unknown as FeedItem[]) || []);
     setFeedLoading(false);
   }, [user, followingIds]);
@@ -110,31 +137,59 @@ const Feed = () => {
     if (!user) return;
     const channel = supabase
       .channel("feed-likes")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "likes" },
-        async (payload) => {
-          const newLike = payload.new as any;
-          if (followingIds.includes(newLike.user_id) || newLike.user_id === user.id) {
-            const { data } = await supabase
-              .from("likes")
-              .select("id, liked_at, user_id, track_id, profiles!likes_user_id_fkey(id, display_name, avatar_url, username), tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)")
-              .eq("id", newLike.id)
-              .single();
-            if (data) {
-              const item = data as unknown as FeedItem;
-              setItems((prev) => [item, ...prev]);
-              if (newLike.user_id !== user.id) {
-                toast(`${item.profiles?.display_name || "Someone"} just liked ${item.tracks?.title} ↗`);
-              }
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "likes" }, async (payload) => {
+        const newLike = payload.new as any;
+        if (followingIds.includes(newLike.user_id) || newLike.user_id === user.id) {
+          const { data } = await supabase
+            .from("likes")
+            .select("id, liked_at, user_id, track_id, profiles!likes_user_id_fkey(id, display_name, avatar_url, username), tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)")
+            .eq("id", newLike.id).single();
+          if (data) {
+            const item = data as unknown as FeedItem;
+            setItems((prev) => [item, ...prev]);
+            if (newLike.user_id !== user.id) {
+              toast(`${item.profiles?.display_name || "Someone"} just liked ${item.tracks?.title} ↗`);
             }
           }
         }
-      )
+      })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user, followingIds]);
+
+  const handleToggleSave = async (trackId: string, sourceUserId: string, sourceContext: string) => {
+    if (!user) return;
+    const alreadySaved = savedTrackIds.has(trackId);
+
+    // Optimistic update
+    setSavedTrackIds(prev => {
+      const next = new Set(prev);
+      if (alreadySaved) next.delete(trackId);
+      else next.add(trackId);
+      return next;
+    });
+
+    if (alreadySaved) {
+      const { error } = await supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", trackId);
+      if (error) {
+        console.error("Remove find error:", error);
+        setSavedTrackIds(prev => new Set(prev).add(trackId));
+        toast.error("couldn't remove — try again");
+      }
+    } else {
+      const { error } = await supabase.from("saved_tracks").insert({
+        user_id: user.id,
+        track_id: trackId,
+        source_user_id: sourceUserId || null,
+        source_context: sourceContext || "feed",
+      } as any);
+      if (error) {
+        console.error("Save find error:", error);
+        setSavedTrackIds(prev => { const n = new Set(prev); n.delete(trackId); return n; });
+        toast.error("couldn't save — try again");
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -170,27 +225,17 @@ const Feed = () => {
         </div>
       </header>
 
-
-      {/* Tabs */}
       <div className="mx-auto max-w-feed px-4 pt-3">
         <div className="flex gap-2">
           <button
             onClick={() => setTab("following")}
-            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 ${
-              tab === "following"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
-            }`}
+            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 ${tab === "following" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}
           >
             following
           </button>
           <button
             onClick={() => setTab("trending")}
-            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 ${
-              tab === "trending"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
-            }`}
+            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 ${tab === "trending" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}
           >
             trending
           </button>
@@ -202,7 +247,6 @@ const Feed = () => {
           <>
             {!hasFollowing && !hasContent && !feedLoading ? (
               <div className="space-y-3">
-                {/* Banner */}
                 <div className="rounded-xl border border-primary/30 bg-card p-4 text-center">
                   <p className="text-sm text-foreground mb-1">this is what your feed looks like</p>
                   <p className="text-xs text-muted-foreground mb-3">follow friends to see the real thing</p>
@@ -220,7 +264,12 @@ const Feed = () => {
             ) : hasContent ? (
               <div className="space-y-3">
                 {items.map((item) => (
-                  <TrackCard key={item.id} item={item} />
+                  <TrackCard
+                    key={item.id}
+                    item={item}
+                    isSaved={savedTrackIds.has(item.track_id)}
+                    onToggleSave={handleToggleSave}
+                  />
                 ))}
               </div>
             ) : feedLoading ? (
@@ -232,10 +281,7 @@ const Feed = () => {
                 <PlaiLogo className="text-2xl" />
                 <h2 className="text-lg font-medium text-foreground">your feed is quiet</h2>
                 <p className="text-sm text-muted-foreground">follow some friends to hear what they're loving</p>
-                <Link
-                  to="/discover"
-                  className="mt-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
-                >
+                <Link to="/discover" className="mt-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
                   find friends
                 </Link>
               </div>
@@ -244,7 +290,7 @@ const Feed = () => {
         ) : (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground mb-2">trending this week</p>
-            {trendingTracks.map((track) => (
+            {trendingWithArt.map((track) => (
               <TrendingCard key={track.position} track={track} />
             ))}
           </div>
