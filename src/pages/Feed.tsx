@@ -367,6 +367,7 @@ const Feed = () => {
             </div>
             {trendingTracks.map((track) => {
               const bgColor = track.position % 2 === 1 ? '#FF2D78' : '#1a2535';
+              const albumArt = track.albumArtUrl || undefined;
               return (
                 <UnifiedTrackCard
                   key={track.position}
@@ -375,20 +376,23 @@ const Feed = () => {
                     title: track.title,
                     artist: track.artist,
                     spotifyTrackId: track.spotifyTrackId,
-                    albumArtUrl: track.albumArtUrl,
+                    albumArtUrl: albumArt,
                     likeId: `trending-${track.position}`,
                     localOnly: true,
                   }}
                   hideReactions
                   header={
-                    !track.albumArtUrl ? (
-                      <div
-                        className="h-6 w-6 rounded-md flex items-center justify-center mb-1"
-                        style={{ backgroundColor: bgColor }}
-                      >
-                        <span className="font-display text-[10px] text-white">{track.position}</span>
-                      </div>
-                    ) : undefined
+                    <div className="mb-1 flex items-center gap-2">
+                      {!albumArt && (
+                        <div
+                          className="h-5 w-5 rounded flex items-center justify-center"
+                          style={{ backgroundColor: bgColor }}
+                        >
+                          <span className="font-display text-[9px] text-white">{track.position}</span>
+                        </div>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">#{track.position}</span>
+                    </div>
                   }
                 />
               );
