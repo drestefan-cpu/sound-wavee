@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 const Profile = () => {
   const { username } = useParams();
-  const { user, loading, triggerSync } = useAuth();
+  const { user, loading } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [likes, setLikes] = useState<any[]>([]);
   const [savedTracks, setSavedTracks] = useState<any[]>([]);
@@ -103,14 +103,22 @@ const Profile = () => {
   }, [profile, isOwnProfile]);
 
   const handleSync = async () => {
+    if (!user) return;
     setSyncing(true);
-    setSyncResult(null);
-    const count = await triggerSync();
+    setSyncResult("syncing...");
+    const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
+      body: { user_id: user.id },
+    });
     setSyncing(false);
-    setSyncResult(`✓ ${count} tracks synced`);
-    setTimeout(() => setSyncResult(null), 2000);
-    const { data } = await supabase.from("likes").select("*, tracks(*)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100);
-    setLikes(data || []);
+    if (error) {
+      setSyncResult("sync failed — try signing out and back in");
+    } else {
+      setSyncResult(`✓ ${data?.count || 0} tracks synced`);
+    }
+    setTimeout(() => setSyncResult(null), 3000);
+    // Refresh data
+    const { data: freshLikes } = await supabase.from("likes").select("*, tracks(*)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100);
+    setLikes(freshLikes || []);
     const { count: total } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id);
     setLikesCount(total || 0);
   };
