@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, RefreshCw, QrCode, X, Copy, Bell } from "lucide-react";
+import { Settings, RefreshCw, QrCode, X, Copy, Bell, Users } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
 import PlaiLogo from "@/components/PlaiLogo";
@@ -27,7 +27,9 @@ const Profile = () => {
   const [likesCount, setLikesCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
-  const [tab, setTab] = useState<"finds" | "collection" | "activity">("finds");
+  const [tab, setTab] = useState<"finds" | "collection" | "following" | "activity">("finds");
+  const [followingList, setFollowingList] = useState<any[]>([]);
+  const [followingLoaded, setFollowingLoaded] = useState(false);
   const [collectionFilter, setCollectionFilter] = useState<"30d" | "all">("30d");
   const [showFlappy, setShowFlappy] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -115,6 +117,27 @@ const Profile = () => {
     loadData();
     return () => { cancelled = true; clearTimeout(timeout); };
   }, [profile, isOwnProfile]);
+
+  // Load following list for own profile
+  useEffect(() => {
+    if (!isOwnProfile || !user || tab !== "following") return;
+    const loadFollowing = async () => {
+      setFollowingLoaded(false);
+      const { data } = await supabase
+        .from("follows")
+        .select(`
+          following_id,
+          profiles!follows_following_id_fkey(
+            id, display_name, username, avatar_url
+          )
+        `)
+        .eq("follower_id", user.id)
+        .order("created_at", { ascending: false });
+      setFollowingList(data || []);
+      setFollowingLoaded(true);
+    };
+    loadFollowing();
+  }, [isOwnProfile, user, tab]);
 
   // Load activity for own profile
   useEffect(() => {
@@ -382,11 +405,11 @@ const Profile = () => {
           </button>
           {isOwnProfile && (
             <button
-              onClick={() => setTab("activity")}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 flex items-center gap-1 ${tab === "activity" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
+              onClick={() => setTab("following")}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 flex items-center gap-1 ${tab === "following" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
             >
-              <Bell className="h-3 w-3" />
-              activity
+              <Users className="h-3 w-3" />
+              following
             </button>
           )}
         </div>
@@ -439,6 +462,48 @@ const Profile = () => {
             <p className="py-8 text-center text-sm text-muted-foreground">
               {isOwnProfile ? "songs you discover on PLAI live here — save them from the feed" : "no finds yet"}
             </p>
+          )
+        ) : tab === "following" ? (
+          /* Following tab */
+          !followingLoaded ? (
+            <div className="flex justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : followingList.length > 0 ? (
+            <div className="space-y-2">
+              {followingList.map((f: any) => {
+                const p = f.profiles;
+                if (!p) return null;
+                return (
+                  <Link
+                    key={p.id}
+                    to={`/profile/${p.username || p.id}`}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:bg-card/80 transition-colors"
+                  >
+                    <div className="h-10 w-10 overflow-hidden rounded-full flex-shrink-0" style={{ backgroundColor: '#FF2D78' }}>
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                          {(p.display_name || "U")[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{p.display_name || "User"}</p>
+                      <p className="text-xs text-muted-foreground">@{p.username || "user"}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground mb-3">you're not following anyone yet — find friends in discover</p>
+              <Link to="/discover" className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+                discover →
+              </Link>
+            </div>
           )
         ) : tab === "activity" ? (
           /* Activity tab */
