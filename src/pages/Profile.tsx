@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, RefreshCw, QrCode, X, Copy, Bell, Users, Heart } from "lucide-react";
+import { Settings, RefreshCw, QrCode, X, Copy, Bell, Users, Heart, Send } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
 import PlaiLogo from "@/components/PlaiLogo";
