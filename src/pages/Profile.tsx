@@ -324,12 +324,9 @@ const Profile = () => {
           </div>
           <div className="text-center">
             <h2 className="text-xl font-medium text-foreground">{displayName}</h2>
-            {profile.username && (
+            {profile.username ? (
               <p className="text-sm text-muted-foreground">@{profile.username}</p>
-            )}
-            {(profile as any).status && (
-              <p className="text-xs text-muted-foreground/70 italic mt-1">"{(profile as any).status}"</p>
-            )}
+            ) : isOwnProfile ? (
               usernameEdit ? (
                 <div className="flex flex-col items-center gap-1 mt-1">
                   <div className="flex items-center gap-2">
@@ -348,6 +345,9 @@ const Profile = () => {
               )
             ) : (
               <p className="text-sm text-muted-foreground">@user</p>
+            )}
+            {(profile as any).status && (
+              <p className="text-xs text-muted-foreground/70 italic mt-1">"{(profile as any).status}"</p>
             )}
           </div>
           <div className="flex gap-6 text-center text-sm">
