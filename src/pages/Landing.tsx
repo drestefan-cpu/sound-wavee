@@ -5,11 +5,17 @@ import { toast } from "sonner";
 import PlaiLogo from "@/components/PlaiLogo";
 import Starfield from "@/components/Starfield";
 import { getRandomTagline } from "@/lib/taglines";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 const Landing = () => {
   const { user, loading, signInWithSpotify } = useAuth();
   const [tagline, setTagline] = useState(() => getRandomTagline());
   const [fade, setFade] = useState(true);
+  const [showPinLogin, setShowPinLogin] = useState(false);
+  const [pinEmail, setPinEmail] = useState("");
+  const [pinValue, setPinValue] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -21,6 +27,30 @@ const Landing = () => {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const handlePinLogin = async () => {
+    if (!pinEmail || pinValue.length !== 4) {
+      toast.error("Enter your email and 4-digit PIN");
+      return;
+    }
+    setPinLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("verify_login_pin" as any, {
+        p_email: pinEmail,
+        p_pin: pinValue,
+      });
+      if (error || !data) {
+        toast.error(data === false ? "Incorrect PIN" : "No PIN set — connect Spotify first, then set up a PIN in settings");
+      } else {
+        // PIN verified — sign in with a custom token or redirect
+        // For now, since we can't create custom sessions client-side, guide the user
+        toast.error("PIN login requires Spotify connection first. Please use Spotify to sign in, then set a PIN in settings.");
+      }
+    } catch {
+      toast.error("PIN login failed");
+    }
+    setPinLoading(false);
+  };
 
   if (loading) {
     return (
@@ -74,6 +104,45 @@ const Landing = () => {
           >
             continue with YouTube Music
           </button>
+        </div>
+
+        {/* PIN Login */}
+        <div className="w-full">
+          {!showPinLogin ? (
+            <button
+              onClick={() => setShowPinLogin(true)}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors duration-150"
+            >
+              sign in with PIN
+            </button>
+          ) : (
+            <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground mb-2">enter your email and 4-digit PIN</p>
+              <Input
+                type="email"
+                value={pinEmail}
+                onChange={(e) => setPinEmail(e.target.value)}
+                placeholder="email"
+                className="bg-background border-border text-sm"
+              />
+              <Input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={pinValue}
+                onChange={(e) => setPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="••••"
+                className="bg-background border-border text-sm text-center tracking-[0.3em] w-24 mx-auto"
+              />
+              <button
+                onClick={handlePinLogin}
+                disabled={pinLoading}
+                className="w-full rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+              >
+                {pinLoading ? "checking..." : "sign in"}
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="text-xs text-muted-foreground/40">

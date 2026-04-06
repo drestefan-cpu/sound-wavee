@@ -3,17 +3,34 @@ import { Link } from "react-router-dom";
 import PlaiLogo from "@/components/PlaiLogo";
 import DemoCard from "@/components/DemoCard";
 import TrendingCard from "@/components/TrendingCard";
-import { demoFeedItems, demoUsers } from "@/lib/demoData";
+import { demoFeedItems, demoUsers, type DemoFeedItem } from "@/lib/demoData";
 import { trendingTracks } from "@/lib/trending";
+import { getSpotifyUrl } from "@/lib/songlink";
 
 const Demo = () => {
   const [tab, setTab] = useState<"following" | "trending">("following");
   const [followedIds, setFollowedIds] = useState<string[]>([]);
+  const [savedDemoItems, setSavedDemoItems] = useState<DemoFeedItem[]>([]);
+  const [savedItemIds, setSavedItemIds] = useState<Set<string>>(new Set());
 
   const toggleFollow = (id: string) => {
     setFollowedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  };
+
+  const toggleSaveDemo = (item: DemoFeedItem) => {
+    setSavedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.id)) {
+        next.delete(item.id);
+        setSavedDemoItems((items) => items.filter((i) => i.id !== item.id));
+      } else {
+        next.add(item.id);
+        setSavedDemoItems((items) => [...items, item]);
+      }
+      return next;
+    });
   };
 
   return (
@@ -73,9 +90,44 @@ const Demo = () => {
         {tab === "following" ? (
           <div className="space-y-3">
             {demoFeedItems.map((item) => (
-              <DemoCard key={item.id} item={item} />
+              <DemoCard
+                key={item.id}
+                item={item}
+                isSaved={savedItemIds.has(item.id)}
+                onSave={() => toggleSaveDemo(item)}
+              />
             ))}
 
+            {/* Your Finds section */}
+            <div className="mt-8">
+              <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                your finds
+              </h3>
+              {savedDemoItems.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {savedDemoItems.map((item) => (
+                    <a
+                      key={item.id}
+                      href={getSpotifyUrl(item.track.spotify_track_id, item.track.title, item.track.artist)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="aspect-square overflow-hidden rounded-lg bg-card border border-border hover:opacity-80 transition-opacity duration-150 flex items-center justify-center"
+                    >
+                      <div className="text-center p-2">
+                        <p className="text-xs font-medium text-foreground truncate">{item.track.title}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{item.track.artist}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  songs you find on PLAI live here
+                </p>
+              )}
+            </div>
+
+            {/* Discover people */}
             <div className="mt-8">
               <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 discover people
