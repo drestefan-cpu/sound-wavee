@@ -95,7 +95,7 @@ const Profile = () => {
       try {
         const [likesRes, savedRes, fcRes, fgcRes, lcRes] = await Promise.all([
           supabase.from("likes").select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100),
-          isOwnProfile ? supabase.from("saved_tracks").select("*, tracks(*), profiles!saved_tracks_source_user_id_fkey(username, display_name, avatar_url)").eq("user_id", profile.id).order("saved_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+          supabase.from("saved_tracks").select("*, tracks(*), profiles!saved_tracks_source_user_id_fkey(username, display_name, avatar_url)").eq("user_id", profile.id).order("saved_at", { ascending: false }).limit(50),
           supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id),
           supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id),
           supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
@@ -385,49 +385,45 @@ const Profile = () => {
           </div>
         ) : tab === "finds" ? (
           /* Finds tab */
-          savedTracks.length > 0 || !isOwnProfile ? (
-            isOwnProfile && savedTracks.length > 0 ? (
-              <div className="space-y-2">
-                {savedTracks.map((s: any) => (
-                  <div key={s.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-                    <a
-                      href={getSpotifyUrl(s.tracks?.spotify_track_id, s.tracks?.title, s.tracks?.artist)}
-                      target="_blank" rel="noopener noreferrer"
-                      className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-card border border-border hover:opacity-80 transition-opacity duration-150"
-                    >
-                      {s.tracks?.album_art_url ? (
-                        <img src={s.tracks.album_art_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">🎵</div>
-                      )}
+          savedTracks.length > 0 ? (
+            <div className="space-y-2">
+              {savedTracks.map((s: any) => (
+                <div key={s.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                  <a
+                    href={getSpotifyUrl(s.tracks?.spotify_track_id, s.tracks?.title, s.tracks?.artist)}
+                    target="_blank" rel="noopener noreferrer"
+                    className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-card border border-border hover:opacity-80 transition-opacity duration-150"
+                  >
+                    {s.tracks?.album_art_url ? (
+                      <img src={s.tracks.album_art_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">🎵</div>
+                    )}
+                  </a>
+                  <div className="flex-1 min-w-0">
+                    <a href={getSpotifyUrl(s.tracks?.spotify_track_id, s.tracks?.title, s.tracks?.artist)} target="_blank" rel="noopener noreferrer"
+                      className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate flex items-center gap-1">
+                      <span className="truncate">{s.tracks?.title}</span>
+                      <span className="text-muted-foreground text-xs flex-shrink-0">↗</span>
                     </a>
-                    <div className="flex-1 min-w-0">
-                      <a href={getSpotifyUrl(s.tracks?.spotify_track_id, s.tracks?.title, s.tracks?.artist)} target="_blank" rel="noopener noreferrer"
-                        className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate flex items-center gap-1">
-                        <span className="truncate">{s.tracks?.title}</span>
-                        <span className="text-muted-foreground text-xs flex-shrink-0">↗</span>
-                      </a>
-                      <p className="text-xs text-muted-foreground truncate">{s.tracks?.artist}</p>
-                      <p className="text-[10px] text-muted-dim">
-                        {s.source_context === "trending" ? "saved from trending" :
-                         s.profiles?.username ? `saved from @${s.profiles.username}'s feed` :
-                         s.profiles?.display_name ? `saved from ${s.profiles.display_name}'s feed` : "saved from feed"}
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{s.tracks?.artist}</p>
+                    <p className="text-[10px] text-muted-dim">
+                      {s.source_context === "trending" ? "saved from trending" :
+                       s.profiles?.username ? `saved from @${s.profiles.username}'s feed` :
+                       s.profiles?.display_name ? `saved from ${s.profiles.display_name}'s feed` : "saved from feed"}
+                    </p>
+                  </div>
+                  {isOwnProfile && (
                     <button onClick={() => handleRemoveSaved(s.id)} className="text-muted-dim hover:text-foreground transition-colors">
                       <X className="h-4 w-4" />
                     </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                songs you discover on PLAI live here — save them from the feed
-              </p>
-            )
+                  )}
+                </div>
+              ))}
+            </div>
           ) : (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              songs you discover on PLAI live here — save them from the feed
+              {isOwnProfile ? "songs you discover on PLAI live here — save them from the feed" : "no finds yet"}
             </p>
           )
         ) : tab === "activity" ? (
