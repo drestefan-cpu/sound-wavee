@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import EmojiReactions from "@/components/EmojiReactions";
 import type { TrendingTrack } from "@/lib/trending";
 
-const positionPlaceholderColors: Record<number, string> = {};
-[1,4,7,10,13].forEach(p => positionPlaceholderColors[p] = "bg-primary");
-[2,5,8,11,14].forEach(p => positionPlaceholderColors[p] = "bg-[#1a2535]");
-[3,6,9,12,15].forEach(p => positionPlaceholderColors[p] = "bg-[#0F1520]");
+const getPlaceholderColor = (position: number) => {
+  const colors = ['#FF2D78', '#1a2535', '#0F1520'];
+  return colors[(position - 1) % 3];
+};
 
 const TrendingCard = ({ track, onSave, isSaved }: { track: TrendingTrack; onSave?: (track: TrendingTrack) => void; isSaved?: boolean }) => {
   const { user } = useAuth();
@@ -109,9 +109,10 @@ const TrendingCard = ({ track, onSave, isSaved }: { track: TrendingTrack; onSave
             href={spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-md ${positionPlaceholderColors[track.position] || "bg-primary/20"}`}
+            className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-md"
+            style={{ backgroundColor: getPlaceholderColor(track.position) }}
           >
-            <span className="font-display text-lg text-primary-foreground">{track.position}</span>
+            <span className="font-display text-lg text-white">{track.position}</span>
           </a>
         )}
         <div className="min-w-0 flex-1">

@@ -164,18 +164,28 @@ const Profile = () => {
   }, [isOwnProfile, user, tab]);
 
   const handleSync = async () => {
-    if (!user) return;
+    if (!user?.id) {
+      console.error('No user id available');
+      return;
+    }
     setSyncing(true);
-    setSyncResult("syncing...");
+    setSyncResult('syncing...');
+    console.log('Starting sync for user:', user.id);
     try {
-      const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
-        body: { user_id: user.id },
+      const { data, error } = await supabase.functions.invoke('sync-spotify-likes', {
+        body: { user_id: user.id }
       });
-      if (error) throw error;
-      setSyncResult(`✓ ${data?.count || 0} tracks synced`);
-      loadCollection();
-    } catch {
-      setSyncResult("could not sync — tap to retry");
+      console.log('Sync response:', data, error);
+      if (error) {
+        console.error('Sync error detail:', error.message, (error as any).context);
+        setSyncResult('could not sync — try signing out and back in');
+      } else {
+        setSyncResult(`✓ ${data?.count || 0} tracks synced`);
+        setTimeout(() => loadCollection(), 1000);
+      }
+    } catch (err) {
+      console.error('Sync exception:', err);
+      setSyncResult('could not sync — unexpected error');
     } finally {
       setSyncing(false);
       setTimeout(() => setSyncResult(null), 4000);
