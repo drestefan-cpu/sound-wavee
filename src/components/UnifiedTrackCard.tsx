@@ -163,6 +163,10 @@ const UnifiedTrackCard = ({
           >
             {track.albumArtUrl ? (
               <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" />
+            ) : placeholderColor ? (
+              <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: placeholderColor }}>
+                <span className="font-display text-lg text-white">{placeholderText}</span>
+              </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">
                 ♪
