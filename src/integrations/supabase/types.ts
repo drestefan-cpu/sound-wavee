@@ -92,9 +92,12 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          last_synced_at: string | null
           onboarding_complete: boolean
           public: boolean
+          spotify_access_token: string | null
           spotify_id: string | null
+          spotify_refresh_token: string | null
           username: string | null
         }
         Insert: {
@@ -102,9 +105,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          last_synced_at?: string | null
           onboarding_complete?: boolean
           public?: boolean
+          spotify_access_token?: string | null
           spotify_id?: string | null
+          spotify_refresh_token?: string | null
           username?: string | null
         }
         Update: {
@@ -112,9 +118,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          last_synced_at?: string | null
           onboarding_complete?: boolean
           public?: boolean
+          spotify_access_token?: string | null
           spotify_id?: string | null
+          spotify_refresh_token?: string | null
           username?: string | null
         }
         Relationships: []
