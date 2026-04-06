@@ -16,7 +16,7 @@ const MiniStarfield = () => {
   );
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {stars.map((s) => (
         <div
           key={s.id}
@@ -40,6 +40,7 @@ const TaglineSpace = () => {
   const [glowing, setGlowing] = useState(false);
   const [tapped, setTapped] = useState(false);
   const [cheekyMode, setCheekyMode] = useState(false);
+  const [pressing, setPressing] = useState(false);
   const tapCountRef = useRef(0);
   const cheekyIndexRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
@@ -66,7 +67,7 @@ const TaglineSpace = () => {
     return () => clearInterval(timerRef.current);
   }, [cycle, cheekyMode]);
 
-  const handleLogoTap = () => {
+  const handleTap = () => {
     tapCountRef.current++;
 
     if (tapCountRef.current >= 10 && !cheekyMode) {
@@ -77,39 +78,37 @@ const TaglineSpace = () => {
       return;
     }
 
-    if (!tapped) {
-      setTapped(true);
-      clearInterval(timerRef.current);
-      cycle();
-      timerRef.current = setInterval(cycle, cheekyMode ? 3000 : 5500);
-    }
+    // Always allow tap to cycle — feels responsive
+    clearInterval(timerRef.current);
+    cycle();
+    timerRef.current = setInterval(cycle, cheekyMode ? 3000 : 5500);
   };
 
   return (
     <div
-      className="relative flex flex-col items-center justify-center cursor-pointer select-none rounded-2xl overflow-hidden"
+      className="relative flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden rounded-2xl active:brightness-110 transition-[filter] duration-100"
       style={{
         background: "linear-gradient(180deg, hsl(218 32% 6%) 0%, hsl(218 32% 4%) 100%)",
         paddingTop: 60,
         paddingBottom: 60,
+        marginLeft: -16,
+        marginRight: -16,
       }}
+      onClick={handleTap}
+      onPointerDown={() => setPressing(true)}
+      onPointerUp={() => setPressing(false)}
+      onPointerLeave={() => setPressing(false)}
     >
       <MiniStarfield />
 
-      <div className="relative z-10 flex flex-col items-center">
-        <button onClick={handleLogoTap} className="focus:outline-none">
-          <PlaiLogo className="text-5xl" glow />
-        </button>
+      <div className="relative z-10 flex flex-col items-center" style={{ transform: pressing ? 'scale(0.99)' : 'scale(1)', transition: 'transform 0.1s ease' }}>
+        <PlaiLogo className="text-5xl" glow />
         <p
           className="mt-5 text-sm italic text-center transition-all duration-500 ease-in-out max-w-[240px]"
           style={{
             opacity: fading ? 0 : 1,
-            color: glowing
-              ? "hsl(340 100% 59%)"
-              : "hsl(210 30% 40%)",
-            textShadow: glowing
-              ? "0 0 12px hsl(340 100% 59% / 0.4)"
-              : "none",
+            color: glowing ? "hsl(340 100% 59%)" : "hsl(210 30% 40%)",
+            textShadow: glowing ? "0 0 12px hsl(340 100% 59% / 0.4)" : "none",
             transition: "opacity 0.4s ease, color 1.2s ease, text-shadow 1.2s ease",
           }}
         >
