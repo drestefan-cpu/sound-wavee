@@ -78,12 +78,20 @@ const Feed = () => {
     const followIds = ids || followingIds;
     const userIds = [...followIds, user.id];
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("likes")
-      .select("*, profiles(*), tracks(*)")
+      .select(`
+        id,
+        liked_at,
+        user_id,
+        track_id,
+        profiles!likes_user_id_fkey(id, display_name, avatar_url, username),
+        tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)
+      `)
       .in("user_id", userIds)
       .order("liked_at", { ascending: false })
       .limit(50);
+    if (error) console.error("Feed error:", error);
 
     setItems((data as unknown as FeedItem[]) || []);
     setFeedLoading(false);

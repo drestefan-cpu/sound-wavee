@@ -80,7 +80,7 @@ const Profile = () => {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
         
         const [likesRes, savedRes, fcRes, fgcRes, lcRes] = await Promise.all([
-          supabase.from("likes").select("*, tracks(*)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100),
+          supabase.from("likes").select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100),
           isOwnProfile ? supabase.from("saved_tracks").select("*, tracks(*), profiles:source_user_id(username, display_name)").eq("user_id", profile.id).order("saved_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
           supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id),
           supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id),
@@ -117,7 +117,7 @@ const Profile = () => {
     }
     setTimeout(() => setSyncResult(null), 3000);
     // Refresh data
-    const { data: freshLikes } = await supabase.from("likes").select("*, tracks(*)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100);
+    const { data: freshLikes } = await supabase.from("likes").select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100);
     setLikes(freshLikes || []);
     const { count: total } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id);
     setLikesCount(total || 0);
