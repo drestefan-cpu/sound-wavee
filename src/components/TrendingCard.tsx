@@ -109,9 +109,10 @@ const TrendingCard = ({ track, onSave, isSaved }: { track: TrendingTrack; onSave
             href={spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-md ${positionPlaceholderColors[track.position] || "bg-primary/20"}`}
+            className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-md"
+            style={{ backgroundColor: getPlaceholderColor(track.position) }}
           >
-            <span className="font-display text-lg text-primary-foreground">{track.position}</span>
+            <span className="font-display text-lg text-white">{track.position}</span>
           </a>
         )}
         <div className="min-w-0 flex-1">
