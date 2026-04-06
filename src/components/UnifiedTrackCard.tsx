@@ -25,6 +25,8 @@ interface UnifiedTrackCardProps {
   compact?: boolean;
   header?: React.ReactNode;
   subtitle?: React.ReactNode;
+  placeholderColor?: string;
+  placeholderText?: string;
 }
 
 const UnifiedTrackCard = ({
