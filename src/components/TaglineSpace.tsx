@@ -38,7 +38,6 @@ const TaglineSpace = () => {
   const [tagline, setTagline] = useState(() => getRandomTagline());
   const [fading, setFading] = useState(false);
   const [glowing, setGlowing] = useState(false);
-  const [tapped, setTapped] = useState(false);
   const [cheekyMode, setCheekyMode] = useState(false);
   const [pressing, setPressing] = useState(false);
   const tapCountRef = useRef(0);
@@ -78,7 +77,7 @@ const TaglineSpace = () => {
       return;
     }
 
-    // Always allow tap to cycle — feels responsive
+    // Immediately cycle on every tap
     clearInterval(timerRef.current);
     cycle();
     timerRef.current = setInterval(cycle, cheekyMode ? 3000 : 5500);
@@ -86,7 +85,7 @@ const TaglineSpace = () => {
 
   return (
     <div
-      className="relative flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden rounded-2xl active:brightness-110 transition-[filter] duration-100"
+      className="relative flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden rounded-2xl transition-[filter] duration-100"
       style={{
         background: "linear-gradient(180deg, hsl(218 32% 6%) 0%, hsl(218 32% 4%) 100%)",
         paddingTop: 60,
@@ -101,7 +100,14 @@ const TaglineSpace = () => {
     >
       <MiniStarfield />
 
-      <div className="relative z-10 flex flex-col items-center" style={{ transform: pressing ? 'scale(0.99)' : 'scale(1)', transition: 'transform 0.1s ease' }}>
+      <div
+        className="relative z-10 flex flex-col items-center"
+        style={{
+          transform: pressing ? "scale(0.98)" : "scale(1)",
+          filter: pressing ? "brightness(1.15)" : "brightness(1)",
+          transition: "transform 0.1s ease, filter 0.1s ease",
+        }}
+      >
         <PlaiLogo className="text-5xl" glow />
         <p
           className="mt-5 text-sm italic text-center transition-all duration-500 ease-in-out max-w-[240px]"

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, Send, ExternalLink } from "lucide-react";
+import { Heart, Send, Play } from "lucide-react";
 import { getSpotifyUrl } from "@/lib/songlink";
 import EmojiReactions from "@/components/EmojiReactions";
 import TrackDetailModal from "@/components/TrackDetailModal";
@@ -27,13 +27,9 @@ interface UnifiedTrackCardProps {
   isSaved?: boolean;
   onToggleSave?: () => void;
   onShare?: () => void;
-  /** Hide emoji reactions row */
   hideReactions?: boolean;
-  /** Compact sizing for grids */
   compact?: boolean;
-  /** Extra content above the card (e.g. user header) */
   header?: React.ReactNode;
-  /** Extra info below artist */
   subtitle?: React.ReactNode;
 }
 
@@ -105,20 +101,21 @@ const UnifiedTrackCard = ({
             {subtitle}
           </div>
 
-          {/* Action stack */}
+          {/* Action stack: heart (largest), play, share */}
           <TooltipProvider delayDuration={300}>
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-3">
+              {/* Heart — primary, largest */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleSave}
-                    className={`transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
+                    className={`transition-all duration-200 p-1 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
                   >
                     <Heart
-                      className={`h-5 w-5 ${
+                      className={`h-7 w-7 ${
                         saved
                           ? "fill-primary text-primary"
-                          : "text-muted-dim hover:text-primary"
+                          : "text-muted-foreground hover:text-primary"
                       }`}
                     />
                   </button>
@@ -128,22 +125,7 @@ const UnifiedTrackCard = ({
                 </TooltipContent>
               </Tooltip>
 
-              {onShare && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={handleShare}
-                      className={`transition-all duration-200 ${shareBounce ? "scale-105" : "scale-100"}`}
-                    >
-                      <Send className="h-4 w-4 text-muted-dim hover:text-primary transition-colors" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>share</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
+              {/* Play — medium */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <a
@@ -151,15 +133,32 @@ const UnifiedTrackCard = ({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-muted-dim hover:text-[#1DB954] transition-colors"
+                    className="text-muted-foreground hover:text-[#1DB954] transition-colors p-1"
                   >
-                    <ExternalLink className="h-4 w-4" />
+                    <Play className="h-[18px] w-[18px]" />
                   </a>
                 </TooltipTrigger>
                 <TooltipContent side="left">
                   <p>play on Spotify</p>
                 </TooltipContent>
               </Tooltip>
+
+              {/* Share — medium */}
+              {onShare && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleShare}
+                      className={`transition-all duration-200 p-1 ${shareBounce ? "scale-105" : "scale-100"}`}
+                    >
+                      <Send className="h-[18px] w-[18px] text-muted-foreground hover:text-primary transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>share</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </TooltipProvider>
         </div>
