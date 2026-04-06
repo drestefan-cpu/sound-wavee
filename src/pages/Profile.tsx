@@ -266,14 +266,28 @@ const Profile = () => {
             <div><p className="font-medium text-foreground">{likesCount}</p><p className="text-muted-foreground">collection</p></div>
           </div>
           {isOwnProfile ? (
-            <button
-              onClick={handleSync}
-              disabled={syncing}
-              className="flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition-all duration-150 hover:bg-primary/10"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "syncing..." : syncResult || "sync now"}
-            </button>
+            <div className="flex flex-col items-center gap-1">
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition-all duration-150 hover:bg-primary/10"
+              >
+                <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "syncing..." : syncResult || "sync now"}
+              </button>
+              {profile.last_synced_at && (
+                <p className="text-[10px] text-muted-foreground">
+                  last synced {(() => {
+                    const mins = Math.round((Date.now() - new Date(profile.last_synced_at).getTime()) / 60000);
+                    if (mins < 1) return "just now";
+                    if (mins < 60) return `${mins}m ago`;
+                    const hrs = Math.round(mins / 60);
+                    if (hrs < 24) return `${hrs}h ago`;
+                    return `${Math.round(hrs / 24)}d ago`;
+                  })()}
+                </p>
+              )}
+            </div>
           ) : (
             <FollowButton targetUserId={profile.id} />
           )}
