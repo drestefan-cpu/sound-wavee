@@ -11,7 +11,7 @@ import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import EmojiReactions from "@/components/EmojiReactions";
 import FollowersModal from "@/components/FollowersModal";
-import { getSpotifyUrl } from "@/lib/songlink";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
