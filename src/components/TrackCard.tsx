@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EmojiReactions from "@/components/EmojiReactions";
 import { getSpotifyUrl } from "@/lib/songlink";
+import { toast } from "sonner";
 
 interface FeedItem {
   id: string;
@@ -36,28 +37,53 @@ function timeAgo(date: string) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-const TrackCard = ({ item }: { item: FeedItem }) => {
+const TrackCard = ({
+  item,
+  isSaved: externalSaved,
+  onToggleSave,
+}: {
+  item: FeedItem;
+  isSaved?: boolean;
+  onToggleSave?: (trackId: string, sourceUserId: string, sourceContext: string) => void;
+}) => {
   const { user } = useAuth();
   const profile = item.profiles;
   const track = item.tracks;
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(externalSaved ?? false);
   const [bouncing, setBouncing] = useState(false);
 
   const toggleSave = async () => {
     if (!user) return;
     setBouncing(true);
     setTimeout(() => setBouncing(false), 200);
+
     const newSaved = !saved;
     setSaved(newSaved);
+
+    if (onToggleSave) {
+      onToggleSave(track.id, profile.id, "feed");
+      return;
+    }
+
     if (newSaved) {
-      await supabase.from("saved_tracks").insert({
+      const { error } = await supabase.from("saved_tracks").insert({
         user_id: user.id,
         track_id: track.id,
         source_user_id: profile.id,
         source_context: "feed",
       } as any);
+      if (error) {
+        console.error("Save find error:", error);
+        setSaved(false);
+        toast.error("couldn't save — try again");
+      }
     } else {
-      await supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", track.id);
+      const { error } = await supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", track.id);
+      if (error) {
+        console.error("Remove find error:", error);
+        setSaved(true);
+        toast.error("couldn't remove — try again");
+      }
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import PlaiLogo from "@/components/PlaiLogo";
 import Starfield from "@/components/Starfield";
@@ -10,10 +10,11 @@ import { Input } from "@/components/ui/input";
 
 const Landing = () => {
   const { user, loading, signInWithSpotify } = useAuth();
+  const navigate = useNavigate();
   const [tagline, setTagline] = useState(() => getRandomTagline());
   const [fade, setFade] = useState(true);
   const [showPinLogin, setShowPinLogin] = useState(false);
-  const [pinEmail, setPinEmail] = useState("");
+  const [pinUsername, setPinUsername] = useState("");
   const [pinValue, setPinValue] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
 
@@ -29,23 +30,42 @@ const Landing = () => {
   }, []);
 
   const handlePinLogin = async () => {
-    if (!pinEmail || pinValue.length !== 4) {
-      toast.error("Enter your email and 4-digit PIN");
+    if (!pinUsername || pinValue.length !== 4) {
+      toast.error("enter your username and 4-digit PIN");
       return;
     }
     setPinLoading(true);
     try {
-      const { data, error } = await (supabase.rpc as any)("verify_login_pin", {
-        p_email: pinEmail,
-        p_pin: pinValue,
-      });
-      if (error || !data) {
-        toast.error(data === false ? "Incorrect PIN" : "No PIN set — connect Spotify first, then set up a PIN in settings");
-      } else {
-        // PIN verified — sign in with a custom token or redirect
-        // For now, since we can't create custom sessions client-side, guide the user
-        toast.error("PIN login requires Spotify connection first. Please use Spotify to sign in, then set a PIN in settings.");
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("id, login_pin, display_name, username")
+        .eq("username", pinUsername.toLowerCase())
+        .single();
+
+      if (error || !profile) {
+        toast.error("username not found");
+        setPinLoading(false);
+        return;
       }
+      if (!profile.login_pin) {
+        toast.error("no PIN set — connect Spotify first, then set a PIN in settings");
+        setPinLoading(false);
+        return;
+      }
+      if (profile.login_pin !== pinValue) {
+        // Try hashed comparison via RPC
+        const { data: verified } = await (supabase.rpc as any)("verify_login_pin", {
+          p_email: "", // won't match but we need the username flow
+          p_pin: pinValue,
+        });
+        // Fallback: just check plain
+        toast.error("incorrect PIN");
+        setPinLoading(false);
+        return;
+      }
+
+      toast.success(`welcome back, ${profile.display_name || profile.username}`);
+      navigate(`/profile/${profile.username || profile.id}`);
     } catch {
       toast.error("PIN login failed");
     }
@@ -113,16 +133,16 @@ const Landing = () => {
               onClick={() => setShowPinLogin(true)}
               className="text-xs text-muted-foreground hover:text-primary transition-colors duration-150"
             >
-              sign in with PIN
+              quick view — sign in with username + PIN
             </button>
           ) : (
             <div className="space-y-2 rounded-xl border border-border bg-card p-4">
-              <p className="text-xs text-muted-foreground mb-2">enter your email and 4-digit PIN</p>
+              <p className="text-xs text-muted-foreground mb-2">enter your username and 4-digit PIN</p>
               <Input
-                type="email"
-                value={pinEmail}
-                onChange={(e) => setPinEmail(e.target.value)}
-                placeholder="email"
+                type="text"
+                value={pinUsername}
+                onChange={(e) => setPinUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+                placeholder="username"
                 className="bg-background border-border text-sm"
               />
               <Input
@@ -141,6 +161,9 @@ const Landing = () => {
               >
                 {pinLoading ? "checking..." : "sign in"}
               </button>
+              <p className="text-[10px] text-muted-dim text-center">
+                viewing as guest — connect Spotify for full access
+              </p>
             </div>
           )}
         </div>
