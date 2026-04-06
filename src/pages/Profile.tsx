@@ -345,7 +345,7 @@ const Profile = () => {
                     boxShadow: `0 0 ${m.size}px ${m.color}40`,
                   }}
                 />
-                <span className="text-[8px] mt-0.5 transition-opacity duration-1000" style={{ color: '#F0EBE3', opacity: moonsFaded ? 0 : 0.8 }}>
+                <span className="text-[8px] mt-0.5 transition-opacity duration-[2000ms]" style={{ color: '#F0EBE3', opacity: moonsFaded ? 0 : 1 }}>
                   @{m.username || "·"}
                 </span>
               </div>
