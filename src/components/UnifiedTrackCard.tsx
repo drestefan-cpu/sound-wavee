@@ -231,7 +231,6 @@ const UnifiedTrackCard = ({
           </div>
         </div>
       </div>
-      </div>
 
       {showDetail && (
         <TrackDetailModal
