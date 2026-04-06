@@ -352,7 +352,11 @@ const Profile = () => {
             <style>{`
               @keyframes moon-drift { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(var(--mdx), var(--mdy)); } }
               @keyframes moon-pulse { 0%, 100% { opacity: var(--mo); } 50% { opacity: calc(var(--mo) * 0.5); } }
-              @media (prefers-reduced-motion: reduce) { .moon-el { animation: none !important; } }
+              @keyframes moon-glow {
+                0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
+                50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
+              }
+              @media (prefers-reduced-motion: reduce) { .moon-el { animation: none !important; } .moon-dot { animation: none !important; } }
             `}</style>
             {moons.map((m) => (
               <div
@@ -367,11 +371,13 @@ const Profile = () => {
                 } as React.CSSProperties}
               >
                 <div
-                  className="rounded-full"
+                  className="rounded-full moon-dot"
                   style={{
-                    width: m.size, height: m.size, backgroundColor: m.color, opacity: 0.4,
-                    boxShadow: `0 0 ${m.size}px ${m.color}40`,
-                  }}
+                    width: m.size, height: m.size, backgroundColor: m.color, opacity: 0.6,
+                    "--moon-color": m.color,
+                    "--moon-color-dim": `${m.color}66`,
+                    animation: `moon-glow 2.5s ease-in-out infinite`,
+                  } as React.CSSProperties}
                 />
                 <span className="text-[8px] mt-0.5 transition-opacity duration-[2000ms]" style={{ color: '#F0EBE3', opacity: moonsFaded ? 0 : 1 }}>
                   @{m.username || "·"}

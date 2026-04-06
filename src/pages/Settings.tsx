@@ -174,8 +174,9 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">profile appearance</h3>
-          <label className="mb-1.5 block text-sm text-muted-foreground">accent colour</label>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">moon appearance</h3>
+          <label className="mb-1.5 block text-sm text-muted-foreground">moon colour</label>
+          <p className="text-[10px] text-muted-foreground mb-2">the colour of your moon dot on other people's profiles</p>
           <div className="flex items-center gap-3">
             <input
               type="color"

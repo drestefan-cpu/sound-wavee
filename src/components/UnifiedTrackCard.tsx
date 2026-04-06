@@ -25,6 +25,8 @@ interface UnifiedTrackCardProps {
   compact?: boolean;
   header?: React.ReactNode;
   subtitle?: React.ReactNode;
+  placeholderColor?: string;
+  placeholderText?: string;
 }
 
 const UnifiedTrackCard = ({
@@ -36,6 +38,8 @@ const UnifiedTrackCard = ({
   compact = false,
   header,
   subtitle,
+  placeholderColor,
+  placeholderText,
 }: UnifiedTrackCardProps) => {
   const [saved, setSaved] = useState(isSaved);
   const [bouncing, setBouncing] = useState(false);
@@ -78,6 +82,10 @@ const UnifiedTrackCard = ({
             >
               {track.albumArtUrl ? (
                 <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" />
+              ) : placeholderColor ? (
+                <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: placeholderColor }}>
+                  <span className="font-display text-sm text-white">{placeholderText}</span>
+                </div>
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">♪</div>
               )}
@@ -112,15 +120,13 @@ const UnifiedTrackCard = ({
               >
                 <Play className="h-3 w-3 fill-current" style={{ color: "#4a6a8a" }} />
               </a>
-              {onShare && (
-                <button
+              <button
                   onClick={handleShare}
                   className="h-[22px] w-[22px] rounded-full flex items-center justify-center hover:opacity-80"
                   style={{ backgroundColor: "#1a2535" }}
                 >
                   <Send className="h-3 w-3" style={{ color: "#4a6a8a" }} />
                 </button>
-              )}
             </div>
           </div>
         </div>
@@ -157,6 +163,10 @@ const UnifiedTrackCard = ({
           >
             {track.albumArtUrl ? (
               <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" />
+            ) : placeholderColor ? (
+              <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: placeholderColor }}>
+                <span className="font-display text-lg text-white">{placeholderText}</span>
+              </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">
                 ♪
