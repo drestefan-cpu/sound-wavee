@@ -57,7 +57,7 @@ const SettingsPage = () => {
     setPinSaving(true);
     // Store hashed PIN via edge function or RPC
     // For now store as a simple hash using the database
-    const { error } = await supabase.rpc("set_login_pin" as any, { p_user_id: user.id, p_pin: pin });
+    const { error } = await (supabase.rpc as any)("set_login_pin", { p_user_id: user.id, p_pin: pin });
     setPinSaving(false);
     if (error) {
       toast.error("Failed to save PIN");

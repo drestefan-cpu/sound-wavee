@@ -35,7 +35,7 @@ const Landing = () => {
     }
     setPinLoading(true);
     try {
-      const { data, error } = await supabase.rpc("verify_login_pin" as any, {
+      const { data, error } = await (supabase.rpc as any)("verify_login_pin", {
         p_email: pinEmail,
         p_pin: pinValue,
       });
