@@ -93,6 +93,7 @@ export type Database = {
           display_name: string | null
           id: string
           last_synced_at: string | null
+          login_pin: string | null
           onboarding_complete: boolean
           public: boolean
           spotify_access_token: string | null
@@ -106,6 +107,7 @@ export type Database = {
           display_name?: string | null
           id: string
           last_synced_at?: string | null
+          login_pin?: string | null
           onboarding_complete?: boolean
           public?: boolean
           spotify_access_token?: string | null
@@ -119,6 +121,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_synced_at?: string | null
+          login_pin?: string | null
           onboarding_complete?: boolean
           public?: boolean
           spotify_access_token?: string | null
@@ -241,7 +244,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_login_pin: {
+        Args: { p_pin: string; p_user_id: string }
+        Returns: undefined
+      }
+      verify_login_pin: {
+        Args: { p_email: string; p_pin: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
