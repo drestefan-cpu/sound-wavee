@@ -118,6 +118,27 @@ const Profile = () => {
     return () => { cancelled = true; clearTimeout(timeout); };
   }, [profile, isOwnProfile]);
 
+  // Load following list for own profile
+  useEffect(() => {
+    if (!isOwnProfile || !user || tab !== "following") return;
+    const loadFollowing = async () => {
+      setFollowingLoaded(false);
+      const { data } = await supabase
+        .from("follows")
+        .select(`
+          following_id,
+          profiles!follows_following_id_fkey(
+            id, display_name, username, avatar_url
+          )
+        `)
+        .eq("follower_id", user.id)
+        .order("created_at", { ascending: false });
+      setFollowingList(data || []);
+      setFollowingLoaded(true);
+    };
+    loadFollowing();
+  }, [isOwnProfile, user, tab]);
+
   // Load activity for own profile
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "activity") return;
