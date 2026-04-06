@@ -358,7 +358,7 @@ const Feed = () => {
             )}
           </>
         ) : tab === "trending" ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center gap-2 mb-2">
               <p className="text-xs text-muted-foreground">trending this week</p>
               <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[9px] text-muted-foreground">
@@ -367,32 +367,32 @@ const Feed = () => {
             </div>
             {trendingTracks.map((track) => {
               const bgColor = track.position % 2 === 1 ? '#FF2D78' : '#1a2535';
-              const albumArt = track.albumArtUrl || undefined;
               return (
                 <UnifiedTrackCard
                   key={track.position}
+                  compact
+                  hideReactions
                   track={{
                     id: `trending-${track.position}`,
                     title: track.title,
                     artist: track.artist,
                     spotifyTrackId: track.spotifyTrackId,
-                    albumArtUrl: albumArt,
+                    albumArtUrl: track.albumArtUrl || undefined,
                     likeId: `trending-${track.position}`,
                     localOnly: true,
                   }}
-                  hideReactions
-                  header={
-                    <div className="mb-1 flex items-center gap-2">
-                      {!albumArt && (
-                        <div
-                          className="h-5 w-5 rounded flex items-center justify-center"
-                          style={{ backgroundColor: bgColor }}
-                        >
-                          <span className="font-display text-[9px] text-white">{track.position}</span>
-                        </div>
-                      )}
-                      <span className="text-[10px] text-muted-foreground">#{track.position}</span>
-                    </div>
+                  placeholderColor={bgColor}
+                  placeholderText={String(track.position)}
+                  onShare={() => {
+                    if (navigator.share) {
+                      navigator.share({ title: track.title, url: `https://open.spotify.com/track/${track.spotifyTrackId}` });
+                    } else {
+                      navigator.clipboard.writeText(`https://open.spotify.com/track/${track.spotifyTrackId}`);
+                      toast("link copied");
+                    }
+                  }}
+                  subtitle={
+                    <span className="text-[10px] text-muted-foreground">#{track.position}</span>
                   }
                 />
               );
@@ -431,9 +431,14 @@ const Feed = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <div>
-              <h3 className="font-display text-lg text-foreground">PLAI picks</h3>
-              <p className="text-xs text-muted-foreground">curated by @plai</p>
+            <div className="flex items-center gap-2">
+              <div>
+                <h3 className="font-display text-lg text-foreground">PLAI picks</h3>
+                <p className="text-xs text-muted-foreground">curated by @plai</p>
+              </div>
+              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[9px] text-muted-foreground">
+                WIP — some links may be buggy
+              </span>
             </div>
             <div className="space-y-2">
               {plaiPicks.map((track, i) => (
