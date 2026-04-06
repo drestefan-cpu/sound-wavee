@@ -59,7 +59,7 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
 
       <button
         onClick={onClose}
-        className="fixed top-4 right-4 z-50 text-muted-foreground hover:text-foreground transition-colors"
+        className="fixed top-4 left-4 z-50 text-muted-foreground hover:text-foreground transition-colors"
       >
         <X className="h-5 w-5" />
       </button>
@@ -68,7 +68,7 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         <div className="mb-3">
           <PlaiLogo className="text-5xl" glow />
         </div>
-        <p className="text-[10px] tracking-[0.2em] uppercase mb-16" style={{ color: "#F0EBE380" }}>
+        <p className="text-[10px] tracking-[0.2em] uppercase mb-16" style={{ color: "#FF2D78" }}>
           from old provençal — it pleases me
         </p>
 
@@ -76,7 +76,7 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         <p className="text-sm leading-relaxed mb-2">when you can see what</p>
         <p className="text-sm leading-relaxed">your friends are into.</p>
 
-        <div className="h-10" />
+        <Divider />
 
         <p className="text-sm leading-relaxed mb-2">your feed shows you what the people</p>
         <p className="text-sm leading-relaxed mb-2">you follow have liked on Spotify —</p>

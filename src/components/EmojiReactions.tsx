@@ -12,12 +12,12 @@ interface ReactionCount {
 
 interface EmojiReactionsProps {
   likeId: string;
-  /** If true, reactions are local-only (no DB) */
   localOnly?: boolean;
   initialReactions?: { emoji: string; count: number }[];
+  compact?: boolean;
 }
 
-const EmojiReactions = ({ likeId, localOnly = false, initialReactions }: EmojiReactionsProps) => {
+const EmojiReactions = ({ likeId, localOnly = false, initialReactions, compact = false }: EmojiReactionsProps) => {
   const { user } = useAuth();
   const [reactions, setReactions] = useState<ReactionCount[]>(
     EMOJIS.map((e) => {
@@ -79,13 +79,17 @@ const EmojiReactions = ({ likeId, localOnly = false, initialReactions }: EmojiRe
     }
   };
 
+  const pillSize = compact
+    ? "px-1.5 py-0.5 text-[10px] gap-0.5"
+    : "px-2.5 py-1 text-xs gap-1";
+
   return (
-    <div className="mt-3 flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-1">
       {reactions.map((r) => (
         <button
           key={r.emoji}
-          onClick={() => toggleReaction(r.emoji)}
-          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs transition-all duration-150 ${
+          onClick={(e) => { e.stopPropagation(); toggleReaction(r.emoji); }}
+          className={`inline-flex items-center rounded-full transition-all duration-150 ${pillSize} ${
             r.reacted
               ? "bg-primary/20 text-primary"
               : "bg-secondary text-muted-foreground hover:bg-secondary/80"

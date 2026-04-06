@@ -1,4 +1,4 @@
-import { Heart, Send, Play, X } from "lucide-react";
+import { Heart, Play, Send, X } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 
 interface TrackDetailModalProps {
@@ -49,19 +49,20 @@ const TrackDetailModal = ({
         <h3 className="text-lg font-medium text-foreground truncate">{track.title}</h3>
         <p className="text-sm text-muted-foreground truncate">{track.artist}</p>
         {track.album && (
-          <p className="text-xs text-muted-dim truncate mt-0.5">{track.album}</p>
+          <p className="text-xs truncate mt-0.5" style={{ color: "#2a3a4a" }}>{track.album}</p>
         )}
 
-        {/* Actions: heart, play, share */}
+        {/* Actions */}
         <div className="flex items-center justify-center gap-8 mt-6">
           <button
             onClick={onToggleSave}
             className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
           >
             <Heart
-              className={`h-7 w-7 ${
+              className={`h-8 w-8 ${
                 isSaved ? "fill-primary text-primary" : "text-muted-foreground hover:text-primary"
               }`}
+              strokeWidth={isSaved ? 0 : 1.5}
             />
             <span className="text-[10px] text-muted-foreground">{isSaved ? "saved" : "save"}</span>
           </button>
@@ -72,7 +73,9 @@ const TrackDetailModal = ({
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
           >
-            <Play className="h-6 w-6 text-muted-foreground hover:text-[#1DB954]" />
+            <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "#1a2535" }}>
+              <Play className="h-4 w-4 fill-current" style={{ color: "#4a6a8a" }} />
+            </div>
             <span className="text-[10px] text-muted-foreground">play</span>
           </a>
 
@@ -81,7 +84,9 @@ const TrackDetailModal = ({
               onClick={onShare}
               className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
             >
-              <Send className="h-6 w-6 text-muted-foreground hover:text-primary" />
+              <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "#1a2535" }}>
+                <Send className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+              </div>
               <span className="text-[10px] text-muted-foreground">share</span>
             </button>
           )}
