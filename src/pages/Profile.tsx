@@ -172,8 +172,12 @@ const Profile = () => {
     setSyncResult('syncing...');
     console.log('Starting sync for user:', user.id);
     try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke('sync-spotify-likes', {
-        body: { user_id: user.id }
+        body: { user_id: user.id },
+        headers: {
+          Authorization: `Bearer ${currentSession?.access_token}`,
+        },
       });
       console.log('Sync response:', data, error);
       if (error) {

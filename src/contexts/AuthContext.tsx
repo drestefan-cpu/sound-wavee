@@ -27,8 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (upsertError) console.error("Profile upsert failed:", upsertError.message, upsertError);
 
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
     const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
       body: { user_id: userId },
+      headers: {
+        Authorization: `Bearer ${currentSession?.access_token}`,
+      },
     });
     if (error) console.error("Sync failed:", error.message, error);
     else console.log("Sync success:", data?.count, "tracks");
@@ -48,7 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      await supabase.from("profiles").upsert({
+      console.log("OAuth redirect captured, storing token for:", session.user.id);
+
+      const { error: upsertError } = await supabase.from("profiles").upsert({
         id: session.user.id,
         spotify_access_token: providerToken,
         spotify_refresh_token: providerRefreshToken,
@@ -59,11 +65,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     session.user.user_metadata?.picture,
       } as any, { onConflict: "id" });
 
+      if (upsertError) {
+        console.error("Profile upsert failed:", upsertError);
+        return;
+      }
+
+      console.log("Token stored, starting sync...");
+
       const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
         body: { user_id: session.user.id },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
-      if (error) console.error("Sync failed (redirect):", error.message, error);
-      else console.log("Sync success (redirect):", data?.count, "tracks");
+
+      console.log("Sync result:", data?.count, "tracks, error:", error?.message);
 
       window.history.replaceState(null, "", window.location.pathname);
     };
