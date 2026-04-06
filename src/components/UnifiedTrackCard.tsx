@@ -132,6 +132,9 @@ const UnifiedTrackCard = ({
             )}
           </div>
 
+          {/* Separator between reactions and actions */}
+          <div className="w-px self-stretch mx-1.5 flex-shrink-0" style={{ backgroundColor: '#1a2535' }} />
+
           {/* Play + Share — right */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <a

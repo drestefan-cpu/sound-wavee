@@ -299,10 +299,8 @@ const Profile = () => {
   const filteredLikes = collectionFilter === "30d" ? likes.filter(l => l.liked_at >= thirtyDaysAgo) : likes;
   const findsLabel = isOwnProfile ? "your finds" : "finds";
   const collectionLabel = isOwnProfile ? "your collection" : "collection";
-  const profileBg = (profile as any)?.profile_color || "#080B12";
-
   return (
-    <div className="min-h-screen pb-20" style={{ background: `linear-gradient(180deg, ${profileBg}40 0%, hsl(218 32% 5%) 300px)` }}>
+    <div className="min-h-screen pb-20" style={{ background: `linear-gradient(180deg, #080B1240 0%, hsl(218 32% 5%) 300px)` }}>
       <PageHeader
         title={`@${profile.username || "user"}`}
         rightContent={
