@@ -38,6 +38,8 @@ const UnifiedTrackCard = ({
   compact = false,
   header,
   subtitle,
+  placeholderColor,
+  placeholderText,
 }: UnifiedTrackCardProps) => {
   const [saved, setSaved] = useState(isSaved);
   const [bouncing, setBouncing] = useState(false);
