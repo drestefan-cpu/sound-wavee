@@ -17,6 +17,7 @@ const SettingsPage = () => {
   const [pin, setPin] = useState("");
   const [pinSaving, setPinSaving] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -26,6 +27,7 @@ const SettingsPage = () => {
         setDisplayName(data.display_name || "");
         setUsername(data.username || "");
         setIsPublic((data as any).public !== false);
+        setStatus((data as any).status || "");
       }
     };
     load();
@@ -38,6 +40,7 @@ const SettingsPage = () => {
     if (field === "display_name") update.display_name = value;
     if (field === "username") update.username = value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (field === "public") update.public = value;
+    if (field === "status") update.status = value;
     const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
     setSaving(false);
     if (error) toast.error("Failed to update");
