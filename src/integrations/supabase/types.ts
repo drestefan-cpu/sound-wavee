@@ -95,6 +95,7 @@ export type Database = {
           last_synced_at: string | null
           login_pin: string | null
           onboarding_complete: boolean
+          profile_color: string | null
           public: boolean
           spotify_access_token: string | null
           spotify_id: string | null
@@ -110,6 +111,7 @@ export type Database = {
           last_synced_at?: string | null
           login_pin?: string | null
           onboarding_complete?: boolean
+          profile_color?: string | null
           public?: boolean
           spotify_access_token?: string | null
           spotify_id?: string | null
@@ -125,6 +127,7 @@ export type Database = {
           last_synced_at?: string | null
           login_pin?: string | null
           onboarding_complete?: boolean
+          profile_color?: string | null
           public?: boolean
           spotify_access_token?: string | null
           spotify_id?: string | null
@@ -172,6 +175,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recommendations: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          id: string
+          message: string | null
+          seen: boolean
+          to_user_id: string
+          track_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          id?: string
+          message?: string | null
+          seen?: boolean
+          to_user_id: string
+          track_id: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          message?: string | null
+          seen?: boolean
+          to_user_id?: string
+          track_id?: string
+        }
+        Relationships: []
       }
       saved_tracks: {
         Row: {
@@ -221,6 +254,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      taste_compatibility: {
+        Row: {
+          calculated_at: string | null
+          score: number
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          calculated_at?: string | null
+          score: number
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          calculated_at?: string | null
+          score?: number
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
+      taste_profiles: {
+        Row: {
+          activity_score: number | null
+          last_calculated: string | null
+          top_artists: Json | null
+          top_tracks: Json | null
+          user_id: string
+        }
+        Insert: {
+          activity_score?: number | null
+          last_calculated?: string | null
+          top_artists?: Json | null
+          top_tracks?: Json | null
+          user_id: string
+        }
+        Update: {
+          activity_score?: number | null
+          last_calculated?: string | null
+          top_artists?: Json | null
+          top_tracks?: Json | null
+          user_id?: string
+        }
+        Relationships: []
       }
       tracks: {
         Row: {

@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: "spotify",
       options: {
         redirectTo: `${window.location.origin}/feed`,
-        scopes: "user-library-read user-read-email user-read-private",
+        scopes: "user-library-read user-read-email user-read-private user-read-recently-played",
       },
     });
   };
