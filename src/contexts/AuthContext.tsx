@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signInWithOAuth({
       provider: "spotify",
       options: {
-        redirectTo: "https://sound-wavee.lovable.app/feed",
+        redirectTo: `${window.location.origin}/feed`,
         scopes: "user-library-read user-read-email user-read-private",
       },
     });
