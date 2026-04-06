@@ -106,9 +106,10 @@ const Profile = () => {
     if (!user) return;
     setSyncing(true);
     setSyncResult("syncing...");
-    const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
-      body: { user_id: user.id },
-    });
+const { data, error } = await supabase.functions.invoke('sync-spotify-likes', {
+  body: { user_id: user.id }
+});
+console.log('Sync response:', data, error);
     setSyncing(false);
     if (error) {
       setSyncResult("sync failed — try signing out and back in");
