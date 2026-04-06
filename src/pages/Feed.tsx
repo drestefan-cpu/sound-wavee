@@ -34,7 +34,7 @@ interface FeedItem {
 }
 
 const Feed = () => {
-  const { user, loading, syncing, syncError } = useAuth();
+  const { user, loading } = useAuth();
   const [items, setItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
@@ -162,22 +162,6 @@ const Feed = () => {
         </div>
       </header>
 
-      {syncing && (
-        <div className="mx-auto max-w-feed px-4 pt-3">
-          <div className="flex items-center justify-center gap-2 rounded-full bg-card border border-border px-4 py-2 text-xs text-primary">
-            <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
-            syncing your likes...
-          </div>
-        </div>
-      )}
-
-      {syncError && !syncing && (
-        <div className="mx-auto max-w-feed px-4 pt-3">
-          <div className="rounded-full bg-card border border-border px-4 py-2 text-xs text-muted-foreground text-center">
-            we couldn't find your likes — tap sync on your profile to try again
-          </div>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="mx-auto max-w-feed px-4 pt-3">
