@@ -56,6 +56,7 @@ const Profile = () => {
   const [tasteMatch, setTasteMatch] = useState<number | null>(null);
   const [followers, setFollowers] = useState<any[]>([]);
   const [moonsFaded, setMoonsFaded] = useState(false);
+  const [unseenRecCount, setUnseenRecCount] = useState(0);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -166,17 +167,34 @@ const Profile = () => {
     loadFollowing();
   }, [isOwnProfile, user, tab]);
 
+  // Load unseen recommendation count
+  useEffect(() => {
+    if (!isOwnProfile || !user) return;
+    const loadUnseenCount = async () => {
+      const { count } = await supabase
+        .from("recommendations" as any)
+        .select("*", { count: "exact", head: true })
+        .eq("to_user_id", user.id)
+        .eq("seen", false);
+      setUnseenRecCount(count || 0);
+    };
+    loadUnseenCount();
+  }, [isOwnProfile, user]);
+
   // Activity
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "activity") return;
     const loadActivity = async () => {
-      const [saveRes, reactionRes] = await Promise.all([
+      const [saveRes, reactionRes, recRes] = await Promise.all([
         supabase.from("saved_tracks")
-          .select("saved_at, source_context, profiles!saved_tracks_user_id_fkey(username, display_name, avatar_url), tracks(title, artist, spotify_track_id)")
+          .select("saved_at, source_context, profiles!saved_tracks_user_id_fkey(username, display_name, avatar_url), tracks(title, artist, spotify_track_id, album_art_url)")
           .eq("source_user_id", user.id).order("saved_at", { ascending: false }).limit(50),
         supabase.from("reactions")
           .select("emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey(user_id, tracks(title, artist))")
           .order("created_at", { ascending: false }).limit(50),
+        supabase.from("recommendations" as any)
+          .select("created_at, message, tracks(title, artist, album_art_url), profiles:from_user_id(username, display_name, avatar_url)")
+          .eq("to_user_id", user.id).order("created_at", { ascending: false }).limit(50),
       ]);
       const saves = (saveRes.data || []).map((s: any) => ({
         type: "save" as const, timestamp: s.saved_at,
@@ -190,8 +208,20 @@ const Profile = () => {
           username: r.profiles?.username, displayName: r.profiles?.display_name,
           avatarUrl: r.profiles?.avatar_url, emoji: r.emoji, trackTitle: r.likes?.tracks?.title,
         }));
-      setActivity([...saves, ...reactions].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      const recs = ((recRes.data || []) as any[]).map((r: any) => ({
+        type: "recommendation" as const, timestamp: r.created_at,
+        username: r.profiles?.username, displayName: r.profiles?.display_name,
+        avatarUrl: r.profiles?.avatar_url, trackTitle: r.tracks?.title,
+        albumArtUrl: r.tracks?.album_art_url,
+      }));
+      setActivity([...saves, ...reactions, ...recs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       setActivityLoaded(true);
+
+      // Mark unseen recommendations as seen
+      if (unseenRecCount > 0) {
+        await supabase.from("recommendations" as any).update({ seen: true } as any).eq("to_user_id", user.id).eq("seen", false);
+        setUnseenRecCount(0);
+      }
     };
     loadActivity();
   }, [isOwnProfile, user, tab]);
@@ -486,6 +516,7 @@ const Profile = () => {
                     albumArtUrl: s.tracks?.album_art_url,
                     spotifyTrackId: s.tracks?.spotify_track_id,
                   }}
+                  onShare={() => {}}
                   subtitle={
                     <p className="text-[10px] text-muted-dim">
                       {s.source_context === "trending" ? "from trending" :
@@ -629,6 +660,7 @@ const Profile = () => {
                         spotifyTrackId: like.tracks?.spotify_track_id,
                         likeId: like.id,
                       }}
+                      onShare={() => {}}
                     />
                   ))}
                 </div>
@@ -648,6 +680,7 @@ const Profile = () => {
                         spotifyTrackId: like.tracks?.spotify_track_id,
                         likeId: like.id,
                       }}
+                      onShare={() => {}}
                     />
                   ))}
                 </div>
