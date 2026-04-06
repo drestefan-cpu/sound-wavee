@@ -27,7 +27,9 @@ const Profile = () => {
   const [likesCount, setLikesCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
-  const [tab, setTab] = useState<"finds" | "collection" | "activity">("finds");
+  const [tab, setTab] = useState<"finds" | "collection" | "following" | "activity">("finds");
+  const [followingList, setFollowingList] = useState<any[]>([]);
+  const [followingLoaded, setFollowingLoaded] = useState(false);
   const [collectionFilter, setCollectionFilter] = useState<"30d" | "all">("30d");
   const [showFlappy, setShowFlappy] = useState(false);
   const [showQR, setShowQR] = useState(false);
