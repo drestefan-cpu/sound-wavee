@@ -17,7 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const storeTokensAndSync = async (userId: string, providerToken: string, providerRefreshToken: string | null, metadata: any) => {
-    await supabase.from("profiles").upsert({
+    const { error: upsertError } = await supabase.from("profiles").upsert({
       id: userId,
       spotify_access_token: providerToken,
       spotify_refresh_token: providerRefreshToken,
@@ -25,10 +25,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       avatar_url: metadata?.avatar_url || metadata?.picture,
     } as any, { onConflict: "id" });
 
+    if (upsertError) console.error("Profile upsert failed:", upsertError.message, upsertError);
+
     const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
       body: { user_id: userId },
     });
-    console.log("Sync result:", data, error);
+    if (error) console.error("Sync failed:", error.message, error);
+    else console.log("Sync success:", data?.count, "tracks");
   };
 
   // Handle OAuth redirect — FIRST useEffect
@@ -56,9 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     session.user.user_metadata?.picture,
       } as any, { onConflict: "id" });
 
-      await supabase.functions.invoke("sync-spotify-likes", {
+      const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
         body: { user_id: session.user.id },
       });
+      if (error) console.error("Sync failed (redirect):", error.message, error);
+      else console.log("Sync success (redirect):", data?.count, "tracks");
 
       window.history.replaceState(null, "", window.location.pathname);
     };
