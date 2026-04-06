@@ -604,7 +604,7 @@ const Profile = () => {
                       ) : (
                         <>
                           <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
-                          {" recommended "}<span className="text-primary">{item.trackTitle}</span>{" to you"}
+                          {" recommended "}<span className="text-primary">{item.trackTitle}</span>{" for you"}
                         </>
                       )}
                     </p>
