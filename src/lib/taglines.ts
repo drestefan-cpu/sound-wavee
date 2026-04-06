@@ -1,13 +1,15 @@
 const core = [
   "it pleases me",
   "if you like it, i love it",
+];
+
+const personal = [
   "i love your taste",
   "you're onto something",
   "come listen to this",
   "i think you'll like this",
-  "taste speaks louder",
-  "good ears only",
-  "say less, just play",
+  "oh yeah, you like that?",
+  "stay here a minute",
 ];
 
 const language = [
@@ -18,6 +20,13 @@ const language = [
   "gosto disso",
 ];
 
+const ambient = [
+  "have a great day",
+  "make somebody else's day",
+  "this is a good moment",
+  "enjoy this one",
+];
+
 const playful = [
   "your taste… noted",
   "i see you",
@@ -26,11 +35,13 @@ const playful = [
   "okay, now i'm paying attention",
 ];
 
-// Weighted pool: 60% core, 20% language, 20% playful
+// Weighted pool: core heavy, then personal, language, ambient, playful
 const pool: string[] = [
-  ...core, ...core, ...core, // 27
-  ...language, ...language, // 10
-  ...playful, // 5
+  ...core, ...core, ...core,       // 6
+  ...personal, ...personal,        // 12
+  ...language,                     // 5
+  ...ambient,                      // 4
+  ...playful,                      // 5
 ];
 
 export function getRandomTagline(exclude?: string): string {

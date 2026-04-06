@@ -7,7 +7,7 @@ import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import PlaiLogo from "@/components/PlaiLogo";
+import TaglineSpace from "@/components/TaglineSpace";
 
 const SettingsPage = () => {
   const { user, loading, signOut } = useAuth();
@@ -17,6 +17,7 @@ const SettingsPage = () => {
   const [pin, setPin] = useState("");
   const [pinSaving, setPinSaving] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -26,6 +27,7 @@ const SettingsPage = () => {
         setDisplayName(data.display_name || "");
         setUsername(data.username || "");
         setIsPublic((data as any).public !== false);
+        setStatus((data as any).status || "");
       }
     };
     load();
@@ -38,6 +40,7 @@ const SettingsPage = () => {
     if (field === "display_name") update.display_name = value;
     if (field === "username") update.username = value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (field === "public") update.public = value;
+    if (field === "status") update.status = value;
     const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
     setSaving(false);
     if (error) toast.error("Failed to update");
@@ -92,6 +95,23 @@ const SettingsPage = () => {
             </button>
           </div>
           <span className="text-[10px] text-muted-foreground mt-1 block">letters, numbers, . _ - only</span>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <label className="mb-1.5 block text-sm text-muted-foreground">status</label>
+          <div className="flex gap-2">
+            <Input
+              value={status}
+              onChange={(e) => setStatus(e.target.value.slice(0, 80))}
+              placeholder="on rotation"
+              className="bg-card border-border"
+              maxLength={80}
+            />
+            <button onClick={() => handleSave("status", status)} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
+              save
+            </button>
+          </div>
+          <span className="text-[10px] text-muted-foreground mt-1 block">{status.length}/80 · shown on your profile</span>
         </div>
 
         <div className="border-t border-border pt-6">
@@ -173,12 +193,9 @@ const SettingsPage = () => {
           </label>
         </div>
 
-        <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">about</h3>
-          <div className="flex items-center gap-2">
-            <PlaiLogo className="text-lg" glow={false} />
-            <span className="text-xs text-muted-foreground">· v0.1 beta · "from old provençal — it pleases me"</span>
-          </div>
+        <div className="border-t border-border pt-10 pb-4">
+          <TaglineSpace />
+          <p className="text-center text-[10px] text-muted-foreground mt-2">v0.1 beta · from old provençal — "it pleases me"</p>
         </div>
 
         <div className="border-t border-border pt-6">

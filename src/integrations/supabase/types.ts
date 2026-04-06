@@ -99,6 +99,7 @@ export type Database = {
           spotify_access_token: string | null
           spotify_id: string | null
           spotify_refresh_token: string | null
+          status: string | null
           username: string | null
         }
         Insert: {
@@ -113,6 +114,7 @@ export type Database = {
           spotify_access_token?: string | null
           spotify_id?: string | null
           spotify_refresh_token?: string | null
+          status?: string | null
           username?: string | null
         }
         Update: {
@@ -127,6 +129,7 @@ export type Database = {
           spotify_access_token?: string | null
           spotify_id?: string | null
           spotify_refresh_token?: string | null
+          status?: string | null
           username?: string | null
         }
         Relationships: []
