@@ -8,7 +8,7 @@ import TrendingCard from "@/components/TrendingCard";
 import DemoCard from "@/components/DemoCard";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
-import { trendingTracks, type TrendingTrack } from "@/lib/trending";
+import { trendingTracks } from "@/lib/trending";
 import { demoFeedItems } from "@/lib/demoData";
 
 interface FeedItem {
@@ -42,30 +42,6 @@ const Feed = () => {
   const [isNewUser, setIsNewUser] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [savedTrackIds, setSavedTrackIds] = useState<Set<string>>(new Set());
-  const [trendingWithArt, setTrendingWithArt] = useState<(TrendingTrack & { album_art_url?: string | null })[]>(trendingTracks);
-
-  // Fetch trending artwork
-  useEffect(() => {
-    const loadArtwork = async () => {
-      const updated = await Promise.all(
-        trendingTracks.map(async (track) => {
-          if (!track.spotifyTrackId) return track;
-          try {
-            const res = await fetch(
-              `https://open.spotify.com/oembed?url=https://open.spotify.com/track/${track.spotifyTrackId}`
-            );
-            if (res.ok) {
-              const data = await res.json();
-              return { ...track, album_art_url: data.thumbnail_url };
-            }
-          } catch {}
-          return track;
-        })
-      );
-      setTrendingWithArt(updated);
-    };
-    loadArtwork();
-  }, []);
 
   // Load saved track IDs
   useEffect(() => {
@@ -161,7 +137,6 @@ const Feed = () => {
     if (!user) return;
     const alreadySaved = savedTrackIds.has(trackId);
 
-    // Optimistic update
     setSavedTrackIds(prev => {
       const next = new Set(prev);
       if (alreadySaved) next.delete(trackId);
@@ -290,7 +265,7 @@ const Feed = () => {
         ) : (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground mb-2">trending this week</p>
-            {trendingWithArt.map((track) => (
+            {trendingTracks.map((track) => (
               <TrendingCard key={track.position} track={track} />
             ))}
           </div>
