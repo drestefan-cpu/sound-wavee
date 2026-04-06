@@ -7,7 +7,7 @@ import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import PlaiLogo from "@/components/PlaiLogo";
+import TaglineSpace from "@/components/TaglineSpace";
 
 const SettingsPage = () => {
   const { user, loading, signOut } = useAuth();
