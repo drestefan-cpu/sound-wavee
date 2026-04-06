@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Compass, User, Settings } from "lucide-react";
+import { Home, Compass, Disc, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const BottomNav = () => {
@@ -9,7 +9,7 @@ const BottomNav = () => {
   const links = [
     { to: "/feed", icon: Home, label: "Feed" },
     { to: "/discover", icon: Compass, label: "Discover" },
-    { to: `/profile/${user?.id || ""}`, icon: User, label: "Profile" },
+    { to: `/profile/${user?.id || ""}`, icon: Disc, label: "Library" },
     { to: "/settings", icon: Settings, label: "Settings" },
   ];
 
