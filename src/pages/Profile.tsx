@@ -405,11 +405,11 @@ const Profile = () => {
           </button>
           {isOwnProfile && (
             <button
-              onClick={() => setTab("activity")}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 flex items-center gap-1 ${tab === "activity" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
+              onClick={() => setTab("following")}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 flex items-center gap-1 ${tab === "following" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
             >
-              <Bell className="h-3 w-3" />
-              activity
+              <Users className="h-3 w-3" />
+              following
             </button>
           )}
         </div>
