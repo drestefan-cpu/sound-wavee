@@ -98,6 +98,23 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
+          <label className="mb-1.5 block text-sm text-muted-foreground">status</label>
+          <div className="flex gap-2">
+            <Input
+              value={status}
+              onChange={(e) => setStatus(e.target.value.slice(0, 80))}
+              placeholder="on rotation"
+              className="bg-card border-border"
+              maxLength={80}
+            />
+            <button onClick={() => handleSave("status", status)} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
+              save
+            </button>
+          </div>
+          <span className="text-[10px] text-muted-foreground mt-1 block">{status.length}/80 · shown on your profile</span>
+        </div>
+
+        <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h3>
           <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
           <p className="text-[10px] text-muted-dim mb-2">PIN is for convenience only, not a security feature.</p>
@@ -176,12 +193,9 @@ const SettingsPage = () => {
           </label>
         </div>
 
-        <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">about</h3>
-          <div className="flex items-center gap-2">
-            <PlaiLogo className="text-lg" glow={false} />
-            <span className="text-xs text-muted-foreground">· v0.1 beta · "from old provençal — it pleases me"</span>
-          </div>
+        <div className="border-t border-border pt-10 pb-4">
+          <TaglineSpace />
+          <p className="text-center text-[10px] text-muted-foreground mt-2">v0.1 beta · from old provençal — "it pleases me"</p>
         </div>
 
         <div className="border-t border-border pt-6">
