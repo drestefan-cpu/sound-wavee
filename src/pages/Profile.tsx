@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, RefreshCw, QrCode, X, Copy, Bell, Users, Heart } from "lucide-react";
+import { Settings, RefreshCw, QrCode, X, Copy, Bell, Users, Heart, Send } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
 import PlaiLogo from "@/components/PlaiLogo";
@@ -56,6 +56,7 @@ const Profile = () => {
   const [tasteMatch, setTasteMatch] = useState<number | null>(null);
   const [followers, setFollowers] = useState<any[]>([]);
   const [moonsFaded, setMoonsFaded] = useState(false);
+  const [unseenRecCount, setUnseenRecCount] = useState(0);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -166,17 +167,34 @@ const Profile = () => {
     loadFollowing();
   }, [isOwnProfile, user, tab]);
 
+  // Load unseen recommendation count
+  useEffect(() => {
+    if (!isOwnProfile || !user) return;
+    const loadUnseenCount = async () => {
+      const { count } = await supabase
+        .from("recommendations" as any)
+        .select("*", { count: "exact", head: true })
+        .eq("to_user_id", user.id)
+        .eq("seen", false);
+      setUnseenRecCount(count || 0);
+    };
+    loadUnseenCount();
+  }, [isOwnProfile, user]);
+
   // Activity
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "activity") return;
     const loadActivity = async () => {
-      const [saveRes, reactionRes] = await Promise.all([
+      const [saveRes, reactionRes, recRes] = await Promise.all([
         supabase.from("saved_tracks")
-          .select("saved_at, source_context, profiles!saved_tracks_user_id_fkey(username, display_name, avatar_url), tracks(title, artist, spotify_track_id)")
+          .select("saved_at, source_context, profiles!saved_tracks_user_id_fkey(username, display_name, avatar_url), tracks(title, artist, spotify_track_id, album_art_url)")
           .eq("source_user_id", user.id).order("saved_at", { ascending: false }).limit(50),
         supabase.from("reactions")
           .select("emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey(user_id, tracks(title, artist))")
           .order("created_at", { ascending: false }).limit(50),
+        supabase.from("recommendations" as any)
+          .select("created_at, message, tracks(title, artist, album_art_url), profiles:from_user_id(username, display_name, avatar_url)")
+          .eq("to_user_id", user.id).order("created_at", { ascending: false }).limit(50),
       ]);
       const saves = (saveRes.data || []).map((s: any) => ({
         type: "save" as const, timestamp: s.saved_at,
@@ -190,8 +208,20 @@ const Profile = () => {
           username: r.profiles?.username, displayName: r.profiles?.display_name,
           avatarUrl: r.profiles?.avatar_url, emoji: r.emoji, trackTitle: r.likes?.tracks?.title,
         }));
-      setActivity([...saves, ...reactions].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      const recs = ((recRes.data || []) as any[]).map((r: any) => ({
+        type: "recommendation" as const, timestamp: r.created_at,
+        username: r.profiles?.username, displayName: r.profiles?.display_name,
+        avatarUrl: r.profiles?.avatar_url, trackTitle: r.tracks?.title,
+        albumArtUrl: r.tracks?.album_art_url,
+      }));
+      setActivity([...saves, ...reactions, ...recs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       setActivityLoaded(true);
+
+      // Mark unseen recommendations as seen
+      if (unseenRecCount > 0) {
+        await supabase.from("recommendations" as any).update({ seen: true } as any).eq("to_user_id", user.id).eq("seen", false);
+        setUnseenRecCount(0);
+      }
     };
     loadActivity();
   }, [isOwnProfile, user, tab]);
@@ -299,10 +329,8 @@ const Profile = () => {
   const filteredLikes = collectionFilter === "30d" ? likes.filter(l => l.liked_at >= thirtyDaysAgo) : likes;
   const findsLabel = isOwnProfile ? "your finds" : "finds";
   const collectionLabel = isOwnProfile ? "your collection" : "collection";
-  const profileBg = (profile as any)?.profile_color || "#080B12";
-
   return (
-    <div className="min-h-screen pb-20" style={{ background: `linear-gradient(180deg, ${profileBg}40 0%, hsl(218 32% 5%) 300px)` }}>
+    <div className="min-h-screen pb-20" style={{ background: `linear-gradient(180deg, #080B1240 0%, hsl(218 32% 5%) 300px)` }}>
       <PageHeader
         title={`@${profile.username || "user"}`}
         rightContent={
@@ -451,19 +479,22 @@ const Profile = () => {
             { key: "collection" as TabType, label: collectionLabel },
             ...(isOwnProfile ? [
               { key: "following" as TabType, label: "following", icon: <Users className="h-3 w-3" /> },
-              { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" /> },
+              { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
               { key: "foryou" as TabType, label: "for you", icon: <Heart className="h-3 w-3" /> },
             ] : []),
           ].map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 ${
+              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 relative ${
                 tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"
               }`}
             >
               {'icon' in t && t.icon}
               {t.label}
+              {'badge' in t && (t as any).badge && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+              )}
             </button>
           ))}
         </div>
@@ -488,6 +519,7 @@ const Profile = () => {
                     albumArtUrl: s.tracks?.album_art_url,
                     spotifyTrackId: s.tracks?.spotify_track_id,
                   }}
+                  onShare={() => {}}
                   subtitle={
                     <p className="text-[10px] text-muted-dim">
                       {s.source_context === "trending" ? "from trending" :
@@ -551,24 +583,36 @@ const Profile = () => {
               activity.map((item, i) => (
                 <div key={i} className={`rounded-xl border border-border bg-card p-2.5 ${item.type === "save" ? "border-l-4 border-l-primary" : ""}`}>
                   <div className="flex items-center gap-2">
-                    {item.avatarUrl && (
+                    {item.type === "recommendation" ? (
+                      <Send className="h-4 w-4 text-primary flex-shrink-0" />
+                    ) : item.avatarUrl ? (
                       <div className="h-5 w-5 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
                         <img src={item.avatarUrl} alt="" className="h-full w-full object-cover" />
                       </div>
-                    )}
-                    <p className="text-xs text-foreground">
+                    ) : null}
+                    <p className="text-xs text-foreground flex-1 min-w-0">
                       {item.type === "save" ? (
                         <>
                           <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
                           {" saved "}<span className="text-primary">{item.trackTitle}</span>
                         </>
-                      ) : (
+                      ) : item.type === "reaction" ? (
                         <>
                           <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
                           {" reacted "}{item.emoji}{" to "}<span className="text-primary">{item.trackTitle}</span>
                         </>
+                      ) : (
+                        <>
+                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
+                          {" recommended "}<span className="text-primary">{item.trackTitle}</span>{" to you"}
+                        </>
                       )}
                     </p>
+                    {item.type === "recommendation" && item.albumArtUrl && (
+                      <div className="h-8 w-8 rounded overflow-hidden flex-shrink-0">
+                        <img src={item.albumArtUrl} alt="" className="h-full w-full object-cover" />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -631,6 +675,7 @@ const Profile = () => {
                         spotifyTrackId: like.tracks?.spotify_track_id,
                         likeId: like.id,
                       }}
+                      onShare={() => {}}
                     />
                   ))}
                 </div>
@@ -650,6 +695,7 @@ const Profile = () => {
                         spotifyTrackId: like.tracks?.spotify_track_id,
                         likeId: like.id,
                       }}
+                      onShare={() => {}}
                     />
                   ))}
                 </div>
