@@ -18,6 +18,8 @@ const SettingsPage = () => {
   const [pinSaving, setPinSaving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
+  const [statusSaved, setStatusSaved] = useState(false);
+  const [profileColor, setProfileColor] = useState("#080B12");
 
   useEffect(() => {
     const load = async () => {
@@ -28,6 +30,7 @@ const SettingsPage = () => {
         setUsername(data.username || "");
         setIsPublic((data as any).public !== false);
         setStatus((data as any).status || "");
+        setProfileColor((data as any).profile_color || "#080B12");
       }
     };
     load();
@@ -41,10 +44,30 @@ const SettingsPage = () => {
     if (field === "username") update.username = value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (field === "public") update.public = value;
     if (field === "status") update.status = value;
+    if (field === "profile_color") update.profile_color = value;
     const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
     setSaving(false);
-    if (error) toast.error("Failed to update");
-    else toast.success("Updated");
+    if (error) {
+      toast.error("couldn't save — try again");
+      console.error("Save error:", error);
+    } else {
+      toast.success("saved ✓");
+    }
+  };
+
+  const handleSaveStatus = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({ status } as any).eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      toast.error("couldn't save — try again");
+      console.error("Status save error:", error);
+    } else {
+      setStatusSaved(true);
+      toast.success("saved ✓");
+      setTimeout(() => setStatusSaved(false), 2000);
+    }
   };
 
   const handleSavePin = async () => {
@@ -53,10 +76,8 @@ const SettingsPage = () => {
       return;
     }
     setPinSaving(true);
-    // Try RPC first (hashed), fallback to plain text
     const { error } = await (supabase.rpc as any)("set_login_pin", { p_user_id: user.id, p_pin: pin });
     if (error) {
-      // Fallback: store plain
       const { error: e2 } = await supabase.from("profiles").update({ login_pin: pin } as any).eq("id", user.id);
       setPinSaving(false);
       if (e2) toast.error("Failed to save PIN");
@@ -108,22 +129,11 @@ const SettingsPage = () => {
               maxLength={80}
             />
             <button
-              onClick={async () => {
-                if (!user) return;
-                setSaving(true);
-                const { error } = await supabase.from("profiles").update({ status }).eq("id", user.id);
-                setSaving(false);
-                if (error) {
-                  toast.error("Failed to save status — tap to retry");
-                  console.error("Status save error:", error);
-                } else {
-                  toast.success("Status updated");
-                }
-              }}
+              onClick={handleSaveStatus}
               disabled={saving}
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
             >
-              {saving ? "..." : "save"}
+              {saving ? "..." : statusSaved ? "saved ✓" : "save"}
             </button>
           </div>
           <span className="text-[10px] text-muted-foreground mt-1 block">{status.length}/80 · shown on your profile</span>
@@ -132,7 +142,6 @@ const SettingsPage = () => {
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h3>
           <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
-          <p className="text-[10px] text-muted-dim mb-2">PIN is for convenience only, not a security feature.</p>
           <div className="flex gap-2">
             <Input
               type="password"
@@ -149,6 +158,26 @@ const SettingsPage = () => {
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
             >
               {pinSaving ? "saving..." : "save"}
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">profile appearance</h3>
+          <label className="mb-1.5 block text-sm text-muted-foreground">accent colour</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={profileColor}
+              onChange={(e) => setProfileColor(e.target.value)}
+              className="h-8 w-8 rounded-full border border-border cursor-pointer bg-transparent"
+            />
+            <span className="text-xs text-muted-foreground">{profileColor}</span>
+            <button
+              onClick={() => handleSave("profile_color", profileColor)}
+              className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
+            >
+              save
             </button>
           </div>
         </div>

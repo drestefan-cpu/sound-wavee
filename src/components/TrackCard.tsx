@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Heart } from "lucide-react";
+import { Heart, Share2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EmojiReactions from "@/components/EmojiReactions";
@@ -41,10 +41,12 @@ const TrackCard = ({
   item,
   isSaved: externalSaved,
   onToggleSave,
+  onRecommend,
 }: {
   item: FeedItem;
   isSaved?: boolean;
   onToggleSave?: (trackId: string, sourceUserId: string, sourceContext: string) => void;
+  onRecommend?: () => void;
 }) => {
   const { user } = useAuth();
   const profile = item.profiles;
@@ -117,12 +119,19 @@ const TrackCard = ({
             </span>
           </div>
         </div>
-        <button
-          onClick={toggleSave}
-          className={`transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
-        >
-          <Heart className={`h-7 w-7 ${saved ? "fill-primary text-primary" : "text-muted-dim hover:text-primary"}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          {onRecommend && (
+            <button onClick={onRecommend} className="text-muted-dim hover:text-primary transition-colors">
+              <Share2 className="h-5 w-5" />
+            </button>
+          )}
+          <button
+            onClick={toggleSave}
+            className={`transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
+          >
+            <Heart className={`h-7 w-7 ${saved ? "fill-primary text-primary" : "text-muted-dim hover:text-primary"}`} />
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3">

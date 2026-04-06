@@ -1,15 +1,21 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Search, Heart } from "lucide-react";
 import TrackCard from "@/components/TrackCard";
 import TrendingCard from "@/components/TrendingCard";
 import DemoCard from "@/components/DemoCard";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
+import HomeTagline from "@/components/HomeTagline";
+import UserCard from "@/components/UserCard";
+import RecommendModal from "@/components/RecommendModal";
+import { Input } from "@/components/ui/input";
 import { trendingTracks } from "@/lib/trending";
-import { demoFeedItems } from "@/lib/demoData";
+import { demoFeedItems, demoUsers } from "@/lib/demoData";
+import { getSpotifyUrl } from "@/lib/songlink";
 
 interface FeedItem {
   id: string;
@@ -33,15 +39,27 @@ interface FeedItem {
   };
 }
 
+// Top 10 curated plailist
+const plaiPicks = trendingTracks.slice(0, 10);
+
 const Feed = () => {
   const { user, loading } = useAuth();
   const [items, setItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
-  const [tab, setTab] = useState<"following" | "trending">("following");
+  const [tab, setTab] = useState<"following" | "trending" | "people" | "plailists">("following");
   const [isNewUser, setIsNewUser] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [savedTrackIds, setSavedTrackIds] = useState<Set<string>>(new Set());
+
+  // People tab state
+  const [peopleQuery, setPeopleQuery] = useState("");
+  const [people, setPeople] = useState<any[]>([]);
+  const [peopleLoading, setPeopleLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Recommend modal state
+  const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string } | null>(null);
 
   // Load saved track IDs
   useEffect(() => {
@@ -107,6 +125,35 @@ const Feed = () => {
     };
     init();
   }, [user]);
+
+  // Load people
+  const loadPeople = useCallback(async (q?: string) => {
+    if (!user) return;
+    setPeopleLoading(true);
+    let request = supabase
+      .from("profiles")
+      .select("*")
+      .neq("id", user.id)
+      .limit(30);
+    if (q && q.trim()) {
+      request = request.or(`username.ilike.%${q}%,display_name.ilike.%${q}%`);
+    }
+    const { data } = await request;
+    setPeople(data || []);
+    setPeopleLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (tab === "people" && people.length === 0 && !peopleLoading) {
+      loadPeople();
+    }
+  }, [tab]);
+
+  const handlePeopleSearch = (val: string) => {
+    setPeopleQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => loadPeople(val), 300);
+  };
 
   // Realtime
   useEffect(() => {
@@ -188,11 +235,21 @@ const Feed = () => {
   const hasFollowing = followingIds.length > 0;
   const hasContent = items.length > 0;
 
+  const tabs = [
+    { key: "following", label: "following" },
+    { key: "trending", label: "trending" },
+    { key: "people", label: "people" },
+    { key: "plailists", label: "plailists" },
+  ] as const;
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-feed items-center justify-between px-4 py-3">
-          <PlaiLogo className="text-xl" />
+          <div className="flex flex-col">
+            <PlaiLogo className="text-xl" />
+            <HomeTagline />
+          </div>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse-live" />
             Live
@@ -201,19 +258,20 @@ const Feed = () => {
       </header>
 
       <div className="mx-auto max-w-feed px-4 pt-3">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTab("following")}
-            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 ${tab === "following" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}
-          >
-            following
-          </button>
-          <button
-            onClick={() => setTab("trending")}
-            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 ${tab === "trending" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}
-          >
-            trending
-          </button>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 whitespace-nowrap ${
+                tab === t.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -225,12 +283,12 @@ const Feed = () => {
                 <div className="rounded-xl border border-primary/30 bg-card p-4 text-center">
                   <p className="text-sm text-foreground mb-1">this is what your feed looks like</p>
                   <p className="text-xs text-muted-foreground mb-3">follow friends to see the real thing</p>
-                  <Link
-                    to="/discover"
+                  <button
+                    onClick={() => setTab("people")}
                     className="inline-block rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
                   >
                     find friends
-                  </Link>
+                  </button>
                 </div>
                 {demoFeedItems.map((item) => (
                   <DemoCard key={item.id} item={item} />
@@ -244,6 +302,7 @@ const Feed = () => {
                     item={item}
                     isSaved={savedTrackIds.has(item.track_id)}
                     onToggleSave={handleToggleSave}
+                    onRecommend={() => setRecommendTrack({ id: item.track_id, title: item.tracks?.title })}
                   />
                 ))}
               </div>
@@ -256,21 +315,123 @@ const Feed = () => {
                 <PlaiLogo className="text-2xl" />
                 <h2 className="text-lg font-medium text-foreground">your feed is quiet</h2>
                 <p className="text-sm text-muted-foreground">follow some friends to hear what they're loving</p>
-                <Link to="/discover" className="mt-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
+                <button onClick={() => setTab("people")} className="mt-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
                   find friends
-                </Link>
+                </button>
               </div>
             )}
           </>
-        ) : (
+        ) : tab === "trending" ? (
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground mb-2">trending this week</p>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs text-muted-foreground">trending this week</p>
+              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[9px] text-muted-foreground">
+                WIP — some links may be buggy
+              </span>
+            </div>
             {trendingTracks.map((track) => (
               <TrendingCard key={track.position} track={track} />
             ))}
           </div>
+        ) : tab === "people" ? (
+          <div>
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={peopleQuery}
+                onChange={(e) => handlePeopleSearch(e.target.value)}
+                placeholder="search users..."
+                className="bg-card border-border pl-10"
+              />
+            </div>
+            {peopleLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {people.map((u) => (
+                  <UserCard key={u.id} profile={u} showFollow />
+                ))}
+                {people.length === 0 && !peopleQuery && demoUsers.map((u) => (
+                  <div key={u.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 relative">
+                    <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-primary">
+                      example
+                    </span>
+                    <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20">
+                      <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
+                        {u.display_name[0].toUpperCase()}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{u.display_name}</p>
+                      <p className="text-xs text-muted-foreground">@{u.username} · {u.genre}</p>
+                    </div>
+                  </div>
+                ))}
+                {people.length === 0 && peopleQuery && (
+                  <p className="py-12 text-center text-sm text-muted-foreground">no users found</p>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Plailists tab */
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-display text-lg text-foreground">PLAI picks</h3>
+              <p className="text-xs text-muted-foreground">curated by @plai</p>
+            </div>
+            <div className="space-y-2">
+              {plaiPicks.map((track, i) => (
+                <div key={track.position} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                  <a
+                    href={`https://open.spotify.com/track/${track.spotifyTrackId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-10 w-10 flex-shrink-0 rounded-md flex items-center justify-center hover:opacity-80 transition-opacity"
+                    style={{ backgroundColor: i % 2 === 0 ? '#FF2D78' : '#1a2535' }}
+                  >
+                    {track.albumArtUrl ? (
+                      <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover rounded-md" />
+                    ) : (
+                      <span className="font-display text-sm text-white">{i + 1}</span>
+                    )}
+                  </a>
+                  <div className="flex-1 min-w-0">
+                    <a
+                      href={`https://open.spotify.com/track/${track.spotifyTrackId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate flex items-center gap-1"
+                    >
+                      <span className="truncate">{track.title}</span>
+                      <span className="text-muted-foreground text-xs flex-shrink-0">↗</span>
+                    </a>
+                    <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                  </div>
+                  <Heart className="h-5 w-5 text-muted-dim hover:text-primary cursor-pointer transition-colors" />
+                </div>
+              ))}
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4 text-center">
+              <span className="inline-block rounded-full bg-primary px-3 py-1 text-[10px] font-medium text-primary-foreground mb-2">
+                coming soon
+              </span>
+              <p className="text-sm text-foreground">your plailists</p>
+              <p className="text-xs text-muted-foreground mt-1">create and share your own · coming soon</p>
+            </div>
+          </div>
         )}
       </main>
+
+      {recommendTrack && (
+        <RecommendModal
+          trackId={recommendTrack.id}
+          trackTitle={recommendTrack.title}
+          onClose={() => setRecommendTrack(null)}
+        />
+      )}
 
       <BottomNav />
     </div>
