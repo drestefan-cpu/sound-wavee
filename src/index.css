@@ -81,6 +81,10 @@
   .text-muted-dim {
     color: hsl(210 25% 20%);
   }
+
+  .animate-logo-glow {
+    animation: logo-glow 2.5s ease-in-out infinite;
+  }
 }
 
 @keyframes pulse-live {
@@ -100,5 +104,14 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes logo-glow {
+  0%, 100% {
+    text-shadow: 0 0 12px #FF2D78;
+  }
+  50% {
+    text-shadow: 0 0 2px #FF2D7840;
   }
 }
