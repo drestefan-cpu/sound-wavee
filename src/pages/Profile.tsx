@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 const Profile = () => {
   const { username } = useParams();
-  const { user, loading, triggerSync } = useAuth();
+  const { user, loading } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [likes, setLikes] = useState<any[]>([]);
   const [savedTracks, setSavedTracks] = useState<any[]>([]);
@@ -103,14 +103,22 @@ const Profile = () => {
   }, [profile, isOwnProfile]);
 
   const handleSync = async () => {
+    if (!user) return;
     setSyncing(true);
-    setSyncResult(null);
-    const count = await triggerSync();
+    setSyncResult("syncing...");
+    const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
+      body: { user_id: user.id },
+    });
     setSyncing(false);
-    setSyncResult(`✓ ${count} tracks synced`);
-    setTimeout(() => setSyncResult(null), 2000);
-    const { data } = await supabase.from("likes").select("*, tracks(*)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100);
-    setLikes(data || []);
+    if (error) {
+      setSyncResult("sync failed — try signing out and back in");
+    } else {
+      setSyncResult(`✓ ${data?.count || 0} tracks synced`);
+    }
+    setTimeout(() => setSyncResult(null), 3000);
+    // Refresh data
+    const { data: freshLikes } = await supabase.from("likes").select("*, tracks(*)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100);
+    setLikes(freshLikes || []);
     const { count: total } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id);
     setLikesCount(total || 0);
   };
@@ -258,14 +266,28 @@ const Profile = () => {
             <div><p className="font-medium text-foreground">{likesCount}</p><p className="text-muted-foreground">collection</p></div>
           </div>
           {isOwnProfile ? (
-            <button
-              onClick={handleSync}
-              disabled={syncing}
-              className="flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition-all duration-150 hover:bg-primary/10"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "syncing..." : syncResult || "sync now"}
-            </button>
+            <div className="flex flex-col items-center gap-1">
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition-all duration-150 hover:bg-primary/10"
+              >
+                <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "syncing..." : syncResult || "sync now"}
+              </button>
+              {profile.last_synced_at && (
+                <p className="text-[10px] text-muted-foreground">
+                  last synced {(() => {
+                    const mins = Math.round((Date.now() - new Date(profile.last_synced_at).getTime()) / 60000);
+                    if (mins < 1) return "just now";
+                    if (mins < 60) return `${mins}m ago`;
+                    const hrs = Math.round(mins / 60);
+                    if (hrs < 24) return `${hrs}h ago`;
+                    return `${Math.round(hrs / 24)}d ago`;
+                  })()}
+                </p>
+              )}
+            </div>
           ) : (
             <FollowButton targetUserId={profile.id} />
           )}
