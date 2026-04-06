@@ -346,8 +346,8 @@ const Profile = () => {
             ) : (
               <p className="text-sm text-muted-foreground">@user</p>
             )}
-            {(profile as any).status && (
-              <p className="text-xs text-muted-foreground/70 italic mt-1">"{(profile as any).status}"</p>
+            {profile?.status && (
+              <p className="text-xs text-muted-foreground/70 italic mt-1">"{profile.status}"</p>
             )}
           </div>
           <div className="flex gap-6 text-center text-sm">
