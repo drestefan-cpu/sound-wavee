@@ -479,19 +479,22 @@ const Profile = () => {
             { key: "collection" as TabType, label: collectionLabel },
             ...(isOwnProfile ? [
               { key: "following" as TabType, label: "following", icon: <Users className="h-3 w-3" /> },
-              { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" /> },
+              { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
               { key: "foryou" as TabType, label: "for you", icon: <Heart className="h-3 w-3" /> },
             ] : []),
           ].map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 ${
+              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 relative ${
                 tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"
               }`}
             >
               {'icon' in t && t.icon}
               {t.label}
+              {'badge' in t && (t as any).badge && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+              )}
             </button>
           ))}
         </div>
@@ -580,24 +583,36 @@ const Profile = () => {
               activity.map((item, i) => (
                 <div key={i} className={`rounded-xl border border-border bg-card p-2.5 ${item.type === "save" ? "border-l-4 border-l-primary" : ""}`}>
                   <div className="flex items-center gap-2">
-                    {item.avatarUrl && (
+                    {item.type === "recommendation" ? (
+                      <Send className="h-4 w-4 text-primary flex-shrink-0" />
+                    ) : item.avatarUrl ? (
                       <div className="h-5 w-5 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
                         <img src={item.avatarUrl} alt="" className="h-full w-full object-cover" />
                       </div>
-                    )}
-                    <p className="text-xs text-foreground">
+                    ) : null}
+                    <p className="text-xs text-foreground flex-1 min-w-0">
                       {item.type === "save" ? (
                         <>
                           <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
                           {" saved "}<span className="text-primary">{item.trackTitle}</span>
                         </>
-                      ) : (
+                      ) : item.type === "reaction" ? (
                         <>
                           <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
                           {" reacted "}{item.emoji}{" to "}<span className="text-primary">{item.trackTitle}</span>
                         </>
+                      ) : (
+                        <>
+                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
+                          {" recommended "}<span className="text-primary">{item.trackTitle}</span>{" to you"}
+                        </>
                       )}
                     </p>
+                    {item.type === "recommendation" && item.albumArtUrl && (
+                      <div className="h-8 w-8 rounded overflow-hidden flex-shrink-0">
+                        <img src={item.albumArtUrl} alt="" className="h-full w-full object-cover" />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
