@@ -27,21 +27,12 @@ const ambient = [
   "enjoy this one",
 ];
 
-const playful = [
-  "your taste… noted",
-  "i see you",
-  "between us, i love your taste",
-  "you got that on",
-  "okay, now i'm paying attention",
-];
-
-// Weighted pool: core heavy, then personal, language, ambient, playful
+// Weighted pool: core heavy, then personal, language, ambient
 const pool: string[] = [
   ...core, ...core, ...core,       // 6
   ...personal, ...personal,        // 12
   ...language,                     // 5
   ...ambient,                      // 4
-  ...playful,                      // 5
 ];
 
 export function getRandomTagline(exclude?: string): string {

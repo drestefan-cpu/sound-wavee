@@ -107,8 +107,23 @@ const SettingsPage = () => {
               className="bg-card border-border"
               maxLength={80}
             />
-            <button onClick={() => handleSave("status", status)} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
-              save
+            <button
+              onClick={async () => {
+                if (!user) return;
+                setSaving(true);
+                const { error } = await supabase.from("profiles").update({ status }).eq("id", user.id);
+                setSaving(false);
+                if (error) {
+                  toast.error("Failed to save status — tap to retry");
+                  console.error("Status save error:", error);
+                } else {
+                  toast.success("Status updated");
+                }
+              }}
+              disabled={saving}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+            >
+              {saving ? "..." : "save"}
             </button>
           </div>
           <span className="text-[10px] text-muted-foreground mt-1 block">{status.length}/80 · shown on your profile</span>
@@ -193,9 +208,9 @@ const SettingsPage = () => {
           </label>
         </div>
 
-        <div className="border-t border-border pt-10 pb-4">
+        <div className="border-t border-border pt-12 pb-6">
           <TaglineSpace />
-          <p className="text-center text-[10px] text-muted-foreground mt-2">v0.1 beta · from old provençal — "it pleases me"</p>
+          <p className="text-center text-[10px] text-muted-foreground/40 mt-6">v0.1 beta · from old provençal — "it pleases me"</p>
         </div>
 
         <div className="border-t border-border pt-6">
