@@ -463,6 +463,48 @@ const Profile = () => {
               {isOwnProfile ? "songs you discover on PLAI live here — save them from the feed" : "no finds yet"}
             </p>
           )
+        ) : tab === "following" ? (
+          /* Following tab */
+          !followingLoaded ? (
+            <div className="flex justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : followingList.length > 0 ? (
+            <div className="space-y-2">
+              {followingList.map((f: any) => {
+                const p = f.profiles;
+                if (!p) return null;
+                return (
+                  <Link
+                    key={p.id}
+                    to={`/profile/${p.username || p.id}`}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:bg-card/80 transition-colors"
+                  >
+                    <div className="h-10 w-10 overflow-hidden rounded-full flex-shrink-0" style={{ backgroundColor: '#FF2D78' }}>
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                          {(p.display_name || "U")[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{p.display_name || "User"}</p>
+                      <p className="text-xs text-muted-foreground">@{p.username || "user"}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground mb-3">you're not following anyone yet — find friends in discover</p>
+              <Link to="/discover" className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+                discover →
+              </Link>
+            </div>
+          )
         ) : tab === "activity" ? (
           /* Activity tab */
           <div className="space-y-2">
