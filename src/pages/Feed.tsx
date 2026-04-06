@@ -366,8 +366,7 @@ const Feed = () => {
               </span>
             </div>
             {trendingTracks.map((track) => {
-              const colors = ['#FF2D78', '#1a2535', '#0F1520'];
-              const bgColor = colors[(track.position - 1) % 3];
+              const bgColor = track.position % 2 === 1 ? '#FF2D78' : '#1a2535';
               return (
                 <UnifiedTrackCard
                   key={track.position}

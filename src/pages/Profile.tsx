@@ -345,7 +345,7 @@ const Profile = () => {
                     boxShadow: `0 0 ${m.size}px ${m.color}40`,
                   }}
                 />
-                <span className="text-[8px] text-muted-foreground/60 mt-0.5 transition-opacity duration-1000" style={{ opacity: moonsFaded ? 0 : 0.6 }}>
+                <span className="text-[8px] mt-0.5 transition-opacity duration-1000" style={{ color: '#F0EBE3', opacity: moonsFaded ? 0 : 0.8 }}>
                   @{m.username || "·"}
                 </span>
               </div>
@@ -445,7 +445,7 @@ const Profile = () => {
         </div>
 
         {/* Tabs */}
-        <div className="mt-4 flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+        <div className="mt-4 flex flex-wrap gap-1.5 mb-3">
           {[
             { key: "finds" as TabType, label: findsLabel },
             { key: "collection" as TabType, label: collectionLabel },
@@ -616,19 +616,22 @@ const Profile = () => {
             </div>
             {filteredLikes.length > 0 ? (
               isOwnProfile ? (
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="space-y-2">
                   {filteredLikes.map((like: any) => (
-                    <a key={like.id} href={getSpotifyUrl(like.tracks?.spotify_track_id, like.tracks?.title, like.tracks?.artist)} target="_blank" rel="noopener noreferrer"
-                      className="aspect-square overflow-hidden rounded-lg bg-card border border-border hover:opacity-80 transition-opacity duration-150">
-                      {like.tracks?.album_art_url ? (
-                        <img src={like.tracks.album_art_url} alt={like.tracks?.title || ""} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs flex-col gap-1 p-1">
-                          <span>🎵</span>
-                          <span className="text-[8px] text-center truncate w-full">{like.tracks?.title}</span>
-                        </div>
-                      )}
-                    </a>
+                    <UnifiedTrackCard
+                      key={like.id}
+                      compact
+                      hideReactions
+                      track={{
+                        id: like.id,
+                        title: like.tracks?.title || "Unknown",
+                        artist: like.tracks?.artist || "Unknown",
+                        album: like.tracks?.album,
+                        albumArtUrl: like.tracks?.album_art_url,
+                        spotifyTrackId: like.tracks?.spotify_track_id,
+                        likeId: like.id,
+                      }}
+                    />
                   ))}
                 </div>
               ) : (
