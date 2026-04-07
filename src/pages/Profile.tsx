@@ -468,49 +468,53 @@ const Profile = () => {
           </div>
 
           {/* Stats row with sync */}
-          <div className="flex gap-5 text-center text-xs items-end">
-            {isOwnProfile ? (
-              <>
-                <button onClick={() => setFollowModal("followers")} className="hover:opacity-80 transition-opacity">
-                  <p className="font-medium text-foreground text-sm">{followerCount}</p>
-                  <p className="text-muted-foreground">followers</p>
-                </button>
-                <button onClick={() => setFollowModal("following")} className="hover:opacity-80 transition-opacity">
-                  <p className="font-medium text-foreground text-sm">{followingCount}</p>
-                  <p className="text-muted-foreground">following</p>
-                </button>
-                <div>
-                  <p className="font-medium text-foreground text-sm">{likesCount}</p>
-                  <p className="text-muted-foreground">collection</p>
-                </div>
-                <button
-                  onClick={handleSync}
-                  disabled={syncing}
-                  className="flex flex-col items-center hover:opacity-80 transition-opacity"
-                >
-                  <RefreshCw className={`h-4 w-4 text-muted-foreground ${syncing ? "animate-spin" : ""}`} />
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{syncing ? "..." : "sync"}</p>
-                  {syncResult ? (
-                    <p className="text-[9px] mt-0.5 transition-opacity duration-500" style={{ color: "#4a6a8a", opacity: syncResult === null ? 0 : 1 }}>{syncResult}</p>
-                  ) : profile.last_synced_at ? (
-                    <p className="text-[9px] mt-0.5" style={{ color: "#4a6a8a" }}>
-                      {(() => {
-                        const mins = Math.round((Date.now() - new Date(profile.last_synced_at).getTime()) / 60000);
-                        if (mins < 1) return "just now";
-                        if (mins < 60) return `${mins}m ago`;
-                        const hrs = Math.round(mins / 60);
-                        if (hrs < 24) return `${hrs}h ago`;
-                        return `${Math.round(hrs / 24)}d ago`;
-                      })()}
-                    </p>
-                  ) : null}
-                </button>
-              </>
-            ) : (
-              <>
-                <div><p className="font-medium text-foreground text-sm">{findsCount}</p><p className="text-muted-foreground">finds</p></div>
-                <div><p className="font-medium text-foreground text-sm">{likesCount}</p><p className="text-muted-foreground">collection</p></div>
-              </>
+          <div className="w-full relative flex items-end justify-center">
+            <div className="flex gap-5 text-center text-xs">
+              {isOwnProfile ? (
+                <>
+                  <button onClick={() => setFollowModal("followers")} className="hover:opacity-80 transition-opacity">
+                    <p className="font-medium text-foreground text-sm">{followerCount}</p>
+                    <p className="text-muted-foreground">followers</p>
+                  </button>
+                  <button onClick={() => setFollowModal("following")} className="hover:opacity-80 transition-opacity">
+                    <p className="font-medium text-foreground text-sm">{followingCount}</p>
+                    <p className="text-muted-foreground">following</p>
+                  </button>
+                  <div>
+                    <p className="font-medium text-foreground text-sm">{likesCount}</p>
+                    <p className="text-muted-foreground">collection</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div><p className="font-medium text-foreground text-sm">{findsCount}</p><p className="text-muted-foreground">finds</p></div>
+                  <div><p className="font-medium text-foreground text-sm">{likesCount}</p><p className="text-muted-foreground">collection</p></div>
+                </>
+              )}
+            </div>
+            {isOwnProfile && (
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="absolute right-0 bottom-0 flex flex-col items-center hover:opacity-80 transition-opacity"
+              >
+                <RefreshCw className={`h-4 w-4 text-muted-foreground ${syncing ? "animate-spin" : ""}`} />
+                <p className="text-[10px] text-muted-foreground mt-0.5">{syncing ? "..." : "sync"}</p>
+                {syncResult ? (
+                  <p className="text-[9px] mt-0.5 transition-opacity duration-500" style={{ color: "#4a6a8a" }}>{syncResult}</p>
+                ) : profile.last_synced_at ? (
+                  <p className="text-[9px] mt-0.5" style={{ color: "#4a6a8a" }}>
+                    {(() => {
+                      const mins = Math.round((Date.now() - new Date(profile.last_synced_at).getTime()) / 60000);
+                      if (mins < 1) return "just now";
+                      if (mins < 60) return `${mins}m ago`;
+                      const hrs = Math.round(mins / 60);
+                      if (hrs < 24) return `${hrs}h ago`;
+                      return `${Math.round(hrs / 24)}d ago`;
+                    })()}
+                  </p>
+                ) : null}
+              </button>
             )}
           </div>
 
