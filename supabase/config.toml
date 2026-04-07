@@ -11,6 +11,3 @@ verify_jwt = false
 
 [functions.sync-tidal-likes]
 verify_jwt = false
-
-[functions.fetch-trending-artwork]
-verify_jwt = false
