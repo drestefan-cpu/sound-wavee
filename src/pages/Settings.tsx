@@ -93,7 +93,10 @@ const SettingsPage = () => {
       return;
     }
     setPinSaving(true);
-    const { error } = await (supabase.rpc as any)("set_login_pin", { p_user_id: user.id, p_pin: pin });
+    const { error } = await (supabase.rpc as any)("set_login_pin", {
+      p_user_id: user.id,
+      p_pin: pin,
+    });
     if (error) {
       const { error: e2 } = await supabase
         .from("profiles")
@@ -114,12 +117,18 @@ const SettingsPage = () => {
 
   const connectTidal = async () => {
     try {
+      if (!user?.id) {
+        toast.error("Please sign in first");
+        return;
+      }
+
       const array = new Uint8Array(64);
       crypto.getRandomValues(array);
       const codeVerifier = btoa(String.fromCharCode(...array))
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=/g, "");
+
       const encoder = new TextEncoder();
       const data = encoder.encode(codeVerifier);
       const digest = await crypto.subtle.digest("SHA-256", data);
@@ -128,12 +137,18 @@ const SettingsPage = () => {
         .replace(/\//g, "_")
         .replace(/=/g, "");
 
+      // Use localStorage — survives cross-origin redirects
       localStorage.setItem("tidal_code_verifier", codeVerifier);
+      localStorage.setItem("tidal_user_id", user.id);
 
-      // CRITICAL: store user ID before leaving the app
-      // sessionStorage survives the external OAuth redirect and back
-      if (user?.id) {
-        localStorage.setItem("tidal_user_id", user.id);
+      // Verify they were saved before redirecting
+      const verifyVerifier = localStorage.getItem("tidal_code_verifier");
+      const verifyUserId = localStorage.getItem("tidal_user_id");
+      console.log("Saved to localStorage:", { verifyVerifier: !!verifyVerifier, verifyUserId });
+
+      if (!verifyVerifier || !verifyUserId) {
+        toast.error("Could not save auth state — try again");
+        return;
       }
 
       const { data: result } = await supabase.functions.invoke("tidal-auth-url", {
@@ -148,7 +163,8 @@ const SettingsPage = () => {
       } else {
         toast.error("Could not start Tidal login");
       }
-    } catch {
+    } catch (err) {
+      console.error("Tidal connect error:", err);
       toast.error("Could not connect to Tidal");
     }
   };
@@ -376,10 +392,14 @@ const SettingsPage = () => {
                 setIsPublic(!isPublic);
                 handleSave("public", !isPublic);
               }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${isPublic ? "bg-primary" : "bg-muted"}`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${
+                isPublic ? "bg-primary" : "bg-muted"
+              }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${isPublic ? "translate-x-6" : "translate-x-1"}`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${
+                  isPublic ? "translate-x-6" : "translate-x-1"
+                }`}
               />
             </button>
           </label>
