@@ -104,30 +104,25 @@ const SettingsPage = () => {
   };
 
   const connectTidal = async () => {
-    const clientId = (import.meta as any).env?.VITE_TIDAL_CLIENT_ID;
-    if (!clientId) {
-      toast.error("Tidal integration not configured yet");
-      return;
+    try {
+      const array = new Uint8Array(64);
+      crypto.getRandomValues(array);
+      const codeVerifier = btoa(String.fromCharCode(...array))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+      const encoder = new TextEncoder();
+      const data = encoder.encode(codeVerifier);
+      const digest = await crypto.subtle.digest("SHA-256", data);
+      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+      sessionStorage.setItem("tidal_code_verifier", codeVerifier);
+      const { data: result } = await supabase.functions.invoke("tidal-auth-url", {
+        body: { code_challenge: codeChallenge, redirect_uri: `${window.location.origin}/auth/tidal/callback` },
+      });
+      if (result?.url) window.location.href = result.url;
+      else toast.error("Could not start Tidal login");
+    } catch {
+      toast.error("Could not connect to Tidal");
     }
-    const array = new Uint8Array(64);
-    crypto.getRandomValues(array);
-    const codeVerifier = btoa(String.fromCharCode(...array))
-      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-    const encoder = new TextEncoder();
-    const data = encoder.encode(codeVerifier);
-    const digest = await crypto.subtle.digest("SHA-256", data);
-    const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-    sessionStorage.setItem("tidal_code_verifier", codeVerifier);
-    const params = new URLSearchParams({
-      response_type: "code",
-      client_id: clientId,
-      redirect_uri: `${window.location.origin}/auth/tidal/callback`,
-      scope: "r_usr+w_usr+r_sub+collection.read",
-      code_challenge: codeChallenge,
-      code_challenge_method: "S256",
-    });
-    window.location.href = `https://login.tidal.com/authorize?${params}`;
   };
 
   const disconnectTidal = async () => {

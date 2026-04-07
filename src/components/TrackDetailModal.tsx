@@ -69,8 +69,7 @@ const TrackDetailModal = ({
 
           <button
             onClick={() => {
-              const win = window.open('', '_blank', 'noopener,noreferrer');
-              if (win) win.location.href = spotifyUrl;
+              window.open(spotifyUrl, '_blank', 'noopener,noreferrer');
             }}
             className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
           >
