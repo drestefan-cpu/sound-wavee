@@ -128,12 +128,12 @@ const SettingsPage = () => {
         .replace(/\//g, "_")
         .replace(/=/g, "");
 
-      sessionStorage.setItem("tidal_code_verifier", codeVerifier);
+      localStorage.setItem("tidal_code_verifier", codeVerifier);
 
       // CRITICAL: store user ID before leaving the app
       // sessionStorage survives the external OAuth redirect and back
       if (user?.id) {
-        sessionStorage.setItem("tidal_user_id", user.id);
+        localStorage.setItem("tidal_user_id", user.id);
       }
 
       const { data: result } = await supabase.functions.invoke("tidal-auth-url", {
