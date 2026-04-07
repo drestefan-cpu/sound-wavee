@@ -73,11 +73,25 @@ const UnifiedTrackCard = ({
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // Synchronous window.open to avoid Safari popup blocker
-    const win = window.open('', '_blank', 'noopener,noreferrer');
-    if (win) {
-      win.location.href = trackUrl;
+
+    // Tier 2: direct URL if available
+    if (track.spotifyTrackId && preferredPlatform === 'spotify') {
+      window.open(`https://open.spotify.com/track/${track.spotifyTrackId}`, '_blank', 'noopener,noreferrer');
+      return;
     }
+
+    // Tier 3: search URL fallback — always works
+    const query = encodeURIComponent(`${track.title} ${track.artist}`);
+    const searchUrl = (() => {
+      switch (preferredPlatform) {
+        case 'spotify': return `https://open.spotify.com/search/${query}`;
+        case 'apple_music': return `https://music.apple.com/search?term=${query}`;
+        case 'youtube_music': return `https://music.youtube.com/search?q=${query}`;
+        case 'tidal': return `https://tidal.com/search?q=${query}`;
+        default: return `https://open.spotify.com/search/${query}`;
+      }
+    })();
+    window.open(searchUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleShare = (e: React.MouseEvent) => {

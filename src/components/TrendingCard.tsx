@@ -80,24 +80,26 @@ const TrendingCard = ({ track, onSave, isSaved }: { track: TrendingTrack; onSave
     onSave?.(track);
   };
 
-  const spotifyUrl = `https://open.spotify.com/track/${track.spotifyTrackId}`;
+  const trackUrl = track.spotifyTrackId
+    ? `https://open.spotify.com/track/${track.spotifyTrackId}`
+    : `https://open.spotify.com/search/${encodeURIComponent(`${track.title} ${track.artist}`)}`;
 
   return (
     <div className="rounded-xl border border-border bg-card p-3 transition-all duration-150">
       <div className="flex gap-3">
-        <a
-          href={spotifyUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-md hover:opacity-80 transition-opacity duration-150"
-          style={{ backgroundColor: getPlaceholderColor(track.position) }}
-        >
-          <span className="font-display text-lg text-white">{track.position}</span>
-        </a>
+          <a
+            href={trackUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-md hover:opacity-80 transition-opacity duration-150"
+            style={{ backgroundColor: getPlaceholderColor(track.position) }}
+          >
+            <span className="font-display text-lg text-white">{track.position}</span>
+          </a>
         <div className="min-w-0 flex-1">
           <a
-            href={spotifyUrl}
+            href={trackUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
