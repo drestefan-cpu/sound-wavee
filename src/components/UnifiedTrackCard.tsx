@@ -3,11 +3,8 @@ import { Heart, Play, Send } from "lucide-react";
 import { getTrackUrl } from "@/lib/trackLinks";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
-import { useSpotifyPlayer } from "@/contexts/SpotifyPlayerContext";
 import EmojiReactions from "@/components/EmojiReactions";
 import TrackDetailModal from "@/components/TrackDetailModal";
-import NowPlayingIndicator from "@/components/NowPlayingIndicator";
-import { toast } from "sonner";
 
 export interface UnifiedTrackData {
   id: string;
@@ -53,14 +50,14 @@ const UnifiedTrackCard = ({
 }: UnifiedTrackCardProps) => {
   const { preferredPlatform } = usePlatform();
   const { isSaved: isGloballySaved, toggleSave } = useSavedTracks();
-  const { currentTrackId, isPlaying, playerReady, play } = useSpotifyPlayer();
+  // SDK playback removed — using direct platform links
   const [bouncing, setBouncing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
 
   const trackDbId = track.trackDbId || track.id;
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
   const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist);
-  const isCurrentlyPlaying = track.spotifyTrackId && currentTrackId === track.spotifyTrackId && isPlaying;
+  const isCurrentlyPlaying = false;
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -76,12 +73,10 @@ const UnifiedTrackCard = ({
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (playerReady && track.spotifyTrackId && preferredPlatform === "spotify") {
-      play(track.spotifyTrackId, track.title, track.artist, track.albumArtUrl || undefined);
-    } else {
-      window.open(trackUrl, "_blank", "noopener,noreferrer");
-      const platformName = preferredPlatform === "tidal" ? "Tidal" : preferredPlatform === "apple_music" ? "Apple Music" : preferredPlatform === "youtube_music" ? "YouTube Music" : "Spotify";
-      toast(`opening in ${platformName}`);
+    // Synchronous window.open to avoid Safari popup blocker
+    const win = window.open('', '_blank', 'noopener,noreferrer');
+    if (win) {
+      win.location.href = trackUrl;
     }
   };
 
@@ -91,7 +86,6 @@ const UnifiedTrackCard = ({
   };
 
   const PlayIcon = () => {
-    if (isCurrentlyPlaying) return <NowPlayingIndicator size={compact ? 12 : 14} />;
     return <Play className={compact ? "h-3 w-3 fill-current" : "h-3.5 w-3.5 fill-current"} style={{ color: "#4a6a8a" }} />;
   };
 
