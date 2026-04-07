@@ -11,7 +11,7 @@ const TidalCallback = () => {
     const exchange = async () => {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
-      const codeVerifier = sessionStorage.getItem("tidal_code_verifier");
+      const codeVerifier = localStorage.getItem("tidal_code_verifier");
 
       if (!code || !codeVerifier) {
         setStatus("missing authorization code");
@@ -21,18 +21,16 @@ const TidalCallback = () => {
       }
 
       try {
-        // Try sessionStorage first — stored before redirect, most reliable
-        let userId = sessionStorage.getItem("tidal_user_id");
+        // Use localStorage — survives cross-origin redirects unlike sessionStorage
+        let userId = localStorage.getItem("tidal_user_id");
 
-        // If not in sessionStorage, try Supabase session with retries
+        // If not in localStorage, try Supabase session with retries
         if (!userId) {
-          let session = null;
           for (let i = 0; i < 4; i++) {
             await new Promise((resolve) => setTimeout(resolve, 1500));
             const { data } = await supabase.auth.getSession();
             if (data.session?.user?.id) {
-              session = data.session;
-              userId = session.user.id;
+              userId = data.session.user.id;
               break;
             }
           }
@@ -47,7 +45,6 @@ const TidalCallback = () => {
 
         setStatus("exchanging tokens...");
 
-        // Get session for auth header
         const {
           data: { session: currentSession },
         } = await supabase.auth.getSession();
@@ -61,9 +58,9 @@ const TidalCallback = () => {
           },
         });
 
-        // Clean up sessionStorage
-        sessionStorage.removeItem("tidal_code_verifier");
-        sessionStorage.removeItem("tidal_user_id");
+        // Clean up localStorage
+        localStorage.removeItem("tidal_code_verifier");
+        localStorage.removeItem("tidal_user_id");
 
         if (error || !data?.success) {
           setStatus("token exchange failed");
@@ -74,7 +71,6 @@ const TidalCallback = () => {
 
         setStatus("syncing your Tidal library...");
 
-        // Trigger sync (non-fatal)
         try {
           await supabase.functions.invoke("sync-tidal-likes", {
             body: { user_id: userId },
