@@ -33,31 +33,30 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
   const tokenRef = useRef<string | null>(null);
   const progressInterval = useRef<ReturnType<typeof setInterval>>();
 
-  // Load SDK script
-  useEffect(() => {
-    if (document.getElementById("spotify-player-sdk")) return;
-    const script = document.createElement("script");
-    script.id = "spotify-player-sdk";
-    script.src = "https://sdk.scdn.co/spotify-player.js";
-    script.async = true;
-    document.head.appendChild(script);
-  }, []);
+  // NO dynamic script loading — SDK is loaded in index.html
 
-  // Init player when user is logged in
   useEffect(() => {
     if (!user) return;
+
     const initPlayer = async () => {
       const { data } = await supabase.from("profiles").select("spotify_access_token").eq("id", user.id).single();
+
       if (!data?.spotify_access_token) return;
       tokenRef.current = data.spotify_access_token;
 
-      const waitForSDK = () => new Promise<void>((resolve) => {
-        if ((window as any).Spotify) { resolve(); return; }
-        (window as any).onSpotifyWebPlaybackSDKReady = () => resolve();
-      });
+      // Wait for SDK — either already ready or wait for the event from index.html
+      const waitForSDK = () =>
+        new Promise<void>((resolve) => {
+          if ((window as any).SpotifySDKReady || (window as any).Spotify) {
+            resolve();
+            return;
+          }
+          window.addEventListener("spotify-sdk-ready", () => resolve(), { once: true });
+        });
 
       try {
         await waitForSDK();
+
         const player = new (window as any).Spotify.Player({
           name: "PLAI",
           getOAuthToken: (cb: (token: string) => void) => cb(tokenRef.current || ""),
@@ -85,18 +84,13 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
           setIsPlaying(!state.paused);
         });
 
-        player.addListener("authentication_error", () => {
-          setPlayerReady(false);
-        });
-
-        player.addListener("initialization_error", () => {
-          setPlayerReady(false);
-        });
+        player.addListener("authentication_error", () => setPlayerReady(false));
+        player.addListener("initialization_error", () => setPlayerReady(false));
 
         const connected = await player.connect();
         if (connected) playerRef.current = player;
       } catch {
-        // SDK not available
+        // SDK not available — play buttons fall back to search URL
       }
     };
 
@@ -119,50 +113,65 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
         if (state) setProgress(state.position || 0);
       }, 1000);
     }
-    return () => { if (progressInterval.current) clearInterval(progressInterval.current); };
+    return () => {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+    };
   }, [isPlaying]);
 
-  const play = useCallback((spotifyTrackId: string, title?: string, artist?: string, artUrl?: string) => {
-    if (!playerReady || !deviceId || !tokenRef.current) {
-      return; // caller should fallback
-    }
-
-    // activateElement for iOS
-    playerRef.current?.activateElement?.();
-
-    // Transfer playback
-    fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${tokenRef.current}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ uris: [`spotify:track:${spotifyTrackId}`] }),
-    }).then(res => {
-      if (!res.ok) {
-        toast("opening in Spotify");
-      } else {
-        if (title) setTrackTitle(title);
-        if (artist) setTrackArtist(artist);
-        if (artUrl) setTrackArt(artUrl);
-        setCurrentTrackId(spotifyTrackId);
-        setIsPlaying(true);
+  const play = useCallback(
+    (spotifyTrackId: string, title?: string, artist?: string, artUrl?: string) => {
+      if (!playerReady || !deviceId || !tokenRef.current) {
+        return; // caller falls back to search URL
       }
-    }).catch(() => {
-      toast("opening in Spotify");
-    });
-  }, [playerReady, deviceId]);
+
+      // Must call activateElement synchronously inside tap handler for iOS
+      playerRef.current?.activateElement?.();
+
+      fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${tokenRef.current}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ uris: [`spotify:track:${spotifyTrackId}`] }),
+      })
+        .then((res) => {
+          if (!res.ok) {
+            toast("opening in Spotify");
+          } else {
+            if (title) setTrackTitle(title);
+            if (artist) setTrackArtist(artist);
+            if (artUrl) setTrackArt(artUrl);
+            setCurrentTrackId(spotifyTrackId);
+            setIsPlaying(true);
+          }
+        })
+        .catch(() => {
+          toast("opening in Spotify");
+        });
+    },
+    [playerReady, deviceId],
+  );
 
   const togglePlayPause = useCallback(() => {
     playerRef.current?.togglePlay();
   }, []);
 
   return (
-    <SpotifyPlayerContext.Provider value={{
-      currentTrackId, isPlaying, progress, duration,
-      trackTitle, trackArtist, trackArt, playerReady,
-      play, togglePlayPause,
-    }}>
+    <SpotifyPlayerContext.Provider
+      value={{
+        currentTrackId,
+        isPlaying,
+        progress,
+        duration,
+        trackTitle,
+        trackArtist,
+        trackArt,
+        playerReady,
+        play,
+        togglePlayPause,
+      }}
+    >
       {children}
     </SpotifyPlayerContext.Provider>
   );
