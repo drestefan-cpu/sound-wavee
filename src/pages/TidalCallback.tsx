@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+
 const TidalCallback = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState("connecting to Tidal...");
@@ -23,21 +27,16 @@ const TidalCallback = () => {
       try {
         setStatus("finding your session...");
 
-        // Try localStorage first (set by Settings flow for existing users)
         let userId = localStorage.getItem("tidal_user_id");
 
-        // Try Supabase session (existing logged-in user)
         if (!userId) {
           const { data } = await supabase.auth.getSession();
-          if (data.session?.user?.id) {
-            userId = data.session.user.id;
-          }
+          if (data.session?.user?.id) userId = data.session.user.id;
         }
 
-        // Retry a few times in case session is still loading
         if (!userId) {
           for (let i = 0; i < 3; i++) {
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            await new Promise((r) => setTimeout(r, 1500));
             const { data } = await supabase.auth.getSession();
             if (data.session?.user?.id) {
               userId = data.session.user.id;
@@ -46,13 +45,10 @@ const TidalCallback = () => {
           }
         }
 
-        // New Tidal user with no Supabase account yet —
-        // sign them in anonymously so we have a user ID to store tokens on
         if (!userId) {
           setStatus("creating your account...");
           const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
           if (anonError || !anonData.user) {
-            setStatus("could not create session — please try signing in with Spotify first");
             toast.error("Please sign in with Spotify first, then connect Tidal in Settings");
             setTimeout(() => navigate("/"), 3000);
             return;
@@ -62,25 +58,50 @@ const TidalCallback = () => {
 
         setStatus("exchanging tokens...");
 
+        // Get current session token for auth header
         const {
-          data: { session: currentSession },
+          data: { session },
         } = await supabase.auth.getSession();
+        const authToken = session?.access_token || SUPABASE_ANON_KEY;
 
-        const { data, error } = await supabase.functions.invoke("tidal-exchange-token", {
-          body: {
+        console.log("Invoking tidal-exchange-token with userId:", userId);
+
+        // Call edge function directly via fetch to bypass any invoke issues
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/tidal-exchange-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+            apikey: SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
             code,
             code_verifier: codeVerifier,
             redirect_uri: `${window.location.origin}/auth/tidal/callback`,
             user_id: userId,
-          },
+          }),
         });
+
+        const responseText = await response.text();
+        console.log("Edge function response:", response.status, responseText);
 
         localStorage.removeItem("tidal_code_verifier");
         localStorage.removeItem("tidal_user_id");
 
-        if (error || !data?.success) {
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch {
           setStatus("token exchange failed");
-          toast.error("Tidal auth failed");
+          toast.error("Tidal auth failed — invalid response");
+          setTimeout(() => navigate("/"), 2000);
+          return;
+        }
+
+        if (!response.ok || !result.success) {
+          console.error("Token exchange failed:", result);
+          setStatus("token exchange failed");
+          toast.error(`Tidal auth failed: ${result.error || "unknown error"}`);
           setTimeout(() => navigate("/"), 2000);
           return;
         }
@@ -88,9 +109,14 @@ const TidalCallback = () => {
         setStatus("syncing your Tidal library...");
 
         try {
-          await supabase.functions.invoke("sync-tidal-likes", {
-            body: { user_id: userId },
-            headers: currentSession ? { Authorization: `Bearer ${currentSession.access_token}` } : {},
+          await fetch(`${SUPABASE_URL}/functions/v1/sync-tidal-likes`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+              apikey: SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ user_id: userId }),
           });
         } catch {
           // non-fatal
@@ -99,6 +125,7 @@ const TidalCallback = () => {
         toast.success("Tidal connected!");
         navigate("/feed");
       } catch (err) {
+        console.error("TidalCallback error:", err);
         setStatus("connection failed");
         toast.error("Tidal connection failed");
         setTimeout(() => navigate("/"), 2000);
