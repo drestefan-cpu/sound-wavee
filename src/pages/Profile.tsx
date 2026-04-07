@@ -508,7 +508,7 @@ const Profile = () => {
                 tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"
               }`}
             >
-              {'icon' in t && t.icon}
+              {'icon' in t && (t as any).icon}
               {t.label}
               {'badge' in t && (t as any).badge && (
                 <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
