@@ -21,12 +21,22 @@ const TidalCallback = () => {
       }
 
       try {
-        // Use localStorage — survives cross-origin redirects unlike sessionStorage
+        setStatus("finding your session...");
+
+        // Try localStorage first (set by Settings flow for existing users)
         let userId = localStorage.getItem("tidal_user_id");
 
-        // If not in localStorage, try Supabase session with retries
+        // Try Supabase session (existing logged-in user)
         if (!userId) {
-          for (let i = 0; i < 4; i++) {
+          const { data } = await supabase.auth.getSession();
+          if (data.session?.user?.id) {
+            userId = data.session.user.id;
+          }
+        }
+
+        // Retry a few times in case session is still loading
+        if (!userId) {
+          for (let i = 0; i < 3; i++) {
             await new Promise((resolve) => setTimeout(resolve, 1500));
             const { data } = await supabase.auth.getSession();
             if (data.session?.user?.id) {
@@ -36,11 +46,18 @@ const TidalCallback = () => {
           }
         }
 
+        // New Tidal user with no Supabase account yet —
+        // sign them in anonymously so we have a user ID to store tokens on
         if (!userId) {
-          setStatus("session not found — please sign in first");
-          toast.error("Please sign in before connecting Tidal");
-          setTimeout(() => navigate("/"), 2000);
-          return;
+          setStatus("creating your account...");
+          const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+          if (anonError || !anonData.user) {
+            setStatus("could not create session — please try signing in with Spotify first");
+            toast.error("Please sign in with Spotify first, then connect Tidal in Settings");
+            setTimeout(() => navigate("/"), 3000);
+            return;
+          }
+          userId = anonData.user.id;
         }
 
         setStatus("exchanging tokens...");
@@ -58,7 +75,6 @@ const TidalCallback = () => {
           },
         });
 
-        // Clean up localStorage
         localStorage.removeItem("tidal_code_verifier");
         localStorage.removeItem("tidal_user_id");
 
@@ -77,7 +93,7 @@ const TidalCallback = () => {
             headers: currentSession ? { Authorization: `Bearer ${currentSession.access_token}` } : {},
           });
         } catch {
-          // Sync failure is non-fatal
+          // non-fatal
         }
 
         toast.success("Tidal connected!");
