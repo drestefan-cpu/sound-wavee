@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const triggerAutoSync = async (userId: string) => {
     try {
-      const { data: profile } = await supabase.from("profiles").select("last_synced_at").eq("id", userId).single();
+      const { data: profile } = await supabase.from("profiles").select("last_synced_at, tidal_access_token").eq("id", userId).single();
       const lastSynced = profile?.last_synced_at ? new Date(profile.last_synced_at).getTime() : 0;
       const now = Date.now();
       if (!lastSynced || now - lastSynced > AUTO_SYNC_INTERVAL) {
@@ -51,6 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: { user_id: userId },
           headers: { Authorization: `Bearer ${currentSession?.access_token}` },
         });
+        // Also sync Tidal if connected
+        if (profile?.tidal_access_token) {
+          await supabase.functions.invoke("sync-tidal-likes", {
+            body: { user_id: userId },
+            headers: { Authorization: `Bearer ${currentSession?.access_token}` },
+          });
+        }
       }
     } catch (e) {
       console.error("Auto-sync error:", e);
