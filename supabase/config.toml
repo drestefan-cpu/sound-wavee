@@ -1,1 +1,16 @@
 project_id = "tpakzgbamrkrnctvgomg"
+
+[functions.sync-spotify-likes]
+verify_jwt = false
+
+[functions.tidal-auth-url]
+verify_jwt = false
+
+[functions.tidal-exchange-token]
+verify_jwt = false
+
+[functions.sync-tidal-likes]
+verify_jwt = false
+
+[functions.fetch-trending-artwork]
+verify_jwt = false
