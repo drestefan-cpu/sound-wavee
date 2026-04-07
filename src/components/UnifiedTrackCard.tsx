@@ -50,7 +50,7 @@ const UnifiedTrackCard = ({
 }: UnifiedTrackCardProps) => {
   const { preferredPlatform } = usePlatform();
   const { isSaved: isGloballySaved, toggleSave } = useSavedTracks();
-  const { currentTrackId, isPlaying, playerReady, play } = useSpotifyPlayer();
+  // SDK playback removed — using direct platform links
   const [bouncing, setBouncing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
 
