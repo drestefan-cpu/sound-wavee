@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const TidalCallback = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [status, setStatus] = useState("connecting to Tidal...");
 
