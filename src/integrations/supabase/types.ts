@@ -86,45 +86,6 @@ export type Database = {
           },
         ]
       }
-      plai_picks: {
-        Row: {
-          active: boolean | null
-          album: string | null
-          album_art_url: string | null
-          artist: string
-          id: string
-          note: string | null
-          position: number
-          spotify_track_id: string | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          album?: string | null
-          album_art_url?: string | null
-          artist: string
-          id?: string
-          note?: string | null
-          position: number
-          spotify_track_id?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          album?: string | null
-          album_art_url?: string | null
-          artist?: string
-          id?: string
-          note?: string | null
-          position?: number
-          spotify_track_id?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -134,17 +95,12 @@ export type Database = {
           last_synced_at: string | null
           login_pin: string | null
           onboarding_complete: boolean
-          platform: string | null
-          preferred_platform: string | null
           profile_color: string | null
           public: boolean
           spotify_access_token: string | null
           spotify_id: string | null
           spotify_refresh_token: string | null
           status: string | null
-          tidal_access_token: string | null
-          tidal_refresh_token: string | null
-          tidal_user_id: string | null
           username: string | null
         }
         Insert: {
@@ -155,17 +111,12 @@ export type Database = {
           last_synced_at?: string | null
           login_pin?: string | null
           onboarding_complete?: boolean
-          platform?: string | null
-          preferred_platform?: string | null
           profile_color?: string | null
           public?: boolean
           spotify_access_token?: string | null
           spotify_id?: string | null
           spotify_refresh_token?: string | null
           status?: string | null
-          tidal_access_token?: string | null
-          tidal_refresh_token?: string | null
-          tidal_user_id?: string | null
           username?: string | null
         }
         Update: {
@@ -176,17 +127,12 @@ export type Database = {
           last_synced_at?: string | null
           login_pin?: string | null
           onboarding_complete?: boolean
-          platform?: string | null
-          preferred_platform?: string | null
           profile_color?: string | null
           public?: boolean
           spotify_access_token?: string | null
           spotify_id?: string | null
           spotify_refresh_token?: string | null
           status?: string | null
-          tidal_access_token?: string | null
-          tidal_refresh_token?: string | null
-          tidal_user_id?: string | null
           username?: string | null
         }
         Relationships: []
@@ -309,33 +255,6 @@ export type Database = {
           },
         ]
       }
-      taglines: {
-        Row: {
-          active: boolean | null
-          category: string
-          created_at: string | null
-          id: string
-          text: string
-          weight: number | null
-        }
-        Insert: {
-          active?: boolean | null
-          category?: string
-          created_at?: string | null
-          id?: string
-          text: string
-          weight?: number | null
-        }
-        Update: {
-          active?: boolean | null
-          category?: string
-          created_at?: string | null
-          id?: string
-          text?: string
-          weight?: number | null
-        }
-        Relationships: []
-      }
       taste_compatibility: {
         Row: {
           calculated_at: string | null
@@ -390,7 +309,6 @@ export type Database = {
           id: string
           preview_url: string | null
           spotify_track_id: string
-          tidal_track_id: string | null
           title: string
         }
         Insert: {
@@ -401,7 +319,6 @@ export type Database = {
           id?: string
           preview_url?: string | null
           spotify_track_id: string
-          tidal_track_id?: string | null
           title: string
         }
         Update: {
@@ -412,7 +329,6 @@ export type Database = {
           id?: string
           preview_url?: string | null
           spotify_track_id?: string
-          tidal_track_id?: string | null
           title?: string
         }
         Relationships: []

@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { getRandomHomeTagline, loadTaglinesFromDb } from "@/lib/taglines";
+import { getRandomHomeTagline } from "@/lib/taglines";
 
 const HomeTagline = () => {
   const [tagline, setTagline] = useState(() => getRandomHomeTagline());
   const [fading, setFading] = useState(false);
   const [glowing, setGlowing] = useState(false);
-
-  useEffect(() => { loadTaglinesFromDb(); }, []);
 
   const cycle = useCallback(() => {
     setFading(true);

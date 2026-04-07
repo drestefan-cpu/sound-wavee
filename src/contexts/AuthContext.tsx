@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,12 +12,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTO_SYNC_INTERVAL = 7 * 60 * 1000; // 7 minutes
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const syncIntervalRef = useRef<ReturnType<typeof setInterval>>();
 
   const storeTokensAndSync = async (userId: string, providerToken: string, providerRefreshToken: string | null, metadata: any) => {
     const { error: upsertError } = await supabase.from("profiles").upsert({
@@ -33,35 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
       body: { user_id: userId },
-      headers: { Authorization: `Bearer ${currentSession?.access_token}` },
+      headers: {
+        Authorization: `Bearer ${currentSession?.access_token}`,
+      },
     });
     if (error) console.error("Sync failed:", error.message, error);
     else console.log("Sync success:", data?.count, "tracks");
-  };
-
-  const triggerAutoSync = async (userId: string) => {
-    try {
-      const { data: profile } = await supabase.from("profiles").select("last_synced_at, tidal_access_token").eq("id", userId).single();
-      const lastSynced = profile?.last_synced_at ? new Date(profile.last_synced_at).getTime() : 0;
-      const now = Date.now();
-      if (!lastSynced || now - lastSynced > AUTO_SYNC_INTERVAL) {
-        console.log("Auto-sync: triggering background sync");
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        await supabase.functions.invoke("sync-spotify-likes", {
-          body: { user_id: userId },
-          headers: { Authorization: `Bearer ${currentSession?.access_token}` },
-        });
-        // Also sync Tidal if connected
-        if (profile?.tidal_access_token) {
-          await supabase.functions.invoke("sync-tidal-likes", {
-            body: { user_id: userId },
-            headers: { Authorization: `Bearer ${currentSession?.access_token}` },
-          });
-        }
-      }
-    } catch (e) {
-      console.error("Auto-sync error:", e);
-    }
   };
 
   // Handle OAuth redirect — FIRST useEffect
@@ -100,10 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
         body: { user_id: session.user.id },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       console.log("Sync result:", data?.count, "tracks, error:", error?.message);
+
       window.history.replaceState(null, "", window.location.pathname);
     };
 
@@ -124,42 +101,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             session.user.user_metadata
           );
         }
-
-        // Auto-sync on sign in
-        if (event === "SIGNED_IN" && session?.user) {
-          setTimeout(() => triggerAutoSync(session.user.id), 3000);
-        }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
-      // Auto-sync on app open
-      if (session?.user) {
-        setTimeout(() => triggerAutoSync(session.user.id), 3000);
-      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  // Set up recurring sync interval
-  useEffect(() => {
-    if (session?.user) {
-      syncIntervalRef.current = setInterval(() => {
-        triggerAutoSync(session.user.id);
-      }, AUTO_SYNC_INTERVAL);
-    }
-    return () => { if (syncIntervalRef.current) clearInterval(syncIntervalRef.current); };
-  }, [session?.user?.id]);
 
   const signInWithSpotify = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "spotify",
       options: {
         redirectTo: `${window.location.origin}/feed`,
-        scopes: "user-library-read user-read-email user-read-private streaming user-read-playback-state user-modify-playback-state user-read-recently-played",
+        scopes: "user-library-read user-read-email user-read-private user-read-recently-played",
       },
     });
   };

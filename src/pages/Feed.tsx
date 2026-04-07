@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
@@ -14,6 +13,7 @@ import RecommendModal from "@/components/RecommendModal";
 import { Input } from "@/components/ui/input";
 import { trendingTracks } from "@/lib/trending";
 import { demoFeedItems, demoUsers } from "@/lib/demoData";
+import { getSpotifyUrl } from "@/lib/songlink";
 
 interface FeedItem {
   id: string;
@@ -37,15 +37,17 @@ interface FeedItem {
   };
 }
 
+const plaiPicks = trendingTracks.slice(0, 10);
+
 const Feed = () => {
   const { user, loading } = useAuth();
-  const { isSaved, toggleSave } = useSavedTracks();
   const [items, setItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [tab, setTab] = useState<"following" | "trending" | "people" | "plailists">("following");
   const [isNewUser, setIsNewUser] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [savedTrackIds, setSavedTrackIds] = useState<Set<string>>(new Set());
 
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<any[]>([]);
@@ -54,9 +56,14 @@ const Feed = () => {
 
   const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string } | null>(null);
 
-  // plai picks from DB
-  const [plaiPicks, setPlaiPicks] = useState<any[]>([]);
-  const [picksLoading, setPicksLoading] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    const loadSaved = async () => {
+      const { data } = await supabase.from("saved_tracks").select("track_id").eq("user_id", user.id);
+      setSavedTrackIds(new Set((data || []).map(d => d.track_id)));
+    };
+    loadSaved();
+  }, [user]);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -119,15 +126,6 @@ const Feed = () => {
     if (tab === "people" && people.length === 0 && !peopleLoading) loadPeople();
   }, [tab]);
 
-  // Load plai picks from DB
-  useEffect(() => {
-    if (tab === "plailists" && plaiPicks.length === 0 && !picksLoading) {
-      setPicksLoading(true);
-      supabase.from("plai_picks" as any).select("*").eq("active", true).order("position")
-        .then(({ data }) => { setPlaiPicks(data || []); setPicksLoading(false); });
-    }
-  }, [tab]);
-
   const handlePeopleSearch = (val: string) => {
     setPeopleQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -157,6 +155,32 @@ const Feed = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, followingIds]);
+
+  const handleToggleSave = async (trackId: string, sourceUserId: string, sourceContext: string) => {
+    if (!user) return;
+    const alreadySaved = savedTrackIds.has(trackId);
+    setSavedTrackIds(prev => {
+      const next = new Set(prev);
+      if (alreadySaved) next.delete(trackId); else next.add(trackId);
+      return next;
+    });
+    if (alreadySaved) {
+      const { error } = await supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", trackId);
+      if (error) {
+        setSavedTrackIds(prev => new Set(prev).add(trackId));
+        toast.error("couldn't remove — try again");
+      }
+    } else {
+      const { error } = await supabase.from("saved_tracks").insert({
+        user_id: user.id, track_id: trackId,
+        source_user_id: sourceUserId || null, source_context: sourceContext || "feed",
+      } as any);
+      if (error) {
+        setSavedTrackIds(prev => { const n = new Set(prev); n.delete(trackId); return n; });
+        toast.error("couldn't save — try again");
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -278,10 +302,9 @@ const Feed = () => {
                         albumArtUrl: track?.album_art_url,
                         spotifyTrackId: track?.spotify_track_id,
                         likeId: item.id,
-                        trackDbId: item.track_id,
                       }}
-                      isSaved={isSaved(item.track_id)}
-                      onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
+                      isSaved={savedTrackIds.has(item.track_id)}
+                      onToggleSave={() => handleToggleSave(item.track_id, profile?.id, "feed")}
                       onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
                       header={
                         <div className="mb-2 flex items-center gap-3">
@@ -414,59 +437,27 @@ const Feed = () => {
                 <p className="text-xs text-muted-foreground">curated by @plai</p>
               </div>
               <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[9px] text-muted-foreground">
-                WIP — curated picks, more coming soon
+                WIP — some links may be buggy
               </span>
             </div>
             <div className="space-y-2">
-              {picksLoading ? (
-                <div className="flex justify-center py-12">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                </div>
-              ) : plaiPicks.length > 0 ? (
-                plaiPicks.map((pick: any, i: number) => (
-                  <UnifiedTrackCard
-                    key={pick.id}
-                    compact
-                    hideReactions
-                    track={{
-                      id: `plai-${pick.id}`,
-                      title: pick.title,
-                      artist: pick.artist,
-                      spotifyTrackId: pick.spotify_track_id,
-                      albumArtUrl: pick.album_art_url,
-                    }}
-                    onShare={() => {
-                      if (pick.spotify_track_id) {
-                        const url = `https://open.spotify.com/track/${pick.spotify_track_id}`;
-                        if (navigator.share) navigator.share({ title: pick.title, url });
-                        else { navigator.clipboard.writeText(url); toast("link copied"); }
-                      }
-                    }}
-                    subtitle={
-                      <span className="text-[10px] text-muted-foreground">
-                        #{pick.position}{pick.note ? ` · ${pick.note}` : ""}
-                      </span>
-                    }
-                  />
-                ))
-              ) : (
-                // Fallback to hardcoded trending
-                trendingTracks.slice(0, 10).map((track, i) => (
-                  <UnifiedTrackCard
-                    key={track.position}
-                    compact
-                    hideReactions
-                    track={{
-                      id: `plai-${track.position}`,
-                      title: track.title,
-                      artist: track.artist,
-                      spotifyTrackId: track.spotifyTrackId,
-                      albumArtUrl: track.albumArtUrl,
-                    }}
-                    subtitle={<span className="text-[10px] text-muted-foreground">#{i + 1}</span>}
-                  />
-                ))
-              )}
+              {plaiPicks.map((track, i) => (
+                <UnifiedTrackCard
+                  key={track.position}
+                  compact
+                  hideReactions
+                  track={{
+                    id: `plai-${track.position}`,
+                    title: track.title,
+                    artist: track.artist,
+                    spotifyTrackId: track.spotifyTrackId,
+                    albumArtUrl: track.albumArtUrl,
+                  }}
+                  subtitle={
+                    <span className="text-[10px] text-muted-dim">#{i + 1}</span>
+                  }
+                />
+              ))}
             </div>
             <div className="rounded-xl border border-border bg-card p-4 text-center">
               <span className="inline-block rounded-full bg-primary px-3 py-1 text-[10px] font-medium text-primary-foreground mb-2">coming soon</span>
