@@ -12,7 +12,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTO_SYNC_INTERVAL = 20 * 60 * 1000; // 20 minutes
+const AUTO_SYNC_INTERVAL = 7 * 60 * 1000; // 7 minutes
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
