@@ -251,10 +251,27 @@ const Profile = () => {
         body: { user_id: user.id },
         headers: { Authorization: `Bearer ${currentSession?.access_token}` },
       });
-      if (error) { setSyncResult('could not sync — try signing out and back in'); }
-      else { setSyncResult(`✓ ${data?.count || 0} tracks synced`); setTimeout(() => loadCollection(), 1000); }
-    } catch { setSyncResult('could not sync — unexpected error'); }
-    finally { setSyncing(false); setTimeout(() => setSyncResult(null), 4000); }
+
+      // Also sync Tidal if connected
+      const { data: prof } = await supabase.from("profiles").select("tidal_access_token").eq("id", user.id).single();
+      if (prof?.tidal_access_token) {
+        await supabase.functions.invoke('sync-tidal-likes', {
+          body: { user_id: user.id },
+          headers: { Authorization: `Bearer ${currentSession?.access_token}` },
+        });
+      }
+
+      if (error) { setSyncResult('could not sync — try signing out and back in'); setTimeout(() => setSyncResult(null), 4000); }
+      else {
+        setSyncResult(`✓ done`);
+        setTimeout(() => loadCollection(), 1000);
+        // Fade sequence: show "✓ done" for 3s, then fade to 0, then restore last synced
+        setTimeout(() => {
+          setSyncResult(null); // triggers re-render to "last synced X ago" via normal display
+        }, 3500);
+      }
+    } catch { setSyncResult('could not sync'); setTimeout(() => setSyncResult(null), 4000); }
+    finally { setSyncing(false); }
   };
 
   const handleRemoveSaved = async (savedId: string) => {
@@ -472,7 +489,21 @@ const Profile = () => {
                   className="flex flex-col items-center hover:opacity-80 transition-opacity"
                 >
                   <RefreshCw className={`h-4 w-4 text-muted-foreground ${syncing ? "animate-spin" : ""}`} />
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{syncing ? "..." : syncResult || "sync"}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{syncing ? "..." : "sync"}</p>
+                  {syncResult ? (
+                    <p className="text-[9px] mt-0.5 transition-opacity duration-500" style={{ color: "#4a6a8a", opacity: syncResult === null ? 0 : 1 }}>{syncResult}</p>
+                  ) : profile.last_synced_at ? (
+                    <p className="text-[9px] mt-0.5" style={{ color: "#4a6a8a" }}>
+                      {(() => {
+                        const mins = Math.round((Date.now() - new Date(profile.last_synced_at).getTime()) / 60000);
+                        if (mins < 1) return "just now";
+                        if (mins < 60) return `${mins}m ago`;
+                        const hrs = Math.round(mins / 60);
+                        if (hrs < 24) return `${hrs}h ago`;
+                        return `${Math.round(hrs / 24)}d ago`;
+                      })()}
+                    </p>
+                  ) : null}
                 </button>
               </>
             ) : (
