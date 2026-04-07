@@ -121,7 +121,7 @@ const Landing = () => {
                 const data = encoder.encode(codeVerifier);
                 const digest = await crypto.subtle.digest("SHA-256", data);
                 const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-                sessionStorage.setItem("tidal_code_verifier", codeVerifier);
+                localStorage.setItem("tidal_code_verifier", codeVerifier);
                 const { data: result, error } = await supabase.functions.invoke("tidal-auth-url", {
                   body: { code_challenge: codeChallenge, redirect_uri: `${window.location.origin}/auth/tidal/callback` },
                 });
