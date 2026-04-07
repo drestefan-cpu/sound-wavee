@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Settings, RefreshCw, QrCode, X, Copy, Bell, Users, Heart, Send } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -29,6 +30,7 @@ type TabType = "finds" | "collection" | "following" | "activity" | "foryou";
 const Profile = () => {
   const { username } = useParams();
   const { user, loading } = useAuth();
+  const { isSaved, toggleSave } = useSavedTracks();
   const [profile, setProfile] = useState<any>(null);
   const [likes, setLikes] = useState<any[]>([]);
   const [savedTracks, setSavedTracks] = useState<any[]>([]);
@@ -217,7 +219,6 @@ const Profile = () => {
       setActivity([...saves, ...reactions, ...recs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       setActivityLoaded(true);
 
-      // Mark unseen recommendations as seen
       if (unseenRecCount > 0) {
         await supabase.from("recommendations" as any).update({ seen: true } as any).eq("to_user_id", user.id).eq("seen", false);
         setUnseenRecCount(0);
@@ -283,12 +284,14 @@ const Profile = () => {
   };
 
   const moons = useMemo(() => {
-    return followers.slice(0, 50).map((f) => ({
+    return followers.slice(0, 50).map((f, idx) => ({
       id: f.id, username: f.username,
       color: f.profile_color || "#FF2D78",
       left: seededRandom(f.id + "x") * 80 + 10,
       top: seededRandom(f.id + "y") * 30 + 5,
       size: 8 + seededRandom(f.id + "s") * 12,
+      driftDuration: 15 + seededRandom(f.id + "dd") * 10,
+      driftDelay: seededRandom(f.id + "dl") * 5,
     }));
   }, [followers]);
 
@@ -329,6 +332,21 @@ const Profile = () => {
   const filteredLikes = collectionFilter === "30d" ? likes.filter(l => l.liked_at >= thirtyDaysAgo) : likes;
   const findsLabel = isOwnProfile ? "your finds" : "finds";
   const collectionLabel = isOwnProfile ? "your collection" : "collection";
+
+  // Tab order: finds · for you · following · collection · activity
+  const ownTabs = [
+    { key: "finds" as TabType, label: findsLabel },
+    { key: "foryou" as TabType, label: "for you", icon: <Heart className="h-3 w-3" /> },
+    { key: "following" as TabType, label: "following", icon: <Users className="h-3 w-3" /> },
+    { key: "collection" as TabType, label: collectionLabel },
+    { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
+  ];
+  const otherTabs = [
+    { key: "finds" as TabType, label: findsLabel },
+    { key: "collection" as TabType, label: collectionLabel },
+  ];
+  const tabList = isOwnProfile ? ownTabs : otherTabs;
+
   return (
     <div className="min-h-screen pb-20" style={{ background: `linear-gradient(180deg, #080B1240 0%, hsl(218 32% 5%) 300px)` }}>
       <PageHeader
@@ -346,12 +364,17 @@ const Profile = () => {
       />
 
       <main className="mx-auto max-w-feed px-4 py-4 relative">
-        {/* Follower moons with pulse + drift */}
+        {/* Follower moons with orbital drift */}
         {isOwnProfile && moons.length > 0 && (
           <div className="absolute inset-x-0 top-0 h-32 pointer-events-none overflow-hidden">
             <style>{`
-              @keyframes moon-drift { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(var(--mdx), var(--mdy)); } }
-              @keyframes moon-pulse { 0%, 100% { opacity: var(--mo); } 50% { opacity: calc(var(--mo) * 0.5); } }
+              @keyframes moon-orbit {
+                0% { transform: translate(0, 0); }
+                25% { transform: translate(var(--mdx), var(--mdy)); }
+                50% { transform: translate(calc(var(--mdx) * -0.5), calc(var(--mdy) * 1.5)); }
+                75% { transform: translate(calc(var(--mdx) * -1), calc(var(--mdy) * -0.5)); }
+                100% { transform: translate(0, 0); }
+              }
               @keyframes moon-glow {
                 0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
                 50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
@@ -364,10 +387,10 @@ const Profile = () => {
                 className="absolute flex flex-col items-center moon-el"
                 style={{
                   left: `${m.left}%`, top: `${m.top}%`,
-                  "--mdx": `${(seededRandom(m.id + "dx") - 0.5) * 6}px`,
-                  "--mdy": `${(seededRandom(m.id + "dy") - 0.5) * 4}px`,
-                  "--mo": "0.4",
-                  animation: `moon-drift ${10 + seededRandom(m.id + "d") * 8}s ease-in-out infinite, moon-pulse ${4 + seededRandom(m.id + "p") * 4}s ease-in-out infinite`,
+                  "--mdx": `${(seededRandom(m.id + "dx") - 0.5) * 12}px`,
+                  "--mdy": `${(seededRandom(m.id + "dy") - 0.5) * 8}px`,
+                  animation: `moon-orbit ${m.driftDuration}s ease-in-out infinite`,
+                  animationDelay: `${m.driftDelay}s`,
                 } as React.CSSProperties}
               >
                 <div
@@ -387,7 +410,7 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Profile header — compact */}
+        {/* Profile header */}
         <div className="flex flex-col items-center gap-3 relative z-10">
           <div className="h-16 w-16 overflow-hidden rounded-full bg-primary/20">
             {profile.avatar_url ? (
@@ -427,8 +450,8 @@ const Profile = () => {
             )}
           </div>
 
-          {/* Stats */}
-          <div className="flex gap-5 text-center text-xs">
+          {/* Stats row with sync */}
+          <div className="flex gap-5 text-center text-xs items-end">
             {isOwnProfile ? (
               <>
                 <button onClick={() => setFollowModal("followers")} className="hover:opacity-80 transition-opacity">
@@ -443,6 +466,14 @@ const Profile = () => {
                   <p className="font-medium text-foreground text-sm">{likesCount}</p>
                   <p className="text-muted-foreground">collection</p>
                 </div>
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="flex flex-col items-center hover:opacity-80 transition-opacity"
+                >
+                  <RefreshCw className={`h-4 w-4 text-muted-foreground ${syncing ? "animate-spin" : ""}`} />
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{syncing ? "..." : syncResult || "sync"}</p>
+                </button>
               </>
             ) : (
               <>
@@ -451,19 +482,6 @@ const Profile = () => {
               </>
             )}
           </div>
-
-          {isOwnProfile ? (
-            <button
-              onClick={handleSync}
-              disabled={syncing}
-              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-all duration-150 hover:border-primary hover:text-primary"
-            >
-              <RefreshCw className={`h-3 w-3 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "syncing..." : syncResult || "sync"}
-            </button>
-          ) : (
-            <FollowButton targetUserId={profile.id} />
-          )}
           {isOwnProfile && profile.last_synced_at && (
             <p className="text-[9px] text-muted-foreground -mt-2">
               last synced {(() => {
@@ -476,19 +494,13 @@ const Profile = () => {
               })()}
             </p>
           )}
+
+          {!isOwnProfile && <FollowButton targetUserId={profile.id} />}
         </div>
 
         {/* Tabs */}
         <div className="mt-4 flex flex-wrap gap-1.5 mb-3">
-          {[
-            { key: "finds" as TabType, label: findsLabel },
-            { key: "collection" as TabType, label: collectionLabel },
-            ...(isOwnProfile ? [
-              { key: "following" as TabType, label: "following", icon: <Users className="h-3 w-3" /> },
-              { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
-              { key: "foryou" as TabType, label: "for you", icon: <Heart className="h-3 w-3" /> },
-            ] : []),
-          ].map((t) => (
+          {tabList.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
@@ -524,10 +536,13 @@ const Profile = () => {
                     artist: s.tracks?.artist || "Unknown",
                     albumArtUrl: s.tracks?.album_art_url,
                     spotifyTrackId: s.tracks?.spotify_track_id,
+                    trackDbId: s.track_id,
                   }}
+                  isSaved={isSaved(s.track_id)}
+                  onToggleSave={() => toggleSave(s.track_id, s.source_user_id, "finds")}
                   onShare={() => {}}
                   subtitle={
-                    <p className="text-[10px] text-muted-dim">
+                    <p className="text-[10px] text-muted-foreground">
                       {s.source_context === "trending" ? "from trending" :
                        s.profiles?.username ? `from @${s.profiles.username}` :
                        s.profiles?.display_name ? `from ${s.profiles.display_name}` : "from feed"}
@@ -642,9 +657,12 @@ const Profile = () => {
                     artist: rec.tracks?.artist || "Unknown",
                     albumArtUrl: rec.tracks?.album_art_url,
                     spotifyTrackId: rec.tracks?.spotify_track_id,
+                    trackDbId: rec.track_id,
                   }}
+                  isSaved={isSaved(rec.track_id)}
+                  onToggleSave={() => toggleSave(rec.track_id)}
                   subtitle={
-                    <p className="text-[10px] text-muted-dim">
+                    <p className="text-[10px] text-muted-foreground">
                       from @{rec.profiles?.username || rec.profiles?.display_name}
                       {rec.message && <span className="italic"> — "{rec.message}"</span>}
                     </p>
@@ -665,47 +683,30 @@ const Profile = () => {
               </button>
             </div>
             {filteredLikes.length > 0 ? (
-              isOwnProfile ? (
-                <div className="space-y-2">
-                  {filteredLikes.map((like: any) => (
-                    <UnifiedTrackCard
-                      key={like.id}
-                      compact
-                      hideReactions
-                      track={{
-                        id: like.id,
-                        title: like.tracks?.title || "Unknown",
-                        artist: like.tracks?.artist || "Unknown",
-                        album: like.tracks?.album,
-                        albumArtUrl: like.tracks?.album_art_url,
-                        spotifyTrackId: like.tracks?.spotify_track_id,
-                        likeId: like.id,
-                      }}
-                      onShare={() => {}}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredLikes.map((like: any) => (
-                    <UnifiedTrackCard
-                      key={like.id}
-                      compact
-                      hideReactions
-                      track={{
-                        id: like.id,
-                        title: like.tracks?.title || "Unknown",
-                        artist: like.tracks?.artist || "Unknown",
-                        album: like.tracks?.album,
-                        albumArtUrl: like.tracks?.album_art_url,
-                        spotifyTrackId: like.tracks?.spotify_track_id,
-                        likeId: like.id,
-                      }}
-                      onShare={() => {}}
-                    />
-                  ))}
-                </div>
-              )
+              <div className="space-y-2">
+                {filteredLikes.map((like: any) => (
+                  <UnifiedTrackCard
+                    key={like.id}
+                    compact
+                    hideReactions
+                    track={{
+                      id: like.id,
+                      title: like.tracks?.title || "Unknown",
+                      artist: like.tracks?.artist || "Unknown",
+                      album: like.tracks?.album,
+                      albumArtUrl: like.tracks?.album_art_url,
+                      spotifyTrackId: like.tracks?.spotify_track_id,
+                      likeId: like.id,
+                      trackDbId: like.track_id,
+                    }}
+                    isSaved={isSaved(like.track_id)}
+                    onToggleSave={() => toggleSave(like.track_id, profile.id, "collection")}
+                    sourceUserId={!isOwnProfile ? profile.id : undefined}
+                    sourceContext={!isOwnProfile ? "finds" : undefined}
+                    onShare={() => {}}
+                  />
+                ))}
+              </div>
             ) : (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 {isOwnProfile ? "your Spotify likes will appear here — tap sync to import" : "no tracks yet"}
@@ -715,7 +716,7 @@ const Profile = () => {
         )}
 
         <div className="mt-12 flex justify-center">
-          <button onClick={handleEasterEggTap} className="text-[10px] text-muted-dim select-none">PLAI</button>
+          <button onClick={handleEasterEggTap} className="text-[10px] text-muted-foreground select-none">PLAI</button>
         </div>
       </main>
 
