@@ -3,10 +3,7 @@ import { Heart, Play, Send } from "lucide-react";
 import { getTrackUrl } from "@/lib/trackLinks";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
-import { useSpotifyPlayer } from "@/contexts/SpotifyPlayerContext";
 import EmojiReactions from "@/components/EmojiReactions";
-import TrackDetailModal from "@/components/TrackDetailModal";
-import NowPlayingIndicator from "@/components/NowPlayingIndicator";
 import { toast } from "sonner";
 
 export interface UnifiedTrackData {
@@ -76,12 +73,10 @@ const UnifiedTrackCard = ({
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (playerReady && track.spotifyTrackId && preferredPlatform === "spotify") {
-      play(track.spotifyTrackId, track.title, track.artist, track.albumArtUrl || undefined);
-    } else {
-      window.open(trackUrl, "_blank", "noopener,noreferrer");
-      const platformName = preferredPlatform === "tidal" ? "Tidal" : preferredPlatform === "apple_music" ? "Apple Music" : preferredPlatform === "youtube_music" ? "YouTube Music" : "Spotify";
-      toast(`opening in ${platformName}`);
+    // Synchronous window.open to avoid Safari popup blocker
+    const win = window.open('', '_blank', 'noopener,noreferrer');
+    if (win) {
+      win.location.href = trackUrl;
     }
   };
 

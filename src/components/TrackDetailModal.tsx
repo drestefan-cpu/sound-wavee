@@ -67,17 +67,18 @@ const TrackDetailModal = ({
             <span className="text-[10px] text-muted-foreground">{isSaved ? "saved" : "save"}</span>
           </button>
 
-          <a
-            href={spotifyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => {
+              const win = window.open('', '_blank', 'noopener,noreferrer');
+              if (win) win.location.href = spotifyUrl;
+            }}
             className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
           >
             <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "#1a2535" }}>
               <Play className="h-4 w-4 fill-current" style={{ color: "#4a6a8a" }} />
             </div>
             <span className="text-[10px] text-muted-foreground">play</span>
-          </a>
+          </button>
 
           {onShare && (
             <button
