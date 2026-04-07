@@ -4,7 +4,7 @@ import { getTrackUrl } from "@/lib/trackLinks";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import EmojiReactions from "@/components/EmojiReactions";
-import { toast } from "sonner";
+import TrackDetailModal from "@/components/TrackDetailModal";
 
 export interface UnifiedTrackData {
   id: string;
@@ -57,7 +57,7 @@ const UnifiedTrackCard = ({
   const trackDbId = track.trackDbId || track.id;
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
   const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist);
-  const isCurrentlyPlaying = track.spotifyTrackId && currentTrackId === track.spotifyTrackId && isPlaying;
+  const isCurrentlyPlaying = false;
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -86,7 +86,6 @@ const UnifiedTrackCard = ({
   };
 
   const PlayIcon = () => {
-    if (isCurrentlyPlaying) return <NowPlayingIndicator size={compact ? 12 : 14} />;
     return <Play className={compact ? "h-3 w-3 fill-current" : "h-3.5 w-3.5 fill-current"} style={{ color: "#4a6a8a" }} />;
   };
 
