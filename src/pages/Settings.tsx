@@ -45,7 +45,7 @@ const SettingsPage = () => {
         setIsPublic((data as any).public !== false);
         setStatus((data as any).status || "");
         setProfileColor((data as any).profile_color || "#080B12");
-        setTidalConnected(!!data.tidal_access_token);
+        setTidalConnected(!!(data as any).tidal_access_token);
       }
     };
     load();
@@ -73,7 +73,10 @@ const SettingsPage = () => {
   const handleSaveStatus = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ status } as any).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ status } as any)
+      .eq("id", user.id);
     setSaving(false);
     if (error) {
       toast.error("couldn't save — try again");
@@ -92,10 +95,16 @@ const SettingsPage = () => {
     setPinSaving(true);
     const { error } = await (supabase.rpc as any)("set_login_pin", { p_user_id: user.id, p_pin: pin });
     if (error) {
-      const { error: e2 } = await supabase.from("profiles").update({ login_pin: pin } as any).eq("id", user.id);
+      const { error: e2 } = await supabase
+        .from("profiles")
+        .update({ login_pin: pin } as any)
+        .eq("id", user.id);
       setPinSaving(false);
       if (e2) toast.error("Failed to save PIN");
-      else { toast.success("PIN saved"); setPin(""); }
+      else {
+        toast.success("PIN saved");
+        setPin("");
+      }
     } else {
       setPinSaving(false);
       toast.success("PIN saved");
@@ -108,18 +117,37 @@ const SettingsPage = () => {
       const array = new Uint8Array(64);
       crypto.getRandomValues(array);
       const codeVerifier = btoa(String.fromCharCode(...array))
-        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
       const encoder = new TextEncoder();
       const data = encoder.encode(codeVerifier);
       const digest = await crypto.subtle.digest("SHA-256", data);
       const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+
       sessionStorage.setItem("tidal_code_verifier", codeVerifier);
+
+      // CRITICAL: store user ID before leaving the app
+      // sessionStorage survives the external OAuth redirect and back
+      if (user?.id) {
+        sessionStorage.setItem("tidal_user_id", user.id);
+      }
+
       const { data: result } = await supabase.functions.invoke("tidal-auth-url", {
-        body: { code_challenge: codeChallenge, redirect_uri: `${window.location.origin}/auth/tidal/callback` },
+        body: {
+          code_challenge: codeChallenge,
+          redirect_uri: `${window.location.origin}/auth/tidal/callback`,
+        },
       });
-      if (result?.url) window.location.href = result.url;
-      else toast.error("Could not start Tidal login");
+
+      if (result?.url) {
+        window.location.href = result.url;
+      } else {
+        toast.error("Could not start Tidal login");
+      }
     } catch {
       toast.error("Could not connect to Tidal");
     }
@@ -127,10 +155,13 @@ const SettingsPage = () => {
 
   const disconnectTidal = async () => {
     if (!user) return;
-    await supabase.from("profiles").update({
-      tidal_access_token: null,
-      tidal_refresh_token: null,
-    } as any).eq("id", user.id);
+    await supabase
+      .from("profiles")
+      .update({
+        tidal_access_token: null,
+        tidal_refresh_token: null,
+      } as any)
+      .eq("id", user.id);
     setTidalConnected(false);
     toast.success("Tidal disconnected");
   };
@@ -156,8 +187,15 @@ const SettingsPage = () => {
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
           <div className="flex gap-2">
-            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="bg-card border-border" />
-            <button onClick={() => handleSave("display_name", displayName)} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="bg-card border-border"
+            />
+            <button
+              onClick={() => handleSave("display_name", displayName)}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
+            >
               save
             </button>
           </div>
@@ -166,8 +204,15 @@ const SettingsPage = () => {
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">username</label>
           <div className="flex gap-2">
-            <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))} className="bg-card border-border" />
-            <button onClick={() => handleSave("username", username)} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80">
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+              className="bg-card border-border"
+            />
+            <button
+              onClick={() => handleSave("username", username)}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
+            >
               save
             </button>
           </div>
@@ -192,14 +237,17 @@ const SettingsPage = () => {
               {saving ? "..." : statusSaved ? "saved ✓" : "save"}
             </button>
           </div>
-          <span className="text-[10px] text-muted-foreground mt-1 block">{status.length}/80 · shown on your profile</span>
+          <span className="text-[10px] text-muted-foreground mt-1 block">
+            {status.length}/80 · shown on your profile
+          </span>
         </div>
 
-        {/* Moon colour — above PIN */}
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">moon appearance</h3>
           <label className="mb-1.5 block text-sm text-muted-foreground">moon colour</label>
-          <p className="text-[10px] text-muted-foreground mb-2">sets the colour of your moon on others' libraries — only visible to those you follow</p>
+          <p className="text-[10px] text-muted-foreground mb-2">
+            sets the colour of your moon on others' libraries — only visible to those you follow
+          </p>
           <div className="flex items-center gap-3">
             <input
               type="color"
@@ -240,9 +288,10 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Preferred platform */}
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">preferred platform</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+            preferred platform
+          </h3>
           <p className="text-[10px] text-muted-foreground mb-2">track links and play buttons open in this app</p>
           <div className="flex flex-wrap gap-2">
             {platformOptions.map((p) => (
@@ -262,7 +311,9 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">connected platforms</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+            connected platforms
+          </h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-green-500" />
@@ -275,10 +326,14 @@ const SettingsPage = () => {
               {tidalConnected ? (
                 <div className="ml-auto flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">connected</span>
-                  <button onClick={disconnectTidal} className="text-[10px] text-destructive hover:underline">disconnect</button>
+                  <button onClick={disconnectTidal} className="text-[10px] text-destructive hover:underline">
+                    disconnect
+                  </button>
                 </div>
               ) : (
-                <button onClick={connectTidal} className="ml-auto text-xs text-primary hover:underline">connect →</button>
+                <button onClick={connectTidal} className="ml-auto text-xs text-primary hover:underline">
+                  connect →
+                </button>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -299,7 +354,9 @@ const SettingsPage = () => {
           <label className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground">push notifications</p>
-              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[10px] text-muted-foreground">coming soon</span>
+              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                coming soon
+              </span>
             </div>
             <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted cursor-not-allowed opacity-50">
               <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
@@ -315,17 +372,24 @@ const SettingsPage = () => {
               <p className="text-xs text-muted-foreground">visible in discover and search</p>
             </div>
             <button
-              onClick={() => { setIsPublic(!isPublic); handleSave("public", !isPublic); }}
+              onClick={() => {
+                setIsPublic(!isPublic);
+                handleSave("public", !isPublic);
+              }}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${isPublic ? "bg-primary" : "bg-muted"}`}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${isPublic ? "translate-x-6" : "translate-x-1"}`} />
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${isPublic ? "translate-x-6" : "translate-x-1"}`}
+              />
             </button>
           </label>
         </div>
 
         <div className="border-t border-border pt-12 pb-6">
           <TaglineSpace />
-          <p className="text-center text-[10px] text-muted-foreground/40 mt-6">v0.1 beta · from old provençal — "it pleases me"</p>
+          <p className="text-center text-[10px] text-muted-foreground/40 mt-6">
+            v0.1 beta · from old provençal — "it pleases me"
+          </p>
         </div>
 
         <div className="border-t border-border pt-6">
@@ -338,7 +402,6 @@ const SettingsPage = () => {
           </button>
         </div>
 
-        {/* Admin entry point */}
         <div className="pt-2 pb-4 text-center">
           <button
             onClick={() => setShowAdmin(true)}
