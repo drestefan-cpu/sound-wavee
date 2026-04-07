@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlatform } from "@/contexts/PlatformContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { LogOut } from "lucide-react";
@@ -10,8 +11,16 @@ import PageHeader from "@/components/PageHeader";
 import TaglineSpace from "@/components/TaglineSpace";
 import AboutPlai from "@/components/AboutPlai";
 
+const platformOptions = [
+  { value: "spotify", label: "Spotify" },
+  { value: "apple_music", label: "Apple Music" },
+  { value: "youtube_music", label: "YouTube Music" },
+  { value: "tidal", label: "Tidal" },
+];
+
 const SettingsPage = () => {
   const { user, loading, signOut } = useAuth();
+  const { preferredPlatform, setPreferredPlatform } = usePlatform();
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [isPublic, setIsPublic] = useState(true);
@@ -64,7 +73,6 @@ const SettingsPage = () => {
     setSaving(false);
     if (error) {
       toast.error("couldn't save — try again");
-      console.error("Status save error:", error);
     } else {
       setStatusSaved(true);
       toast.success("saved ✓");
@@ -150,6 +158,28 @@ const SettingsPage = () => {
           <span className="text-[10px] text-muted-foreground mt-1 block">{status.length}/80 · shown on your profile</span>
         </div>
 
+        {/* Moon colour — above PIN */}
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">moon appearance</h3>
+          <label className="mb-1.5 block text-sm text-muted-foreground">moon colour</label>
+          <p className="text-[10px] text-muted-foreground mb-2">sets the colour of your moon on others' libraries — only visible to those you follow</p>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={profileColor}
+              onChange={(e) => setProfileColor(e.target.value)}
+              className="h-8 w-8 rounded-full border border-border cursor-pointer bg-transparent"
+            />
+            <span className="text-xs text-muted-foreground">{profileColor}</span>
+            <button
+              onClick={() => handleSave("profile_color", profileColor)}
+              className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
+            >
+              save
+            </button>
+          </div>
+        </div>
+
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h3>
           <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
@@ -173,24 +203,24 @@ const SettingsPage = () => {
           </div>
         </div>
 
+        {/* Preferred platform */}
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">moon appearance</h3>
-          <label className="mb-1.5 block text-sm text-muted-foreground">moon colour</label>
-          <p className="text-[10px] text-muted-foreground mb-2">the colour of your moon dot on other people's profiles</p>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={profileColor}
-              onChange={(e) => setProfileColor(e.target.value)}
-              className="h-8 w-8 rounded-full border border-border cursor-pointer bg-transparent"
-            />
-            <span className="text-xs text-muted-foreground">{profileColor}</span>
-            <button
-              onClick={() => handleSave("profile_color", profileColor)}
-              className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
-            >
-              save
-            </button>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">preferred platform</h3>
+          <p className="text-[10px] text-muted-foreground mb-2">track links and play buttons open in this app</p>
+          <div className="flex flex-wrap gap-2">
+            {platformOptions.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setPreferredPlatform(p.value)}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 ${
+                  preferredPlatform === p.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
         </div>
 
