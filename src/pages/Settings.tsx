@@ -10,6 +10,7 @@ import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import TaglineSpace from "@/components/TaglineSpace";
 import AboutPlai from "@/components/AboutPlai";
+import AdminPanel from "@/components/AdminPanel";
 
 const platformOptions = [
   { value: "spotify", label: "Spotify" },
@@ -31,6 +32,8 @@ const SettingsPage = () => {
   const [statusSaved, setStatusSaved] = useState(false);
   const [profileColor, setProfileColor] = useState("#080B12");
   const [showAbout, setShowAbout] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [tidalConnected, setTidalConnected] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -42,6 +45,7 @@ const SettingsPage = () => {
         setIsPublic((data as any).public !== false);
         setStatus((data as any).status || "");
         setProfileColor((data as any).profile_color || "#080B12");
+        setTidalConnected(!!data.tidal_access_token);
       }
     };
     load();
@@ -99,6 +103,43 @@ const SettingsPage = () => {
     }
   };
 
+  const connectTidal = async () => {
+    const clientId = (import.meta as any).env?.VITE_TIDAL_CLIENT_ID;
+    if (!clientId) {
+      toast.error("Tidal integration not configured yet");
+      return;
+    }
+    const array = new Uint8Array(64);
+    crypto.getRandomValues(array);
+    const codeVerifier = btoa(String.fromCharCode(...array))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    const encoder = new TextEncoder();
+    const data = encoder.encode(codeVerifier);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    sessionStorage.setItem("tidal_code_verifier", codeVerifier);
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id: clientId,
+      redirect_uri: `${window.location.origin}/auth/tidal/callback`,
+      scope: "r_usr+w_usr+r_sub+collection.read",
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
+    });
+    window.location.href = `https://login.tidal.com/authorize?${params}`;
+  };
+
+  const disconnectTidal = async () => {
+    if (!user) return;
+    await supabase.from("profiles").update({
+      tidal_access_token: null,
+      tidal_refresh_token: null,
+    } as any).eq("id", user.id);
+    setTidalConnected(false);
+    toast.success("Tidal disconnected");
+  };
+
   if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
 
@@ -107,6 +148,7 @@ const SettingsPage = () => {
       <PageHeader title="Settings" />
 
       {showAbout && <AboutPlai onClose={() => setShowAbout(false)} />}
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
         <button
@@ -233,6 +275,18 @@ const SettingsPage = () => {
               <span className="text-xs text-muted-foreground ml-auto">connected</span>
             </div>
             <div className="flex items-center gap-3">
+              <span className={`h-2 w-2 rounded-full ${tidalConnected ? "bg-green-500" : "bg-muted"}`} />
+              <span className="text-sm text-foreground">Tidal</span>
+              {tidalConnected ? (
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">connected</span>
+                  <button onClick={disconnectTidal} className="text-[10px] text-destructive hover:underline">disconnect</button>
+                </div>
+              ) : (
+                <button onClick={connectTidal} className="ml-auto text-xs text-primary hover:underline">connect →</button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-muted" />
               <span className="text-sm text-foreground">Apple Music</span>
               <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
@@ -240,11 +294,6 @@ const SettingsPage = () => {
             <div className="flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-muted" />
               <span className="text-sm text-foreground">YouTube Music</span>
-              <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-muted" />
-              <span className="text-sm text-foreground">Tidal</span>
               <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
             </div>
           </div>
@@ -291,6 +340,16 @@ const SettingsPage = () => {
           >
             <LogOut className="h-4 w-4" />
             sign out
+          </button>
+        </div>
+
+        {/* Admin entry point */}
+        <div className="pt-2 pb-4 text-center">
+          <button
+            onClick={() => setShowAdmin(true)}
+            className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+          >
+            admin →
           </button>
         </div>
       </main>
