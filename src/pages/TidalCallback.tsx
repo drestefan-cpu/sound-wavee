@@ -23,60 +23,46 @@ const TidalCallback = () => {
       }
 
       try {
-        const clientId = (import.meta as any).env?.VITE_TIDAL_CLIENT_ID;
-        if (!clientId) {
-          setStatus("Tidal not configured");
-          toast.error("Tidal client ID not set");
-          setTimeout(() => navigate("/"), 2000);
+        const userId = user?.id;
+        if (!userId) {
+          // Store tokens temporarily — user needs to auth first
+          sessionStorage.setItem("tidal_pending_code", code);
+          toast("Tidal connected — sign in to link your account");
+          navigate("/");
           return;
         }
 
-        const tokenRes = await fetch("https://auth.tidal.com/v1/oauth2/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            grant_type: "authorization_code",
+        const { data, error } = await supabase.functions.invoke("tidal-exchange-token", {
+          body: {
             code,
-            redirect_uri: `${window.location.origin}/auth/tidal/callback`,
-            client_id: clientId,
             code_verifier: codeVerifier,
-          }),
+            redirect_uri: `${window.location.origin}/auth/tidal/callback`,
+            user_id: userId,
+          },
         });
 
-        const tokenData = await tokenRes.json();
+        sessionStorage.removeItem("tidal_code_verifier");
 
-        if (!tokenData.access_token) {
+        if (error || !data?.success) {
           setStatus("token exchange failed");
           toast.error("Tidal auth failed");
           setTimeout(() => navigate("/"), 2000);
           return;
         }
 
-        sessionStorage.removeItem("tidal_code_verifier");
-
-        if (user) {
-          // Update existing profile
-          await supabase.from("profiles").update({
-            tidal_access_token: tokenData.access_token,
-            tidal_refresh_token: tokenData.refresh_token || null,
-            platform: "tidal",
-          } as any).eq("id", user.id);
-
-          // Trigger sync
+        // Trigger sync
+        try {
           const { data: { session } } = await supabase.auth.getSession();
           await supabase.functions.invoke("sync-tidal-likes", {
-            body: { user_id: user.id },
+            body: { user_id: userId },
             headers: { Authorization: `Bearer ${session?.access_token}` },
           });
-
-          toast.success("Tidal connected!");
-          navigate("/feed");
-        } else {
-          // Store tokens temporarily — user needs to auth with Spotify/email first
-          sessionStorage.setItem("tidal_tokens", JSON.stringify(tokenData));
-          toast("Tidal connected — sign in to link your account");
-          navigate("/");
+        } catch {
+          // Sync failure is non-fatal
         }
+
+        toast.success("Tidal connected!");
+        navigate("/feed");
       } catch (err) {
         setStatus("connection failed");
         toast.error("Tidal connection failed");
