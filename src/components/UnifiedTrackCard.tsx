@@ -3,8 +3,11 @@ import { Heart, Play, Send } from "lucide-react";
 import { getTrackUrl } from "@/lib/trackLinks";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
+import { useSpotifyPlayer } from "@/contexts/SpotifyPlayerContext";
 import EmojiReactions from "@/components/EmojiReactions";
 import TrackDetailModal from "@/components/TrackDetailModal";
+import NowPlayingIndicator from "@/components/NowPlayingIndicator";
+import { toast } from "sonner";
 
 export interface UnifiedTrackData {
   id: string;
@@ -16,7 +19,6 @@ export interface UnifiedTrackData {
   likeId?: string;
   localOnly?: boolean;
   initialReactions?: { emoji: string; count: number }[];
-  // The actual track_id in the tracks table for save context
   trackDbId?: string;
 }
 
@@ -51,12 +53,14 @@ const UnifiedTrackCard = ({
 }: UnifiedTrackCardProps) => {
   const { preferredPlatform } = usePlatform();
   const { isSaved: isGloballySaved, toggleSave } = useSavedTracks();
+  const { currentTrackId, isPlaying, playerReady, play } = useSpotifyPlayer();
   const [bouncing, setBouncing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
 
   const trackDbId = track.trackDbId || track.id;
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
   const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist);
+  const isCurrentlyPlaying = track.spotifyTrackId && currentTrackId === track.spotifyTrackId && isPlaying;
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -69,17 +73,27 @@ const UnifiedTrackCard = ({
     }
   };
 
+  const handlePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (playerReady && track.spotifyTrackId && preferredPlatform === "spotify") {
+      play(track.spotifyTrackId, track.title, track.artist, track.albumArtUrl || undefined);
+    } else {
+      window.open(trackUrl, "_blank", "noopener,noreferrer");
+      const platformName = preferredPlatform === "tidal" ? "Tidal" : preferredPlatform === "apple_music" ? "Apple Music" : preferredPlatform === "youtube_music" ? "YouTube Music" : "Spotify";
+      toast(`opening in ${platformName}`);
+    }
+  };
+
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     onShare?.();
   };
 
-  const artPx = compact ? 56 : 72;
-  const heartSize = compact ? "h-[22px] w-[22px]" : "h-9 w-9";
-  const actionCircle = compact ? "h-[22px] w-[22px]" : "h-[30px] w-[30px]";
-  const actionIcon = compact ? "h-3 w-3" : "h-3.5 w-3.5";
-  const titleSize = compact ? "text-sm" : "text-sm";
-  const artistSize = compact ? "text-xs" : "text-xs";
+  const PlayIcon = () => {
+    if (isCurrentlyPlaying) return <NowPlayingIndicator size={compact ? 12 : 14} />;
+    return <Play className={compact ? "h-3 w-3 fill-current" : "h-3.5 w-3.5 fill-current"} style={{ color: "#4a6a8a" }} />;
+  };
 
   if (compact) {
     return (
@@ -109,9 +123,9 @@ const UnifiedTrackCard = ({
               <button onClick={handleSave} className={`transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}>
                 <Heart className={`h-[22px] w-[22px] ${saved ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-primary"}`} strokeWidth={saved ? 0 : 1.5} style={{ color: saved ? undefined : "#2a3a4a" }} />
               </button>
-              <a href={trackUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="h-[22px] w-[22px] rounded-full flex items-center justify-center hover:opacity-80" style={{ backgroundColor: "#1a2535" }}>
-                <Play className="h-3 w-3 fill-current" style={{ color: "#4a6a8a" }} />
-              </a>
+              <button onClick={handlePlay} className="h-[22px] w-[22px] rounded-full flex items-center justify-center hover:opacity-80" style={{ backgroundColor: "#1a2535" }}>
+                <PlayIcon />
+              </button>
               <button onClick={handleShare} className="h-[22px] w-[22px] rounded-full flex items-center justify-center hover:opacity-80" style={{ backgroundColor: "#1a2535" }}>
                 <Send className="h-3 w-3" style={{ color: "#4a6a8a" }} />
               </button>
@@ -130,7 +144,7 @@ const UnifiedTrackCard = ({
       <div className="rounded-xl border border-border bg-card p-3 transition-all duration-150 cursor-pointer" onClick={() => setShowDetail(true)}>
         {header}
         <div className="flex gap-3 items-start">
-          <div className="flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border" style={{ width: artPx, height: artPx }}>
+          <div className="flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border" style={{ width: 72, height: 72 }}>
             {track.albumArtUrl ? (
               <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" />
             ) : placeholderColor ? (
@@ -142,13 +156,13 @@ const UnifiedTrackCard = ({
             )}
           </div>
           <div className="min-w-0 flex-1 pt-0.5">
-            <p className={`truncate font-medium text-foreground ${titleSize}`}>{track.title}</p>
-            <p className={`truncate text-muted-foreground ${artistSize}`}>{track.artist}</p>
+            <p className="truncate font-medium text-foreground text-sm">{track.title}</p>
+            <p className="truncate text-muted-foreground text-xs">{track.artist}</p>
             {track.album && <p className="truncate text-[11px]" style={{ color: "#2a3a4a" }}>{track.album}</p>}
             {subtitle}
           </div>
           <button onClick={handleSave} className={`flex-shrink-0 transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}>
-            <Heart className={`${heartSize} ${saved ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-primary"}`} strokeWidth={saved ? 0 : 1.5} style={{ color: saved ? undefined : "#2a3a4a" }} />
+            <Heart className={`h-9 w-9 ${saved ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-primary"}`} strokeWidth={saved ? 0 : 1.5} style={{ color: saved ? undefined : "#2a3a4a" }} />
           </button>
         </div>
         <div className="flex items-center gap-1.5 pt-2">
@@ -159,12 +173,12 @@ const UnifiedTrackCard = ({
           </div>
           <div className="w-px self-stretch mx-1.5 flex-shrink-0" style={{ backgroundColor: '#1a2535' }} />
           <div className="flex items-center gap-2 flex-shrink-0">
-            <a href={trackUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className={`${actionCircle} rounded-full flex items-center justify-center transition-colors hover:opacity-80`} style={{ backgroundColor: "#1a2535" }}>
-              <Play className={`${actionIcon} fill-current`} style={{ color: "#4a6a8a" }} />
-            </a>
+            <button onClick={handlePlay} className="h-[30px] w-[30px] rounded-full flex items-center justify-center transition-colors hover:opacity-80" style={{ backgroundColor: "#1a2535" }}>
+              <PlayIcon />
+            </button>
             {onShare && (
-              <button onClick={handleShare} className={`${actionCircle} rounded-full flex items-center justify-center transition-colors hover:opacity-80`} style={{ backgroundColor: "#1a2535" }}>
-                <Send className={actionIcon} style={{ color: "#4a6a8a" }} />
+              <button onClick={handleShare} className="h-[30px] w-[30px] rounded-full flex items-center justify-center transition-colors hover:opacity-80" style={{ backgroundColor: "#1a2535" }}>
+                <Send className="h-3.5 w-3.5" style={{ color: "#4a6a8a" }} />
               </button>
             )}
           </div>

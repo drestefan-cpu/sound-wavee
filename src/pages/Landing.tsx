@@ -112,6 +112,35 @@ const Landing = () => {
           </button>
 
           <button
+            onClick={() => {
+              const clientId = (import.meta as any).env?.VITE_TIDAL_CLIENT_ID;
+              if (!clientId) { toast("Tidal integration coming soon"); return; }
+              const array = new Uint8Array(64);
+              crypto.getRandomValues(array);
+              const codeVerifier = btoa(String.fromCharCode(...array)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+              const encoder = new TextEncoder();
+              const data = encoder.encode(codeVerifier);
+              crypto.subtle.digest("SHA-256", data).then(digest => {
+                const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+                sessionStorage.setItem("tidal_code_verifier", codeVerifier);
+                const params = new URLSearchParams({
+                  response_type: "code", client_id: clientId,
+                  redirect_uri: `${window.location.origin}/auth/tidal/callback`,
+                  scope: "r_usr+w_usr+r_sub+collection.read",
+                  code_challenge: codeChallenge, code_challenge_method: "S256",
+                });
+                window.location.href = `https://login.tidal.com/authorize?${params}`;
+              });
+            }}
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+              <path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996l4.004 4.004L8.008 8l4.004 4-4.004 4.004 4.004 4.004 4.004-4.004-4.004-4.004 4.004-4L20.02 3.992l4.004 4.004-4.004 4.004-4.004-4.004-4.004 4.004z"/>
+            </svg>
+            continue with Tidal
+          </button>
+
+          <button
             onClick={() => toast("Apple Music coming soon")}
             className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
           >

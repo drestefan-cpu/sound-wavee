@@ -144,6 +144,7 @@ export type Database = {
           status: string | null
           tidal_access_token: string | null
           tidal_refresh_token: string | null
+          tidal_user_id: string | null
           username: string | null
         }
         Insert: {
@@ -164,6 +165,7 @@ export type Database = {
           status?: string | null
           tidal_access_token?: string | null
           tidal_refresh_token?: string | null
+          tidal_user_id?: string | null
           username?: string | null
         }
         Update: {
@@ -184,6 +186,7 @@ export type Database = {
           status?: string | null
           tidal_access_token?: string | null
           tidal_refresh_token?: string | null
+          tidal_user_id?: string | null
           username?: string | null
         }
         Relationships: []
