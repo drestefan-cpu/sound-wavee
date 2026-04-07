@@ -53,12 +53,10 @@ const Landing = () => {
         return;
       }
       if (profile.login_pin !== pinValue) {
-        // Try hashed comparison via RPC
         const { data: verified } = await (supabase.rpc as any)("verify_login_pin", {
-          p_email: "", // won't match but we need the username flow
+          p_email: "",
           p_pin: pinValue,
         });
-        // Fallback: just check plain
         toast.error("incorrect PIN");
         setPinLoading(false);
         return;
@@ -70,6 +68,45 @@ const Landing = () => {
       toast.error("PIN login failed");
     }
     setPinLoading(false);
+  };
+
+  const connectTidal = async () => {
+    try {
+      const array = new Uint8Array(64);
+      crypto.getRandomValues(array);
+      const codeVerifier = btoa(String.fromCharCode(...array))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+
+      const encoder = new TextEncoder();
+      const data = encoder.encode(codeVerifier);
+      const digest = await crypto.subtle.digest("SHA-256", data);
+      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+
+      // localStorage survives cross-origin redirects, sessionStorage does not
+      localStorage.setItem("tidal_code_verifier", codeVerifier);
+      // No user session on landing page — TidalCallback will get session after redirect
+      localStorage.removeItem("tidal_user_id");
+
+      const { data: result } = await supabase.functions.invoke("tidal-auth-url", {
+        body: {
+          code_challenge: codeChallenge,
+          redirect_uri: `${window.location.origin}/auth/tidal/callback`,
+        },
+      });
+
+      if (result?.url) {
+        window.location.href = result.url;
+      } else {
+        toast.error("Could not start Tidal login");
+      }
+    } catch {
+      toast.error("Could not connect to Tidal");
+    }
   };
 
   if (loading) {
@@ -112,27 +149,11 @@ const Landing = () => {
           </button>
 
           <button
-            onClick={async () => {
-              try {
-                const array = new Uint8Array(64);
-                crypto.getRandomValues(array);
-                const codeVerifier = btoa(String.fromCharCode(...array)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-                const encoder = new TextEncoder();
-                const data = encoder.encode(codeVerifier);
-                const digest = await crypto.subtle.digest("SHA-256", data);
-                const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-                localStorage.setItem("tidal_code_verifier", codeVerifier);
-                const { data: result, error } = await supabase.functions.invoke("tidal-auth-url", {
-                  body: { code_challenge: codeChallenge, redirect_uri: `${window.location.origin}/auth/tidal/callback` },
-                });
-                if (result?.url) window.location.href = result.url;
-                else toast.error("Could not start Tidal login");
-              } catch { toast.error("Could not connect to Tidal"); }
-            }}
+            onClick={connectTidal}
             className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-              <path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996l4.004 4.004L8.008 8l4.004 4-4.004 4.004 4.004 4.004 4.004-4.004-4.004-4.004 4.004-4L20.02 3.992l4.004 4.004-4.004 4.004-4.004-4.004-4.004 4.004z"/>
+              <path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996l4.004 4.004L8.008 8l4.004 4-4.004 4.004 4.004 4.004 4.004-4.004-4.004-4.004 4.004-4L20.02 3.992l4.004 4.004-4.004 4.004-4.004-4.004-4.004 4.004z" />
             </svg>
             continue with Tidal
           </button>
@@ -152,7 +173,6 @@ const Landing = () => {
           </button>
         </div>
 
-        {/* PIN Login */}
         <div className="w-full">
           {!showPinLogin ? (
             <button
@@ -194,9 +214,7 @@ const Landing = () => {
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground/40">
-          we only read your likes. nothing else.
-        </p>
+        <p className="text-xs text-muted-foreground/40">we only read your likes. nothing else.</p>
       </div>
     </div>
   );
