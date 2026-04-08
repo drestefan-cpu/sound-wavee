@@ -113,7 +113,7 @@ const MiniPlayer = () => {
 
   return (
     <>
-      <div className="fixed left-0 right-0 z-40" style={{ bottom: "calc(4rem + env(safe-area-inset-bottom, 16px))" }}>
+      <div className="fixed left-0 right-0 z-40" style={{ bottom: "calc(4rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="h-[2px] w-full" style={{ backgroundColor: "#1a2535" }}>
           <div
             className="h-full transition-all duration-1000 ease-linear"
