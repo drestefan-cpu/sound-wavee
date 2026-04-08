@@ -70,11 +70,11 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         </p>
 
         <p className="text-sm leading-relaxed mb-2">music is more interesting</p>
-        <p className="text-sm leading-relaxed >when you can check in on your friends </p>
+        <p className="text-sm leading-relaxed">when you can check in on your friends</p>
 
         <Divider />
         <SectionHeader>your feed</SectionHeader>
-        
+
         <p className="text-sm leading-relaxed mb-2">your feed shows the songs </p>
         <p className="text-sm leading-relaxed mb-2">your friends are liking —</p>
 
