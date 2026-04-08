@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, RefreshCw } from "lucide-react";
+import { Search } from "lucide-react";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
@@ -37,17 +37,19 @@ interface FeedItem {
   };
 }
 
+// Live dot states
+type LiveState = "live" | "new" | "syncing";
+
 const Feed = () => {
   const { user, loading } = useAuth();
   const { isSaved, toggleSave } = useSavedTracks();
   const [items, setItems] = useState<FeedItem[]>([]);
+  const [pendingItems, setPendingItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [tab, setTab] = useState<"following" | "trending" | "people" | "plailists">("following");
-  const [isNewUser, setIsNewUser] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [justSynced, setJustSynced] = useState(false);
+  const [liveState, setLiveState] = useState<LiveState>("live");
 
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<any[]>([]);
@@ -66,7 +68,6 @@ const Feed = () => {
       if (!user) return;
       const { data } = await supabase.from("profiles").select("onboarding_complete").eq("id", user.id).single();
       if (data && !(data as any).onboarding_complete) {
-        setIsNewUser(true);
         setShowWelcome(true);
         await supabase
           .from("profiles")
@@ -119,9 +120,7 @@ const Feed = () => {
       if (!user) return;
       setPeopleLoading(true);
       let request = supabase.from("profiles").select("*").neq("id", user.id).limit(30);
-      if (q && q.trim()) {
-        request = request.or(`username.ilike.%${q}%,display_name.ilike.%${q}%`);
-      }
+      if (q && q.trim()) request = request.or(`username.ilike.%${q}%,display_name.ilike.%${q}%`);
       const { data } = await request;
       setPeople(data || []);
       setPeopleLoading(false);
@@ -154,25 +153,37 @@ const Feed = () => {
     debounceRef.current = setTimeout(() => loadPeople(val), 300);
   };
 
-  const handleSync = async () => {
-    if (!user || syncing) return;
-    setSyncing(true);
+  // Flush pending items into feed and return to live state
+  const flushPending = useCallback(() => {
+    if (pendingItems.length > 0) {
+      setItems((prev) => [...pendingItems, ...prev]);
+      setPendingItems([]);
+    }
+    setLiveState("live");
+  }, [pendingItems]);
+
+  // Handle live dot tap — flush pending or trigger sync
+  const handleLiveTap = async () => {
+    if (liveState === "new") {
+      flushPending();
+      return;
+    }
+    if (liveState === "syncing") return;
+    setLiveState("syncing");
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       await supabase.functions.invoke("sync-spotify-likes", {
-        body: { user_id: user.id },
+        body: { user_id: user?.id },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       const ids = await loadFollowing();
       await loadFeed(ids);
-      setJustSynced(true);
-      setTimeout(() => setJustSynced(false), 4000);
+      setLiveState("live");
     } catch {
       toast.error("sync failed — try again");
-    } finally {
-      setSyncing(false);
+      setLiveState("live");
     }
   };
 
@@ -192,10 +203,9 @@ const Feed = () => {
             .single();
           if (data) {
             const item = data as unknown as FeedItem;
-            setItems((prev) => [item, ...prev]);
-            if (newLike.user_id !== user.id) {
-              toast(`${item.profiles?.display_name || "Someone"} just liked ${item.tracks?.title} ↗`);
-            }
+            // Queue as pending instead of immediately prepending
+            setPendingItems((prev) => [item, ...prev]);
+            setLiveState("new");
           }
         }
       })
@@ -233,6 +243,44 @@ const Feed = () => {
     { key: "plailists", label: "plai·lists" },
   ] as const;
 
+  // Live dot rendering
+  const LiveIndicator = () => {
+    if (liveState === "syncing") {
+      return (
+        <button
+          onClick={handleLiveTap}
+          style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground"
+        >
+          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-live opacity-50" />
+          <span style={{ color: "#4a6a8a" }}>syncing...</span>
+        </button>
+      );
+    }
+    if (liveState === "new") {
+      return (
+        <button
+          onClick={handleLiveTap}
+          style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+          className="flex items-center gap-1.5 text-xs transition-all duration-200"
+        >
+          <span className="h-2 w-2 rounded-full animate-pulse-live" style={{ backgroundColor: "#F0EBE3" }} />
+          <span style={{ color: "#F0EBE3", fontWeight: 500 }}>{pendingItems.length} new</span>
+        </button>
+      );
+    }
+    return (
+      <button
+        onClick={handleLiveTap}
+        style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
+      >
+        <span className="h-2 w-2 rounded-full bg-primary animate-pulse-live" />
+        Live
+      </button>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <header
@@ -261,28 +309,7 @@ const Feed = () => {
             </div>
             <HomeTagline ref={taglineRef} />
           </div>
-
-          {/* Right side — Live dot + separate sync icon */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={handleSync}
-              disabled={syncing}
-              style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-              className="text-muted-foreground hover:text-foreground transition-colors duration-150 disabled:opacity-40"
-              title="sync your likes"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${syncing ? "animate-spin text-primary" : justSynced ? "text-primary" : "text-muted-foreground"}`}
-              />
-            </button>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span
-                className={`h-2 w-2 rounded-full bg-primary ${justSynced ? "animate-pulse-live scale-125" : "animate-pulse-live"}`}
-                style={{ transition: "transform 0.3s ease" }}
-              />
-              Live
-            </span>
-          </div>
+          <LiveIndicator />
         </div>
       </header>
 
@@ -571,21 +598,23 @@ const Feed = () => {
                   />
                 ))
               ) : (
-                trendingTracks.slice(0, 10).map((track, i) => (
-                  <UnifiedTrackCard
-                    key={track.position}
-                    compact
-                    hideReactions
-                    track={{
-                      id: `plai-${track.position}`,
-                      title: track.title,
-                      artist: track.artist,
-                      spotifyTrackId: track.spotifyTrackId,
-                      albumArtUrl: track.albumArtUrl,
-                    }}
-                    subtitle={<span className="text-[10px] text-muted-foreground">#{i + 1}</span>}
-                  />
-                ))
+                trendingTracks
+                  .slice(0, 10)
+                  .map((track, i) => (
+                    <UnifiedTrackCard
+                      key={track.position}
+                      compact
+                      hideReactions
+                      track={{
+                        id: `plai-${track.position}`,
+                        title: track.title,
+                        artist: track.artist,
+                        spotifyTrackId: track.spotifyTrackId,
+                        albumArtUrl: track.albumArtUrl,
+                      }}
+                      subtitle={<span className="text-[10px] text-muted-foreground">#{i + 1}</span>}
+                    />
+                  ))
               )}
             </div>
             <div className="rounded-xl border border-border bg-card p-4 text-center">
