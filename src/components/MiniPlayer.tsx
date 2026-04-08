@@ -37,20 +37,10 @@ const MiniPlayer = () => {
   const progressRef = useRef<ReturnType<typeof setInterval>>();
   const tokenRef = useRef<string | null>(null);
 
+  // Combined token fetch + immediate poll
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("spotify_access_token")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        tokenRef.current = data?.spotify_access_token || null;
-      });
-  }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
     const poll = async () => {
       if (!tokenRef.current) return;
       try {
@@ -78,13 +68,21 @@ const MiniPlayer = () => {
         setInterpolatedProgress(data.progress_ms || 0);
       } catch {}
     };
-    poll();
+
+    const init = async () => {
+      const { data } = await supabase.from("profiles").select("spotify_access_token").eq("id", user.id).single();
+      tokenRef.current = data?.spotify_access_token || null;
+      if (tokenRef.current) poll();
+    };
+
+    init();
     intervalRef.current = setInterval(poll, 30000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [user]);
 
+  // Interpolate progress between polls
   useEffect(() => {
     if (progressRef.current) clearInterval(progressRef.current);
     if (nowPlaying?.isPlaying) {
@@ -97,7 +95,7 @@ const MiniPlayer = () => {
     };
   }, [nowPlaying]);
 
-  // Look up the real DB track ID when spotifyTrackId changes
+  // Look up real DB track ID when spotify track changes
   const spotifyTrackId = (!!currentTrackId ? currentTrackId : nowPlaying?.trackId) || null;
   useEffect(() => {
     if (!spotifyTrackId) {
