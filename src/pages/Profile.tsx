@@ -67,34 +67,59 @@ const Profile = () => {
   // Load profile
   useEffect(() => {
     let cancelled = false;
-    const timeout = setTimeout(() => { if (!cancelled && !profile) setProfileFailed(true); }, 5000);
+    const timeout = setTimeout(() => {
+      if (!cancelled && !profile) setProfileFailed(true);
+    }, 5000);
     const load = async () => {
       try {
         if (username) {
-          const { data: byUsername } = await supabase.from("profiles").select("*").eq("username", username).maybeSingle();
+          const { data: byUsername } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("username", username)
+            .maybeSingle();
           if (!cancelled) {
-            if (byUsername) { setProfile(byUsername); return; }
+            if (byUsername) {
+              setProfile(byUsername);
+              return;
+            }
             const { data: byId } = await supabase.from("profiles").select("*").eq("id", username).maybeSingle();
             setProfile(byId);
             if (!byId) setProfileFailed(true);
           }
         } else if (user) {
           const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-          if (!cancelled) { setProfile(data); if (!data) setProfileFailed(true); }
+          if (!cancelled) {
+            setProfile(data);
+            if (!data) setProfileFailed(true);
+          }
         }
-      } catch { if (!cancelled) setProfileFailed(true); }
+      } catch {
+        if (!cancelled) setProfileFailed(true);
+      }
     };
     load();
-    return () => { cancelled = true; clearTimeout(timeout); };
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [username, user]);
 
   const loadCollection = useCallback(async () => {
     if (!profile) return;
-    const { data } = await supabase.from("likes")
-      .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)")
-      .eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100);
+    const { data } = await supabase
+      .from("likes")
+      .select(
+        "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)",
+      )
+      .eq("user_id", profile.id)
+      .order("liked_at", { ascending: false })
+      .limit(100);
     setLikes(data || []);
-    const { count } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id);
+    const { count } = await supabase
+      .from("likes")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", profile.id);
     setLikesCount(count || 0);
   }, [profile]);
 
@@ -102,12 +127,26 @@ const Profile = () => {
   useEffect(() => {
     if (!profile) return;
     let cancelled = false;
-    const timeout = setTimeout(() => { if (!cancelled) setDataLoaded(true); }, 5000);
+    const timeout = setTimeout(() => {
+      if (!cancelled) setDataLoaded(true);
+    }, 5000);
     const loadData = async () => {
       try {
         const [likesRes, savedRes, fcRes, fgcRes, lcRes, scRes] = await Promise.all([
-          supabase.from("likes").select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)").eq("user_id", profile.id).order("liked_at", { ascending: false }).limit(100),
-          supabase.from("saved_tracks").select("*, tracks(*), profiles!saved_tracks_source_user_id_fkey(username, display_name, avatar_url)").eq("user_id", profile.id).order("saved_at", { ascending: false }).limit(50),
+          supabase
+            .from("likes")
+            .select(
+              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)",
+            )
+            .eq("user_id", profile.id)
+            .order("liked_at", { ascending: false })
+            .limit(100),
+          supabase
+            .from("saved_tracks")
+            .select("*, tracks(*), profiles!saved_tracks_source_user_id_fkey(username, display_name, avatar_url)")
+            .eq("user_id", profile.id)
+            .order("saved_at", { ascending: false })
+            .limit(50),
           supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id),
           supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id),
           supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
@@ -122,10 +161,15 @@ const Profile = () => {
           setFindsCount(scRes.count || 0);
           setDataLoaded(true);
         }
-      } catch { if (!cancelled) setDataLoaded(true); }
+      } catch {
+        if (!cancelled) setDataLoaded(true);
+      }
     };
     loadData();
-    return () => { cancelled = true; clearTimeout(timeout); };
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [profile]);
 
   // Load followers for moons
@@ -135,7 +179,8 @@ const Profile = () => {
       const { data } = await supabase
         .from("follows")
         .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color)")
-        .eq("following_id", profile.id).limit(50);
+        .eq("following_id", profile.id)
+        .limit(50);
       setFollowers((data || []).map((f: any) => f.profiles).filter(Boolean));
       setTimeout(() => setMoonsFaded(true), 2500);
     };
@@ -147,7 +192,8 @@ const Profile = () => {
     if (isOwnProfile || !user || !profile) return;
     const loadMatch = async () => {
       const { data } = await supabase
-        .from("taste_compatibility" as any).select("score")
+        .from("taste_compatibility" as any)
+        .select("score")
         .or(`and(user_a.eq.${user.id},user_b.eq.${profile.id}),and(user_a.eq.${profile.id},user_b.eq.${user.id})`)
         .maybeSingle();
       if (data) setTasteMatch((data as any).score);
@@ -161,8 +207,10 @@ const Profile = () => {
     const loadFollowing = async () => {
       setFollowingLoaded(false);
       const { data } = await supabase
-        .from("follows").select("following_id, profiles!follows_following_id_fkey(id, display_name, username, avatar_url)")
-        .eq("follower_id", user.id).order("created_at", { ascending: false });
+        .from("follows")
+        .select("following_id, profiles!follows_following_id_fkey(id, display_name, username, avatar_url)")
+        .eq("follower_id", user.id)
+        .order("created_at", { ascending: false });
       setFollowingList(data || []);
       setFollowingLoaded(true);
     };
@@ -188,39 +236,72 @@ const Profile = () => {
     if (!isOwnProfile || !user || tab !== "activity") return;
     const loadActivity = async () => {
       const [saveRes, reactionRes, recRes] = await Promise.all([
-        supabase.from("saved_tracks")
-          .select("saved_at, source_context, profiles!saved_tracks_user_id_fkey(username, display_name, avatar_url), tracks(title, artist, spotify_track_id, album_art_url)")
-          .eq("source_user_id", user.id).order("saved_at", { ascending: false }).limit(50),
-        supabase.from("reactions")
-          .select("emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey(user_id, tracks(title, artist))")
-          .order("created_at", { ascending: false }).limit(50),
-        supabase.from("recommendations" as any)
-          .select("created_at, message, tracks(title, artist, album_art_url), profiles:from_user_id(username, display_name, avatar_url)")
-          .eq("to_user_id", user.id).order("created_at", { ascending: false }).limit(50),
+        supabase
+          .from("saved_tracks")
+          .select(
+            "saved_at, source_context, profiles!saved_tracks_user_id_fkey(username, display_name, avatar_url), tracks(title, artist, spotify_track_id, album_art_url)",
+          )
+          .eq("source_user_id", user.id)
+          .order("saved_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("reactions")
+          .select(
+            "emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey(user_id, tracks(title, artist))",
+          )
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("recommendations" as any)
+          .select(
+            "created_at, message, tracks(title, artist, album_art_url), profiles:from_user_id(username, display_name, avatar_url)",
+          )
+          .eq("to_user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50),
       ]);
       const saves = (saveRes.data || []).map((s: any) => ({
-        type: "save" as const, timestamp: s.saved_at,
-        username: s.profiles?.username, displayName: s.profiles?.display_name,
-        avatarUrl: s.profiles?.avatar_url, trackTitle: s.tracks?.title, trackArtist: s.tracks?.artist,
+        type: "save" as const,
+        timestamp: s.saved_at,
+        username: s.profiles?.username,
+        displayName: s.profiles?.display_name,
+        avatarUrl: s.profiles?.avatar_url,
+        trackTitle: s.tracks?.title,
+        trackArtist: s.tracks?.artist,
       }));
       const reactions = ((reactionRes.data || []) as any[])
         .filter((r: any) => r.likes?.user_id === user.id)
         .map((r: any) => ({
-          type: "reaction" as const, timestamp: r.created_at,
-          username: r.profiles?.username, displayName: r.profiles?.display_name,
-          avatarUrl: r.profiles?.avatar_url, emoji: r.emoji, trackTitle: r.likes?.tracks?.title,
+          type: "reaction" as const,
+          timestamp: r.created_at,
+          username: r.profiles?.username,
+          displayName: r.profiles?.display_name,
+          avatarUrl: r.profiles?.avatar_url,
+          emoji: r.emoji,
+          trackTitle: r.likes?.tracks?.title,
         }));
       const recs = ((recRes.data || []) as any[]).map((r: any) => ({
-        type: "recommendation" as const, timestamp: r.created_at,
-        username: r.profiles?.username, displayName: r.profiles?.display_name,
-        avatarUrl: r.profiles?.avatar_url, trackTitle: r.tracks?.title,
+        type: "recommendation" as const,
+        timestamp: r.created_at,
+        username: r.profiles?.username,
+        displayName: r.profiles?.display_name,
+        avatarUrl: r.profiles?.avatar_url,
+        trackTitle: r.tracks?.title,
         albumArtUrl: r.tracks?.album_art_url,
       }));
-      setActivity([...saves, ...reactions, ...recs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      setActivity(
+        [...saves, ...reactions, ...recs].sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        ),
+      );
       setActivityLoaded(true);
 
       if (unseenRecCount > 0) {
-        await supabase.from("recommendations" as any).update({ seen: true } as any).eq("to_user_id", user.id).eq("seen", false);
+        await supabase
+          .from("recommendations" as any)
+          .update({ seen: true } as any)
+          .eq("to_user_id", user.id)
+          .eq("seen", false);
         setUnseenRecCount(0);
       }
     };
@@ -234,7 +315,9 @@ const Profile = () => {
       const { data } = await supabase
         .from("recommendations" as any)
         .select("*, tracks(*), profiles:from_user_id(display_name, username, avatar_url)")
-        .eq("to_user_id", user.id).order("created_at", { ascending: false }).limit(50);
+        .eq("to_user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
       setRecommendations(data || []);
       setRecsLoaded(true);
     };
@@ -244,10 +327,12 @@ const Profile = () => {
   const handleSync = async () => {
     if (!user?.id) return;
     setSyncing(true);
-    setSyncResult('syncing...');
+    setSyncResult("syncing...");
     try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      const { data, error } = await supabase.functions.invoke('sync-spotify-likes', {
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
         body: { user_id: user.id },
         headers: { Authorization: `Bearer ${currentSession?.access_token}` },
       });
@@ -255,14 +340,16 @@ const Profile = () => {
       // Also sync Tidal if connected
       const { data: prof } = await supabase.from("profiles").select("tidal_access_token").eq("id", user.id).single();
       if (prof?.tidal_access_token) {
-        await supabase.functions.invoke('sync-tidal-likes', {
+        await supabase.functions.invoke("sync-tidal-likes", {
           body: { user_id: user.id },
           headers: { Authorization: `Bearer ${currentSession?.access_token}` },
         });
       }
 
-      if (error) { setSyncResult('could not sync — try signing out and back in'); setTimeout(() => setSyncResult(null), 4000); }
-      else {
+      if (error) {
+        setSyncResult("could not sync — try signing out and back in");
+        setTimeout(() => setSyncResult(null), 4000);
+      } else {
         setSyncResult(`✓ done`);
         setTimeout(() => loadCollection(), 1000);
         // Fade sequence: show "✓ done" for 3s, then fade to 0, then restore last synced
@@ -270,20 +357,30 @@ const Profile = () => {
           setSyncResult(null); // triggers re-render to "last synced X ago" via normal display
         }, 3500);
       }
-    } catch { setSyncResult('could not sync'); setTimeout(() => setSyncResult(null), 4000); }
-    finally { setSyncing(false); }
+    } catch {
+      setSyncResult("could not sync");
+      setTimeout(() => setSyncResult(null), 4000);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleRemoveSaved = async (savedId: string) => {
-    setSavedTracks(prev => prev.filter(s => s.id !== savedId));
+    setSavedTracks((prev) => prev.filter((s) => s.id !== savedId));
     await supabase.from("saved_tracks").delete().eq("id", savedId);
   };
 
   const handleEasterEggTap = () => {
     tapCountRef.current++;
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
-    if (tapCountRef.current >= 7) { tapCountRef.current = 0; setShowFlappy(true); return; }
-    tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 1500);
+    if (tapCountRef.current >= 7) {
+      tapCountRef.current = 0;
+      setShowFlappy(true);
+      return;
+    }
+    tapTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+    }, 1500);
   };
 
   const handleSaveUsername = async () => {
@@ -301,14 +398,12 @@ const Profile = () => {
   };
 
   const moons = useMemo(() => {
-    return followers.slice(0, 50).map((f, idx) => ({
-      id: f.id, username: f.username,
+    return followers.slice(0, 5).map((f, idx, arr) => ({
+      id: f.id,
+      username: f.username,
       color: f.profile_color || "#FF2D78",
-      left: seededRandom(f.id + "x") * 80 + 10,
-      top: seededRandom(f.id + "y") * 30 + 5,
-      size: 8 + seededRandom(f.id + "s") * 12,
-      driftDuration: 15 + seededRandom(f.id + "dd") * 10,
-      driftDelay: seededRandom(f.id + "dl") * 5,
+      size: 8 + seededRandom(f.id + "s") * 8,
+      orbitDelay: -((idx / arr.length) * 16),
     }));
   }, [followers]);
 
@@ -337,16 +432,25 @@ const Profile = () => {
         <PageHeader title="Profile" />
         <main className="mx-auto max-w-feed px-4 py-4 text-center">
           <p className="text-sm text-muted-foreground mb-3">couldn't load profile</p>
-          <button onClick={() => { setProfileFailed(false); window.location.reload(); }} className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground">retry</button>
+          <button
+            onClick={() => {
+              setProfileFailed(false);
+              window.location.reload();
+            }}
+            className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground"
+          >
+            retry
+          </button>
         </main>
         <BottomNav />
       </div>
     );
   }
 
-  const displayName = profile.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "musician";
+  const displayName =
+    profile.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "musician";
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-  const filteredLikes = collectionFilter === "30d" ? likes.filter(l => l.liked_at >= thirtyDaysAgo) : likes;
+  const filteredLikes = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
   const findsLabel = isOwnProfile ? "your finds" : "finds";
   const collectionLabel = isOwnProfile ? "your collection" : "collection";
 
@@ -365,16 +469,29 @@ const Profile = () => {
   const tabList = isOwnProfile ? ownTabs : otherTabs;
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: `linear-gradient(180deg, #080B1240 0%, hsl(218 32% 5%) 300px)` }}>
+    <div
+      className="min-h-screen pb-20"
+      style={{ background: `linear-gradient(180deg, #080B1240 0%, hsl(218 32% 5%) 300px)` }}
+    >
       <PageHeader
         title={`@${profile.username || "user"}`}
         rightContent={
           isOwnProfile ? (
             <div className="flex items-center gap-2">
-              <button onClick={() => setShowQR(true)} className="text-muted-foreground hover:text-foreground transition-colors duration-150"><QrCode className="h-5 w-5" /></button>
+              <button
+                onClick={() => setShowQR(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors duration-150"
+              >
+                <QrCode className="h-5 w-5" />
+              </button>
             </div>
           ) : (
-            <button onClick={() => setShowQR(true)} className="text-muted-foreground hover:text-foreground transition-colors duration-150"><QrCode className="h-5 w-5" /></button>
+            <button
+              onClick={() => setShowQR(true)}
+              className="text-muted-foreground hover:text-foreground transition-colors duration-150"
+            >
+              <QrCode className="h-5 w-5" />
+            </button>
           )
         }
       />
@@ -382,46 +499,63 @@ const Profile = () => {
       <main className="mx-auto max-w-feed px-4 py-4 relative">
         {/* Follower moons with orbital drift */}
         {isOwnProfile && moons.length > 0 && (
-          <div className="absolute inset-x-0 top-0 h-32 pointer-events-none overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-40 pointer-events-none overflow-visible flex justify-center">
             <style>{`
-              @keyframes moon-orbit {
-                0%   { transform: translate(55px, 0px); }
-                25%  { transform: translate(0px, -25px); }
-                50%  { transform: translate(-55px, 0px); }
-                75%  { transform: translate(0px, 25px); }
-                100% { transform: translate(55px, 0px); }
-              }
-              @keyframes moon-glow {
-                0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
-                50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
-              }
-              @media (prefers-reduced-motion: reduce) { .moon-el { animation: none !important; } .moon-dot { animation: none !important; } }
-              @media (prefers-reduced-motion: no-preference) { .moon-el { } }
-            `}</style>
-            {moons.map((m) => (
-              <div
-                key={m.id}
-                className="absolute flex flex-col items-center moon-el"
-                style={{
-                  left: `${m.left}%`, top: `${m.top}%`,
-                  animation: `moon-orbit 8s ease-in-out infinite`,
-                  animationDelay: `${(moons.indexOf(m) * (8 / moons.length)).toFixed(2)}s`,
-                } as React.CSSProperties}
-              >
+      @keyframes moon-orbit {
+        0%   { transform: translate(70px, 0px); }
+        25%  { transform: translate(0px, -32px); }
+        50%  { transform: translate(-70px, 0px); }
+        75%  { transform: translate(0px, 32px); }
+        100% { transform: translate(70px, 0px); }
+      }
+      @keyframes moon-glow {
+        0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
+        50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .moon-el { animation: none !important; }
+        .moon-dot { animation: none !important; }
+      }
+    `}</style>
+            {/* Avatar centre anchor — moons orbit around this point */}
+            <div style={{ position: "absolute", top: 16, width: 0, height: 0 }}>
+              {moons.map((m) => (
                 <div
-                  className="rounded-full moon-dot"
-                  style={{
-                    width: m.size, height: m.size, backgroundColor: m.color, opacity: 0.6,
-                    "--moon-color": m.color,
-                    "--moon-color-dim": `${m.color}66`,
-                    animation: `moon-glow 2.5s ease-in-out infinite`,
-                  } as React.CSSProperties}
-                />
-                <span className="text-[8px] mt-0.5 transition-opacity duration-[2000ms]" style={{ color: '#F0EBE3', opacity: moonsFaded ? 0 : 1 }}>
-                  @{m.username || "·"}
-                </span>
-              </div>
-            ))}
+                  key={m.id}
+                  className="moon-el flex flex-col items-center"
+                  style={
+                    {
+                      position: "absolute",
+                      top: 32,
+                      left: 0,
+                      animation: `moon-orbit 16s ease-in-out infinite`,
+                      animationDelay: `${m.orbitDelay}s`,
+                    } as React.CSSProperties
+                  }
+                >
+                  <div
+                    className="rounded-full moon-dot"
+                    style={
+                      {
+                        width: m.size,
+                        height: m.size,
+                        backgroundColor: m.color,
+                        opacity: 0.75,
+                        "--moon-color": m.color,
+                        "--moon-color-dim": `${m.color}66`,
+                        animation: `moon-glow 2.5s ease-in-out infinite`,
+                      } as React.CSSProperties
+                    }
+                  />
+                  <span
+                    className="text-[8px] mt-0.5 transition-opacity duration-[2000ms]"
+                    style={{ color: "#F0EBE3", opacity: moonsFaded ? 0 : 1 }}
+                  >
+                    @{m.username || "·"}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -444,13 +578,22 @@ const Profile = () => {
               usernameEdit ? (
                 <div className="flex flex-col items-center gap-1 mt-1">
                   <div className="flex items-center gap-2">
-                    <input value={newUsername} onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))} className="rounded-full bg-card border border-border px-3 py-1 text-sm text-foreground w-32" placeholder="username" />
-                    <button onClick={handleSaveUsername} className="text-xs text-primary">save</button>
+                    <input
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+                      className="rounded-full bg-card border border-border px-3 py-1 text-sm text-foreground w-32"
+                      placeholder="username"
+                    />
+                    <button onClick={handleSaveUsername} className="text-xs text-primary">
+                      save
+                    </button>
                   </div>
                   <span className="text-[10px] text-muted-foreground">letters, numbers, . _ - only</span>
                 </div>
               ) : (
-                <button onClick={() => setUsernameEdit(true)} className="text-sm text-primary hover:underline mt-1">add username →</button>
+                <button onClick={() => setUsernameEdit(true)} className="text-sm text-primary hover:underline mt-1">
+                  add username →
+                </button>
               )
             ) : (
               <p className="text-xs text-muted-foreground">@user</p>
@@ -485,8 +628,14 @@ const Profile = () => {
                 </>
               ) : (
                 <>
-                  <div><p className="font-medium text-foreground text-sm">{findsCount}</p><p className="text-muted-foreground">finds</p></div>
-                  <div><p className="font-medium text-foreground text-sm">{likesCount}</p><p className="text-muted-foreground">collection</p></div>
+                  <div>
+                    <p className="font-medium text-foreground text-sm">{findsCount}</p>
+                    <p className="text-muted-foreground">finds</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground text-sm">{likesCount}</p>
+                    <p className="text-muted-foreground">collection</p>
+                  </div>
                 </>
               )}
             </div>
@@ -499,7 +648,9 @@ const Profile = () => {
                 <RefreshCw className={`h-4 w-4 text-muted-foreground ${syncing ? "animate-spin" : ""}`} />
                 <p className="text-[10px] text-muted-foreground mt-0.5">{syncing ? "..." : "sync"}</p>
                 {syncResult ? (
-                  <p className="text-[9px] mt-0.5 transition-opacity duration-500" style={{ color: "#4a6a8a" }}>{syncResult}</p>
+                  <p className="text-[9px] mt-0.5 transition-opacity duration-500" style={{ color: "#4a6a8a" }}>
+                    {syncResult}
+                  </p>
                 ) : profile.last_synced_at ? (
                   <p className="text-[9px] mt-0.5" style={{ color: "#4a6a8a" }}>
                     {(() => {
@@ -526,12 +677,14 @@ const Profile = () => {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 relative ${
-                tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"
+                tab === t.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card border border-border text-muted-foreground"
               }`}
             >
-              {'icon' in t && (t as any).icon}
+              {"icon" in t && (t as any).icon}
               {t.label}
-              {'badge' in t && (t as any).badge && (
+              {"badge" in t && (t as any).badge && (
                 <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
               )}
             </button>
@@ -541,7 +694,9 @@ const Profile = () => {
         {/* Tab content */}
         {!dataLoaded ? (
           <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square rounded-lg" />
+            ))}
           </div>
         ) : tab === "finds" ? (
           savedTracks.length > 0 ? (
@@ -564,9 +719,13 @@ const Profile = () => {
                   onShare={() => {}}
                   subtitle={
                     <p className="text-[10px] text-muted-foreground">
-                      {s.source_context === "trending" ? "from trending" :
-                       s.profiles?.username ? `from @${s.profiles.username}` :
-                       s.profiles?.display_name ? `from ${s.profiles.display_name}` : "from feed"}
+                      {s.source_context === "trending"
+                        ? "from trending"
+                        : s.profiles?.username
+                          ? `from @${s.profiles.username}`
+                          : s.profiles?.display_name
+                            ? `from ${s.profiles.display_name}`
+                            : "from feed"}
                     </p>
                   }
                 />
@@ -579,17 +738,30 @@ const Profile = () => {
           )
         ) : tab === "following" ? (
           !followingLoaded ? (
-            <div className="flex justify-center py-6"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>
+            <div className="flex justify-center py-6">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
           ) : followingList.length > 0 ? (
             <div className="space-y-1.5">
               {followingList.map((f: any) => {
                 const p = f.profiles;
                 if (!p) return null;
                 return (
-                  <Link key={p.id} to={`/profile/${p.username || p.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5 hover:bg-card/80 transition-colors">
-                    <div className="h-9 w-9 overflow-hidden rounded-full flex-shrink-0" style={{ backgroundColor: '#FF2D78' }}>
-                      {p.avatar_url ? <img src={p.avatar_url} alt="" className="h-full w-full object-cover" /> : (
-                        <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">{(p.display_name || "U")[0].toUpperCase()}</div>
+                  <Link
+                    key={p.id}
+                    to={`/profile/${p.username || p.id}`}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5 hover:bg-card/80 transition-colors"
+                  >
+                    <div
+                      className="h-9 w-9 overflow-hidden rounded-full flex-shrink-0"
+                      style={{ backgroundColor: "#FF2D78" }}
+                    >
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                          {(p.display_name || "U")[0].toUpperCase()}
+                        </div>
                       )}
                     </div>
                     <div className="min-w-0">
@@ -602,28 +774,45 @@ const Profile = () => {
             </div>
           ) : (
             <div className="py-6 text-center">
-              <p className="text-sm text-muted-foreground mb-3">you're not following anyone yet — find friends in the people tab</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                you're not following anyone yet — find friends in the people tab
+              </p>
             </div>
           )
         ) : tab === "activity" ? (
           <div className="space-y-1.5">
             {activityLoaded && activity.length === 0 ? (
               <div className="space-y-2">
-                <p className="py-3 text-center text-sm text-muted-foreground">when people save or react to your songs, you'll see it here.</p>
+                <p className="py-3 text-center text-sm text-muted-foreground">
+                  when people save or react to your songs, you'll see it here.
+                </p>
                 <div className="rounded-xl border border-border bg-card p-2.5 opacity-50 relative border-l-4 border-l-primary">
-                  <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] text-muted-foreground">example</span>
-                  <p className="text-sm text-foreground">@musicfan saved <span className="text-primary">Beautiful Things</span></p>
+                  <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                    example
+                  </span>
+                  <p className="text-sm text-foreground">
+                    @musicfan saved <span className="text-primary">Beautiful Things</span>
+                  </p>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-2.5 opacity-50 relative">
-                  <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] text-muted-foreground">example</span>
-                  <p className="text-sm text-foreground">@friend reacted 🔥 to <span className="text-primary">Swim</span></p>
+                  <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                    example
+                  </span>
+                  <p className="text-sm text-foreground">
+                    @friend reacted 🔥 to <span className="text-primary">Swim</span>
+                  </p>
                 </div>
               </div>
             ) : !activityLoaded ? (
-              <div className="flex justify-center py-6"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>
+              <div className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
             ) : (
               activity.map((item, i) => (
-                <div key={i} className={`rounded-xl border border-border bg-card p-2.5 ${item.type === "save" ? "border-l-4 border-l-primary" : ""}`}>
+                <div
+                  key={i}
+                  className={`rounded-xl border border-border bg-card p-2.5 ${item.type === "save" ? "border-l-4 border-l-primary" : ""}`}
+                >
                   <div className="flex items-center gap-2">
                     {item.type === "recommendation" ? (
                       <Send className="h-4 w-4 text-primary flex-shrink-0" />
@@ -635,18 +824,30 @@ const Profile = () => {
                     <p className="text-xs text-foreground flex-1 min-w-0">
                       {item.type === "save" ? (
                         <>
-                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
-                          {" saved "}<span className="text-primary">{item.trackTitle}</span>
+                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">
+                            @{item.username || item.displayName}
+                          </Link>
+                          {" saved "}
+                          <span className="text-primary">{item.trackTitle}</span>
                         </>
                       ) : item.type === "reaction" ? (
                         <>
-                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
-                          {" reacted "}{item.emoji}{" to "}<span className="text-primary">{item.trackTitle}</span>
+                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">
+                            @{item.username || item.displayName}
+                          </Link>
+                          {" reacted "}
+                          {item.emoji}
+                          {" to "}
+                          <span className="text-primary">{item.trackTitle}</span>
                         </>
                       ) : (
                         <>
-                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">@{item.username || item.displayName}</Link>
-                          {" recommended "}<span className="text-primary">{item.trackTitle}</span>{" for you"}
+                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">
+                            @{item.username || item.displayName}
+                          </Link>
+                          {" recommended "}
+                          <span className="text-primary">{item.trackTitle}</span>
+                          {" for you"}
                         </>
                       )}
                     </p>
@@ -663,9 +864,13 @@ const Profile = () => {
         ) : tab === "foryou" ? (
           <div className="space-y-2">
             {recsLoaded && recommendations.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">when someone recommends you a song, it'll appear here.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                when someone recommends you a song, it'll appear here.
+              </p>
             ) : !recsLoaded ? (
-              <div className="flex justify-center py-6"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>
+              <div className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
             ) : (
               recommendations.map((rec: any) => (
                 <UnifiedTrackCard
@@ -696,10 +901,16 @@ const Profile = () => {
           /* Collection tab */
           <>
             <div className="flex gap-2 mb-2">
-              <button onClick={() => setCollectionFilter("30d")} className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "30d" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}>
-                last 30 days ({likes.filter(l => l.liked_at >= thirtyDaysAgo).length})
+              <button
+                onClick={() => setCollectionFilter("30d")}
+                className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "30d" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
+              >
+                last 30 days ({likes.filter((l) => l.liked_at >= thirtyDaysAgo).length})
               </button>
-              <button onClick={() => setCollectionFilter("all")} className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "all" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}>
+              <button
+                onClick={() => setCollectionFilter("all")}
+                className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "all" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
+              >
                 all time ({likes.length})
               </button>
             </div>
@@ -737,26 +948,49 @@ const Profile = () => {
         )}
 
         <div className="mt-12 flex justify-center">
-          <button onClick={handleEasterEggTap} className="text-[10px] text-muted-foreground select-none">PLAI</button>
+          <button onClick={handleEasterEggTap} className="text-[10px] text-muted-foreground select-none">
+            PLAI
+          </button>
         </div>
       </main>
 
       {showQR && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowQR(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 max-w-xs w-full mx-4 text-center relative" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowQR(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowQR(false)}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl p-6 max-w-xs w-full mx-4 text-center relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowQR(false)}
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
             <div className="flex justify-center mb-4">
-              <QRCodeSVG value={`https://sound-wavee.lovable.app/profile/${profile?.username || profile?.id}`} size={180} bgColor="transparent" fgColor="#F0EBE3" />
+              <QRCodeSVG
+                value={`https://sound-wavee.lovable.app/profile/${profile?.username || profile?.id}`}
+                size={180}
+                bgColor="transparent"
+                fgColor="#F0EBE3"
+              />
             </div>
             <p className="text-sm text-foreground mb-1">@{profile?.username || "user"}</p>
-            <button onClick={copyProfileLink} className="flex items-center justify-center gap-2 mx-auto rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 mt-3">
+            <button
+              onClick={copyProfileLink}
+              className="flex items-center justify-center gap-2 mx-auto rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 mt-3"
+            >
               <Copy className="h-4 w-4" /> copy profile link
             </button>
           </div>
         </div>
       )}
 
-      {followModal && profile && <FollowersModal profileId={profile.id} mode={followModal} onClose={() => setFollowModal(null)} />}
+      {followModal && profile && (
+        <FollowersModal profileId={profile.id} mode={followModal} onClose={() => setFollowModal(null)} />
+      )}
       {showFlappy && <FlappyBird onClose={() => setShowFlappy(false)} />}
       <BottomNav />
     </div>
