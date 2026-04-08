@@ -1,13 +1,58 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const core = ["it pleases me", "if you like it, i love it"];
-const personal = ["i love your taste", "you're onto something", "come listen to this", "i think you'll like this", "oh yeah, you like that?", "stay here a minute"];
-const language = ["j'aime bien", "me gusta", "mi piace", "gefällt mir", "gosto disso", "いいね", "감사해요", "obrigado", "merci", "gracias de nada"];
+const personal = [
+  "i love your taste",
+  "you're onto something",
+  "come listen to this",
+  "i think you'll like this",
+  "oh yeah, you like that?",
+  "stay here a minute",
+];
+const language = [
+  "j'aime bien",
+  "me gusta",
+  "mi piace",
+  "gefällt mir",
+  "gosto disso",
+  "いいね",
+  "감사해요",
+  "obrigado",
+  "merci",
+  "gracias de nada",
+];
 const ambient = ["have a great day", "make somebody else's day", "this is a good moment", "enjoy this one"];
 
-export const cheekyMessages = ["oh yeah, you like that?", "tap me again...", "ok one sec, i need a breather", "...still here?", "honestly same", "you found something", "ok i'm back", "worth it?"];
+export const cheekyMessages = [
+  "oh yeah, you like that?",
+  "tap me again...",
+  "wait one sec, too fast",
+  "...still here?",
+  "you must really like this",
+  "you found something",
+  "this is more about you than me, isn't it?",
+  "hold on, I'll grab a towel",
+];
 
-export const homeTaglines = ["it pleases me", "come listen to this", "i think you'll like this", "you're onto something", "have a great day", "make somebody else's day", "good ears only", "j'aime bien", "me gusta", "mi piace", "gefällt mir", "gosto disso", "いいね", "감사해요", "obrigado", "merci", "gracias de nada"];
+export const homeTaglines = [
+  "it pleases me",
+  "come listen to this",
+  "i think you'll like this",
+  "you're onto something",
+  "have a great day",
+  "make somebody else's day",
+  "good ears only",
+  "j'aime bien",
+  "me gusta",
+  "mi piace",
+  "gefällt mir",
+  "gosto disso",
+  "いいね",
+  "감사해요",
+  "obrigado",
+  "merci",
+  "gracias de nada",
+];
 
 const pool: string[] = [...core, ...core, ...core, ...personal, ...personal, ...language, ...ambient];
 
@@ -20,7 +65,10 @@ export async function loadTaglinesFromDb(): Promise<string[]> {
   if (dbFetchAttempted) return [];
   dbFetchAttempted = true;
   try {
-    const { data } = await supabase.from("taglines" as any).select("text, weight, category").eq("active", true);
+    const { data } = await supabase
+      .from("taglines" as any)
+      .select("text, weight, category")
+      .eq("active", true);
     if (data && data.length > 0) {
       const weighted: string[] = [];
       for (const t of data as any[]) {
