@@ -167,21 +167,11 @@ const MiniPlayer = () => {
             artist: artist || "",
             albumArtUrl: art,
             spotifyTrackId: spotifyTrackId,
+            trackDbId: spotifyTrackId,
           }}
           spotifyUrl={`https://open.spotify.com/track/${spotifyTrackId}`}
           isSaved={false}
           onToggleSave={() => {}}
-          onShare={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: title || "",
-                text: `${title} by ${artist} — on PLAI`,
-                url: `https://sound-wavee.lovable.app`,
-              });
-            } else {
-              navigator.clipboard.writeText(`${title} by ${artist} — https://sound-wavee.lovable.app`);
-            }
-          }}
           onClose={() => setShowDetail(false)}
           hidePlay
         />
