@@ -9,7 +9,7 @@ import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import NowPlayingBar from "@/components/NowPlayingBar";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
-import HomeTagline from "@/components/HomeTagline";
+import HomeTagline, { HomeTaglineRef } from "@/components/HomeTagline";
 import UserCard from "@/components/UserCard";
 import RecommendModal from "@/components/RecommendModal";
 import { Input } from "@/components/ui/input";
