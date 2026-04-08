@@ -17,6 +17,7 @@ const Landing = () => {
   const [pinUsername, setPinUsername] = useState("");
   const [pinValue, setPinValue] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
+  const [showInstallOverlay, setShowInstallOverlay] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -28,6 +29,20 @@ const Landing = () => {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const isStandalone = (navigator as any).standalone === true;
+    const dismissed = localStorage.getItem("plai_install_dismissed");
+    if (isIOS && !isStandalone && !dismissed) {
+      setShowInstallOverlay(true);
+    }
+  }, []);
+
+  const dismissInstall = () => {
+    localStorage.setItem("plai_install_dismissed", "1");
+    setShowInstallOverlay(false);
+  };
 
   const handlePinLogin = async () => {
     if (!pinUsername || pinValue.length !== 4) {
@@ -87,9 +102,7 @@ const Landing = () => {
         .replace(/\//g, "_")
         .replace(/=/g, "");
 
-      // localStorage survives cross-origin redirects, sessionStorage does not
       localStorage.setItem("tidal_code_verifier", codeVerifier);
-      // No user session on landing page — TidalCallback will get session after redirect
       localStorage.removeItem("tidal_user_id");
 
       const { data: result } = await supabase.functions.invoke("tidal-auth-url", {
@@ -122,6 +135,172 @@ const Landing = () => {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <Starfield />
+
+      {/* Full screen install overlay — iOS only, first visit only */}
+      {showInstallOverlay && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(8,11,18,0.95)",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "flex-end",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              background: "#0F1520",
+              borderTop: "0.5px solid #1a2535",
+              borderRadius: "24px 24px 0 0",
+              padding: "12px 24px 52px",
+              textAlign: "center",
+            }}
+          >
+            {/* Drag handle */}
+            <div
+              style={{
+                width: 36,
+                height: 4,
+                background: "#1a2535",
+                borderRadius: 2,
+                margin: "0 auto 28px",
+              }}
+            />
+
+            {/* Icon */}
+            <img
+              src="/plai-icon.png"
+              alt="PLAI"
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 16,
+                marginBottom: 16,
+              }}
+            />
+
+            {/* Headline */}
+            <p style={{ fontSize: 22, fontWeight: 600, color: "#F0EBE3", marginBottom: 8 }}>
+              save PLAI to your home screen
+            </p>
+            <p
+              style={{
+                fontSize: 13,
+                color: "#4a6a8a",
+                lineHeight: 1.6,
+                marginBottom: 32,
+                maxWidth: 260,
+                margin: "0 auto 32px",
+              }}
+            >
+              get the full app experience before you sign in
+            </p>
+
+            {/* Steps */}
+            <div
+              style={{
+                background: "#080B12",
+                border: "0.5px solid #1a2535",
+                borderRadius: 14,
+                padding: "20px 20px",
+                marginBottom: 28,
+                textAlign: "left",
+              }}
+            >
+              {[
+                <>
+                  tap the <span style={{ color: "#FF2D78", fontWeight: 500 }}>Share</span> button{" "}
+                  <svg
+                    style={{ display: "inline", verticalAlign: "middle", marginBottom: 2 }}
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FF2D78"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>{" "}
+                  at the bottom of Safari
+                </>,
+                <>
+                  scroll down and tap <span style={{ color: "#FF2D78", fontWeight: 500 }}>"Add to Home Screen"</span>
+                </>,
+                <>
+                  tap <span style={{ color: "#FF2D78", fontWeight: 500 }}>Add</span> — then open PLAI from your home
+                  screen
+                </>,
+              ].map((text, i) => (
+                <div
+                  key={i}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: i < 2 ? 16 : 0 }}
+                >
+                  <div
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: "50%",
+                      background: "#FF2D78",
+                      color: "white",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      marginTop: 1,
+                    }}
+                  >
+                    {i + 1}
+                  </div>
+                  <p style={{ fontSize: 13, color: "#F0EBE3", lineHeight: 1.5 }}>{text}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Got it button */}
+            <button
+              onClick={dismissInstall}
+              style={{
+                width: "100%",
+                padding: "15px",
+                background: "#FF2D78",
+                color: "white",
+                border: "none",
+                borderRadius: 100,
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: "pointer",
+                marginBottom: 12,
+              }}
+            >
+              got it
+            </button>
+
+            {/* Skip — very subtle */}
+            <button
+              onClick={dismissInstall}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#2a3a4a",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              skip for now
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-10 text-center">
         <p className="text-[10px] font-light uppercase tracking-[0.3em] text-primary">
@@ -217,27 +396,8 @@ const Landing = () => {
         <p className="text-xs text-muted-foreground/40">we only read your likes. nothing else.</p>
       </div>
 
-      {/* iOS Safari install prompt */}
-      <IOSInstallPrompt />
-      {/* Android install prompt */}
+      {/* Android install prompt — keep as subtle pill */}
       <AndroidInstallPrompt />
-    </div>
-  );
-};
-
-const IOSInstallPrompt = () => {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const isIos = /iPhone|iPad/.test(navigator.userAgent);
-    const isStandalone = (navigator as any).standalone === true;
-    const dismissed = localStorage.getItem("plai_pwa_dismissed");
-    if (isIos && !isStandalone && !dismissed) setShow(true);
-  }, []);
-  if (!show) return null;
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between" style={{ background: "#0F1520", borderTop: "0.5px solid #1a2535", padding: "10px 16px" }}>
-      <p style={{ fontSize: 11, color: "#4a6a8a" }}>tap Share → "Add to Home Screen" to install PLAI</p>
-      <button onClick={() => { localStorage.setItem("plai_pwa_dismissed", "1"); setShow(false); }} style={{ fontSize: 11, color: "#4a6a8a", marginLeft: 12 }}>×</button>
     </div>
   );
 };
@@ -248,15 +408,30 @@ const AndroidInstallPrompt = () => {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); setVisible(true); timerRef.current = setTimeout(() => setVisible(false), 8000); };
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setVisible(true);
+      timerRef.current = setTimeout(() => setVisible(false), 8000);
+    };
     window.addEventListener("beforeinstallprompt", handler);
-    return () => { window.removeEventListener("beforeinstallprompt", handler); if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   if (!visible || !deferredPrompt) return null;
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-      <button onClick={() => { deferredPrompt.prompt(); setVisible(false); }} className="rounded-full px-5 py-2 text-xs font-medium text-primary-foreground" style={{ background: "#FF2D78" }}>
+      <button
+        onClick={() => {
+          deferredPrompt.prompt();
+          setVisible(false);
+        }}
+        className="rounded-full px-5 py-2 text-xs font-medium text-primary-foreground"
+        style={{ background: "#FF2D78" }}
+      >
         add PLAI to your home screen →
       </button>
     </div>
