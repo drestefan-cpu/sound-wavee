@@ -501,13 +501,17 @@ const Profile = () => {
         {isOwnProfile && moons.length > 0 && (
           <div className="absolute inset-x-0 top-0 h-40 pointer-events-none overflow-visible flex justify-center">
             <style>{`
-      @keyframes moon-orbit {
-        0%   { transform: translate(70px, 0px); }
-        25%  { transform: translate(0px, -32px); }
-        50%  { transform: translate(-70px, 0px); }
-        75%  { transform: translate(0px, 32px); }
-        100% { transform: translate(70px, 0px); }
-      }
+@keyframes moon-orbit {
+  0%   { transform: translate(110px, 0px); }
+  12%  { transform: translate(78px, -52px); }
+  25%  { transform: translate(0px, -65px); }
+  37%  { transform: translate(-78px, -52px); }
+  50%  { transform: translate(-110px, 0px); }
+  62%  { transform: translate(-78px, 52px); }
+  75%  { transform: translate(0px, 65px); }
+  87%  { transform: translate(78px, 52px); }
+  100% { transform: translate(110px, 0px); }
+     }
       @keyframes moon-glow {
         0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
         50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
@@ -528,7 +532,7 @@ const Profile = () => {
                       position: "absolute",
                       top: 32,
                       left: 0,
-                      animation: `moon-orbit 16s ease-in-out infinite`,
+                      animation: `moon-orbit 18s linear infinite`,
                       animationDelay: `${m.orbitDelay}s`,
                     } as React.CSSProperties
                   }
