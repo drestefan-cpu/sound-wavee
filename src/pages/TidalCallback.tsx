@@ -116,20 +116,20 @@ const TidalCallback = () => {
         if (result.access_token) {
           const tidalUid = getTidalUid(result.access_token);
           if (tidalUid) {
-            const { data: existingProfile } = await supabase
-              .from("profiles")
+            const { data: existingProfile } = await (supabase
+              .from("profiles" as any)
               .select("id")
-              .eq("tidal_user_id" as any, tidalUid)
-              .maybeSingle();
+              .eq("tidal_user_id", tidalUid)
+              .maybeSingle() as any);
             if (existingProfile && existingProfile.id !== userId) {
               // Found existing profile — use it instead of the new anon account
               userId = existingProfile.id;
             } else {
               // Store tidal_user_id for future logins
-              await supabase
-                .from("profiles")
-                .update({ tidal_user_id: tidalUid } as any)
-                .eq("id", userId);
+              await (supabase
+                .from("profiles" as any)
+                .update({ tidal_user_id: tidalUid })
+                .eq("id", userId) as any);
             }
           }
         }
