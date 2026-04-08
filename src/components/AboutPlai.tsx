@@ -51,16 +51,31 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#080B12" }}>
       <MiniStarfield />
 
+      {/* X button with safe area top padding */}
       <button
         onClick={onClose}
-        className="fixed top-4 left-4 z-50 text-muted-foreground hover:text-foreground transition-colors"
+        className="fixed z-50 text-muted-foreground hover:text-foreground transition-colors"
+        style={{
+          top: "max(env(safe-area-inset-top, 16px), 16px)",
+          left: 16,
+          touchAction: "manipulation",
+          WebkitTapHighlightColor: "transparent",
+          padding: 8,
+        }}
       >
         <X className="h-5 w-5" />
       </button>
 
       <div
-        className="relative z-10 max-w-md mx-auto px-6 py-16 text-center"
-        style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 300, lineHeight: 1.8, color: "#F0EBE3" }}
+        className="relative z-10 max-w-md mx-auto px-6 text-center"
+        style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 300,
+          lineHeight: 1.8,
+          color: "#F0EBE3",
+          paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 64px), 80px)",
+          paddingBottom: 64,
+        }}
       >
         <div className="mb-3">
           <PlaiLogo className="text-5xl" glow />
@@ -75,7 +90,7 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         <Divider />
         <SectionHeader>your feed</SectionHeader>
 
-        <p className="text-sm leading-relaxed mb-2">your feed shows the songs </p>
+        <p className="text-sm leading-relaxed mb-2">your feed shows the songs</p>
         <p className="text-sm leading-relaxed mb-2">your friends are liking —</p>
 
         <div className="h-10" />
@@ -105,13 +120,13 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
 
         <p className="text-sm leading-relaxed mb-2">a live look at what's moving</p>
         <p className="text-sm leading-relaxed mb-2">in the charts right now.</p>
-        <p className="text-sm leading-relaxed">react, save, or open directly in Spotify.</p>
+        <p className="text-sm leading-relaxed">react, save, or open directly in your player.</p>
 
         <Divider />
 
         <SectionHeader>settings</SectionHeader>
 
-        <p className="text-sm leading-relaxed mb-2">connect your Spotify, set your status,</p>
+        <p className="text-sm leading-relaxed mb-2">connect your streaming platform, set your status,</p>
         <p className="text-sm leading-relaxed mb-2">pick your profile colour,</p>
         <p className="text-sm leading-relaxed mb-2">and set up a quick-access PIN</p>
         <p className="text-sm leading-relaxed">so you never have to log in twice.</p>
