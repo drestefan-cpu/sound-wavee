@@ -12,7 +12,7 @@ const MiniStarfield = () => {
         opacity: 0.08 + Math.random() * 0.17,
         size: 0.8 + Math.random() * 1.2,
       })),
-    []
+    [],
   );
 
   return (
@@ -87,11 +87,9 @@ const TaglineSpace = () => {
     <div
       className="relative flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden rounded-2xl transition-[filter] duration-100"
       style={{
-        background: "linear-gradient(180deg, hsl(218 32% 6%) 0%, hsl(218 32% 4%) 100%)",
+        background: "transparent",
         paddingTop: 60,
         paddingBottom: 60,
-        marginLeft: -16,
-        marginRight: -16,
       }}
       onClick={handleTap}
       onPointerDown={() => setPressing(true)}
