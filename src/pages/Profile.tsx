@@ -532,7 +532,7 @@ const Profile = () => {
                       position: "absolute",
                       top: 32,
                       left: 0,
-                      animation: `moon-orbit 120s linear infinite`,
+                      animation: `moon-orbit 160s linear infinite`,
                       animationDelay: `${m.orbitDelay}s`,
                     } as React.CSSProperties
                   }
