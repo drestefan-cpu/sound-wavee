@@ -32,8 +32,8 @@ export const cheekyMessages = [
   "you found something",
   "this is all about you, isn't it?",
   "hold on, I'll grab you a towel",
-  "don't we sound good?"
-  "don't forget to tell your friends :)"
+  "don't we sound good?",
+  "don't forget to tell your friends :)",
 ];
 
 export const homeTaglines = [
