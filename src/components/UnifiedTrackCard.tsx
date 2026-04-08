@@ -182,7 +182,6 @@ const UnifiedTrackCard = ({
               if (onToggleSave) onToggleSave();
               else toggleSave(trackDbId, sourceUserId, sourceContext);
             }}
-            onShare={onShare}
             onClose={() => setShowDetail(false)}
           />
         )}
@@ -277,7 +276,6 @@ const UnifiedTrackCard = ({
             if (onToggleSave) onToggleSave();
             else toggleSave(trackDbId, sourceUserId, sourceContext);
           }}
-          onShare={onShare}
           onClose={() => setShowDetail(false)}
         />
       )}
