@@ -2,7 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@900&family=DM+Sans:wght@300;400;500&display=swap');
+/* Safe area insets for iOS PWA */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@900&family=DM+Sans:wght@300;400;500&display=swap");
 
 @layer base {
   :root {
@@ -45,8 +50,8 @@
     --sidebar-border: 212 30% 15%;
     --sidebar-ring: 340 100% 59%;
 
-    --font-display: 'Unbounded', sans-serif;
-    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-display: "Unbounded", sans-serif;
+    --font-sans: "DM Sans", system-ui, sans-serif;
 
     --transition-fast: 150ms ease;
   }
@@ -61,6 +66,7 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     font-weight: 400;
+    padding-top: env(safe-area-inset-top, 0px);
   }
 }
 
@@ -88,7 +94,8 @@
 }
 
 @keyframes pulse-live {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -108,10 +115,11 @@
 }
 
 @keyframes logo-glow {
-  0%, 100% {
-    text-shadow: 0 0 12px #FF2D78;
+  0%,
+  100% {
+    text-shadow: 0 0 12px #ff2d78;
   }
   50% {
-    text-shadow: 0 0 2px #FF2D7840;
+    text-shadow: 0 0 2px #ff2d7840;
   }
 }
