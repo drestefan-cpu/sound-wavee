@@ -3,9 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+const getTidalUid = (token: string): string | null => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.uid ? String(payload.uid) : null;
+  } catch {
+    return null;
+  }
+};
 
 const TidalCallback = () => {
   const navigate = useNavigate();
@@ -58,7 +66,6 @@ const TidalCallback = () => {
 
         setStatus("exchanging tokens...");
 
-        // Get current session token for auth header
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -66,7 +73,6 @@ const TidalCallback = () => {
 
         console.log("Invoking tidal-exchange-token with userId:", userId);
 
-        // Call edge function directly via fetch to bypass any invoke issues
         const response = await fetch(`${SUPABASE_URL}/functions/v1/tidal-exchange-token`, {
           method: "POST",
           headers: {
@@ -104,6 +110,28 @@ const TidalCallback = () => {
           toast.error(`Tidal auth failed: ${result.error || "unknown error"}`);
           setTimeout(() => navigate("/"), 2000);
           return;
+        }
+
+        // Check for existing profile by Tidal UID to prevent duplicate accounts
+        if (result.access_token) {
+          const tidalUid = getTidalUid(result.access_token);
+          if (tidalUid) {
+            const { data: existingProfile } = await supabase
+              .from("profiles")
+              .select("id")
+              .eq("tidal_user_id" as any, tidalUid)
+              .maybeSingle();
+            if (existingProfile && existingProfile.id !== userId) {
+              // Found existing profile — use it instead of the new anon account
+              userId = existingProfile.id;
+            } else {
+              // Store tidal_user_id for future logins
+              await supabase
+                .from("profiles")
+                .update({ tidal_user_id: tidalUid } as any)
+                .eq("id", userId);
+            }
+          }
         }
 
         setStatus("syncing your Tidal library...");
