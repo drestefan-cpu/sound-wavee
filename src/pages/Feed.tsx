@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
-import NowPlayingBar from "@/components/NowPlayingBar";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
 import HomeTagline, { HomeTaglineRef } from "@/components/HomeTagline";
@@ -568,8 +567,6 @@ const Feed = () => {
           onClose={() => setRecommendTrack(null)}
         />
       )}
-
-      <NowPlayingBar />
       <BottomNav />
     </div>
   );
