@@ -3,7 +3,7 @@ import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, RefreshCw, QrCode, X, Copy, Bell, Users, Heart, Send } from "lucide-react";
+import { RefreshCw, QrCode, X, Copy, Bell, Users, Heart, Send } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
 import PlaiLogo from "@/components/PlaiLogo";
@@ -372,7 +372,6 @@ const Profile = () => {
           isOwnProfile ? (
             <div className="flex items-center gap-2">
               <button onClick={() => setShowQR(true)} className="text-muted-foreground hover:text-foreground transition-colors duration-150"><QrCode className="h-5 w-5" /></button>
-              <Link to="/settings" className="text-muted-foreground hover:text-foreground transition-colors duration-150"><Settings className="h-5 w-5" /></Link>
             </div>
           ) : (
             <button onClick={() => setShowQR(true)} className="text-muted-foreground hover:text-foreground transition-colors duration-150"><QrCode className="h-5 w-5" /></button>
@@ -386,17 +385,18 @@ const Profile = () => {
           <div className="absolute inset-x-0 top-0 h-32 pointer-events-none overflow-hidden">
             <style>{`
               @keyframes moon-orbit {
-                0% { transform: translate(0, 0); }
-                25% { transform: translate(var(--mdx), var(--mdy)); }
-                50% { transform: translate(calc(var(--mdx) * -0.5), calc(var(--mdy) * 1.5)); }
-                75% { transform: translate(calc(var(--mdx) * -1), calc(var(--mdy) * -0.5)); }
-                100% { transform: translate(0, 0); }
+                0%   { transform: translate(55px, 0px); }
+                25%  { transform: translate(0px, -25px); }
+                50%  { transform: translate(-55px, 0px); }
+                75%  { transform: translate(0px, 25px); }
+                100% { transform: translate(55px, 0px); }
               }
               @keyframes moon-glow {
                 0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
                 50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
               }
               @media (prefers-reduced-motion: reduce) { .moon-el { animation: none !important; } .moon-dot { animation: none !important; } }
+              @media (prefers-reduced-motion: no-preference) { .moon-el { } }
             `}</style>
             {moons.map((m) => (
               <div
