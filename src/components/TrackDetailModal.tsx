@@ -1,4 +1,6 @@
-import { Heart, Play, Send, X } from "lucide-react";
+import { useState } from "react";
+import { Heart, ExternalLink, Send, X } from "lucide-react";
+import { useSpotifyPlayer } from "@/contexts/SpotifyPlayerContext";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 
 interface TrackDetailModalProps {
@@ -8,6 +10,7 @@ interface TrackDetailModalProps {
   onToggleSave?: () => void;
   onShare?: () => void;
   onClose: () => void;
+  hidePlay?: boolean;
 }
 
 const openUrl = (url: string) => {
@@ -20,12 +23,19 @@ const openUrl = (url: string) => {
   }
 };
 
-const TrackDetailModal = ({ track, spotifyUrl, isSaved, onToggleSave, onShare, onClose }: TrackDetailModalProps) => {
-  const handlePlay = () => {
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
-    if (isStandalone && track.spotifyTrackId) {
-      window.location.href = `spotify:track:${track.spotifyTrackId}`;
+const TrackDetailModal = ({
+  track,
+  spotifyUrl,
+  isSaved,
+  onToggleSave,
+  onShare,
+  onClose,
+  hidePlay = false,
+}: TrackDetailModalProps) => {
+  const handleOpenSpotify = () => {
+    // Go to album page — doesn't trigger playback
+    if (track.spotifyTrackId) {
+      openUrl(`https://open.spotify.com/track/${track.spotifyTrackId}`);
     } else {
       openUrl(spotifyUrl);
     }
@@ -72,18 +82,20 @@ const TrackDetailModal = ({ track, spotifyUrl, isSaved, onToggleSave, onShare, o
             <span className="text-[10px] text-muted-foreground">{isSaved ? "saved" : "save"}</span>
           </button>
 
-          <button
-            onClick={handlePlay}
-            className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
-          >
-            <div
-              className="h-8 w-8 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: "#1a2535" }}
+          {!hidePlay && (
+            <button
+              onClick={handleOpenSpotify}
+              className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
             >
-              <Play className="h-4 w-4 fill-current" style={{ color: "#4a6a8a" }} />
-            </div>
-            <span className="text-[10px] text-muted-foreground">open in spotify</span>
-          </button>
+              <div
+                className="h-8 w-8 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "#1a2535" }}
+              >
+                <ExternalLink className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+              </div>
+              <span className="text-[10px] text-muted-foreground">spotify</span>
+            </button>
+          )}
 
           {onShare && (
             <button
