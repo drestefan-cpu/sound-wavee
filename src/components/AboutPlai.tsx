@@ -12,7 +12,7 @@ const MiniStarfield = () => {
         opacity: 0.05 + Math.random() * 0.15,
         size: 0.6 + Math.random() * 1,
       })),
-    []
+    [],
   );
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
@@ -41,20 +41,14 @@ const Divider = () => (
 );
 
 const SectionHeader = ({ children }: { children: React.ReactNode }) => (
-  <p
-    className="text-sm tracking-[0.15em] uppercase mb-4"
-    style={{ color: "#FF2D78" }}
-  >
+  <p className="text-sm tracking-[0.15em] uppercase mb-4" style={{ color: "#FF2D78" }}>
     {children}
   </p>
 );
 
 const AboutPlai = ({ onClose }: { onClose: () => void }) => {
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto"
-      style={{ backgroundColor: "#080B12" }}
-    >
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#080B12" }}>
       <MiniStarfield />
 
       <button
@@ -64,7 +58,10 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         <X className="h-5 w-5" />
       </button>
 
-      <div className="relative z-10 max-w-md mx-auto px-6 py-16 text-center" style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 300, lineHeight: 1.8, color: "#F0EBE3" }}>
+      <div
+        className="relative z-10 max-w-md mx-auto px-6 py-16 text-center"
+        style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 300, lineHeight: 1.8, color: "#F0EBE3" }}
+      >
         <div className="mb-3">
           <PlaiLogo className="text-5xl" glow />
         </div>
@@ -73,21 +70,18 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         </p>
 
         <p className="text-sm leading-relaxed mb-2">music is more interesting</p>
-        <p className="text-sm leading-relaxed mb-2">when you can see what</p>
-        <p className="text-sm leading-relaxed">your friends are into.</p>
+        <p className="text-sm leading-relaxed mb-2">when you can check in </p>
+        <p className="text-sm leading-relaxed">on your friends.</p>
 
         <Divider />
 
         <p className="text-sm leading-relaxed mb-2">your feed shows you what the people</p>
-        <p className="text-sm leading-relaxed mb-2">you follow have liked on Spotify —</p>
-        <p className="text-sm leading-relaxed mb-2">in real time, unfiltered.</p>
-        <p className="text-sm leading-relaxed mb-2">no curation. no performance.</p>
-        <p className="text-sm leading-relaxed">just what they actually saved.</p>
+        <p className="text-sm leading-relaxed mb-2">you follow are liking —</p>
 
         <div className="h-10" />
 
         <p className="text-sm leading-relaxed mb-2">react to what resonates.</p>
-        <p className="text-sm leading-relaxed mb-2">save what you want to remember.</p>
+        <p className="text-sm leading-relaxed mb-2">save what you want to keep.</p>
         <p className="text-sm leading-relaxed mb-2">follow the people whose taste</p>
         <p className="text-sm leading-relaxed">you actually trust.</p>
 
@@ -96,9 +90,9 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         <SectionHeader>your library</SectionHeader>
 
         <p className="text-sm leading-relaxed mb-2">your collection is everything</p>
-        <p className="text-sm leading-relaxed mb-2">you've liked on Spotify.</p>
+        <p className="text-sm leading-relaxed mb-2">you've liked on your streaming platform.</p>
         <p className="text-sm leading-relaxed mb-2">your finds are songs you've saved</p>
-        <p className="text-sm leading-relaxed">from other people's feeds on PLAI.</p>
+        <p className="text-sm leading-relaxed">from your friends' feeds on PLAI.</p>
 
         <div className="h-8" />
 
@@ -127,25 +121,26 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         <div className="space-y-3">
           <p className="text-sm" style={{ color: "#2a3a4a" }}>
             <span style={{ color: "#FF2D78" }}>✦</span>{" "}
-            <span className="tracking-[0.1em]" style={{ color: "#FF2D78" }}>plai·lists</span>{" "}
+            <span className="tracking-[0.1em]" style={{ color: "#FF2D78" }}>
+              plai·lists
+            </span>{" "}
             <span className="italic text-xs">coming soon</span>
           </p>
           <p className="text-sm" style={{ color: "#2a3a4a" }}>
-            <span style={{ color: "#FF2D78" }}>✦</span>{" "}
-            recommendations{" "}
+            <span style={{ color: "#FF2D78" }}>✦</span> recommendations{" "}
             <span className="italic text-xs">coming soon</span>
           </p>
           <p className="text-sm" style={{ color: "#2a3a4a" }}>
-            <span style={{ color: "#FF2D78" }}>✦</span>{" "}
-            Apple Music{" "}
-            <span className="italic text-xs">coming soon</span>
+            <span style={{ color: "#FF2D78" }}>✦</span> Apple Music <span className="italic text-xs">coming soon</span>
           </p>
         </div>
 
         <Divider />
 
         <p className="text-base italic mt-4" style={{ color: "#F0EBE3" }}>
-          that's it.<br />enjoy what you find.
+          that's it.
+          <br />
+          enjoy what you find.
         </p>
 
         <div className="h-16" />
