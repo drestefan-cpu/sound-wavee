@@ -22,8 +22,8 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
     const load = async () => {
       const { data } = await supabase
         .from("follows")
-        .select("following_id, profiles!follows_following_id_fkey(id, display_name, username, avatar_url)")
-        .eq("follower_id", user.id);
+        .select("follower_id, profiles!follows_follower_id_fkey(id, display_name, username, avatar_url)")
+        .eq("following_id", user.id);
       setFollowers(data || []);
       setLoading(false);
     };
@@ -51,7 +51,10 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-t-2xl bg-card border-t border-border p-4 max-h-[60vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div
+        className="w-full max-w-md rounded-t-2xl bg-card border-t border-border p-4 max-h-[60vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-foreground">recommend "{trackTitle}"</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -76,8 +79,14 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
               const p = f.profiles;
               if (!p) return null;
               return (
-                <div key={p.id} className="flex items-center gap-3 rounded-xl p-2 hover:bg-secondary/50 transition-colors">
-                  <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0" style={{ backgroundColor: '#FF2D78' }}>
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-xl p-2 hover:bg-secondary/50 transition-colors"
+                >
+                  <div
+                    className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0"
+                    style={{ backgroundColor: "#FF2D78" }}
+                  >
                     {p.avatar_url ? (
                       <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
                     ) : (
