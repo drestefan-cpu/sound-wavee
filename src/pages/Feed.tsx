@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
@@ -46,6 +46,8 @@ const Feed = () => {
   const [tab, setTab] = useState<"following" | "trending" | "people" | "plailists">("following");
   const [isNewUser, setIsNewUser] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [justSynced, setJustSynced] = useState(false);
 
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<any[]>([]);
@@ -56,7 +58,6 @@ const Feed = () => {
   const [logoFlash, setLogoFlash] = useState(false);
   const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string } | null>(null);
 
-  // plai picks from DB
   const [plaiPicks, setPlaiPicks] = useState<any[]>([]);
   const [picksLoading, setPicksLoading] = useState(false);
 
@@ -132,7 +133,6 @@ const Feed = () => {
     if (tab === "people" && people.length === 0 && !peopleLoading) loadPeople();
   }, [tab]);
 
-  // Load plai picks from DB
   useEffect(() => {
     if (tab === "plailists" && plaiPicks.length === 0 && !picksLoading) {
       setPicksLoading(true);
@@ -152,6 +152,28 @@ const Feed = () => {
     setPeopleQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => loadPeople(val), 300);
+  };
+
+  const handleSync = async () => {
+    if (!user || syncing) return;
+    setSyncing(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      await supabase.functions.invoke("sync-spotify-likes", {
+        body: { user_id: user.id },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      const ids = await loadFollowing();
+      await loadFeed(ids);
+      setJustSynced(true);
+      setTimeout(() => setJustSynced(false), 4000);
+    } catch {
+      toast.error("sync failed — try again");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   useEffect(() => {
@@ -229,20 +251,38 @@ const Feed = () => {
                 cursor: "pointer",
                 userSelect: "none",
                 display: "inline-block",
-                borderRadius: 6,
+                borderRadius: 4,
                 background: logoFlash ? "rgba(255,45,120,0.15)" : "transparent",
                 transition: "background 0.15s ease",
-                padding: "2px 4px",
+                padding: "1px 2px",
               }}
             >
               <PlaiLogo className="text-xl" />
             </div>
             <HomeTagline ref={taglineRef} />
           </div>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="h-2 w-2 rounded-full bg-primary animate-pulse-live" />
-            Live
-          </span>
+
+          {/* Right side — Live dot + separate sync icon */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+              className="text-muted-foreground hover:text-foreground transition-colors duration-150 disabled:opacity-40"
+              title="sync your likes"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${syncing ? "animate-spin text-primary" : justSynced ? "text-primary" : "text-muted-foreground"}`}
+              />
+            </button>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span
+                className={`h-2 w-2 rounded-full bg-primary ${justSynced ? "animate-pulse-live scale-125" : "animate-pulse-live"}`}
+                style={{ transition: "transform 0.3s ease" }}
+              />
+              Live
+            </span>
+          </div>
         </div>
       </header>
 
@@ -531,7 +571,6 @@ const Feed = () => {
                   />
                 ))
               ) : (
-                // Fallback to hardcoded trending
                 trendingTracks.slice(0, 10).map((track, i) => (
                   <UnifiedTrackCard
                     key={track.position}
