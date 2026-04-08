@@ -399,11 +399,13 @@ const Profile = () => {
 
   const moons = useMemo(() => {
     return followers.slice(0, 5).map((f, idx, arr) => ({
-      id: f.id,
-      username: f.username,
+      id: f.id, username: f.username,
       color: f.profile_color || "#FF2D78",
       size: 8 + seededRandom(f.id + "s") * 8,
-      orbitDelay: -((idx / arr.length) * 16),
+      orbitDelay: -((idx / arr.length) * 160),
+      orbitDuration: 120 + seededRandom(f.id + "t") * 80,
+      orbitTopOffset: 28 + seededRandom(f.id + "ot") * 16,
+      orbitLeftOffset: (seededRandom(f.id + "ol") - 0.5) * 30,
     }));
   }, [followers]);
 
@@ -499,19 +501,19 @@ const Profile = () => {
       <main className="mx-auto max-w-feed px-4 py-4 relative">
         {/* Follower moons with orbital drift */}
         {isOwnProfile && moons.length > 0 && (
-          <div className="absolute inset-x-0 top-0 h-40 pointer-events-none overflow-visible flex justify-center">
+       <div className="absolute inset-x-0 top-0 h-40 pointer-events-none overflow-visible flex justify-center" style={{ WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 40%, black 70%, transparent 100%)', maskImage: 'linear-gradient(to bottom, transparent 0%, black 40%, black 70%, transparent 100%)' }}>
             <style>{`
 @keyframes moon-orbit {
   0%   { transform: translate(160px, 0px); }
-  12%  { transform: translate(114px, -75px); }
-  25%  { transform: translate(0px, -90px); }
-  37%  { transform: translate(-114px, -75px); }
+  12%  { transform: translate(114px, -40px); }
+  25%  { transform: translate(0px, -50px); }
+  37%  { transform: translate(-114px, -40px); }
   50%  { transform: translate(-160px, 0px); }
-  62%  { transform: translate(-114px, 75px); }
-  75%  { transform: translate(0px, 90px); }
-  87%  { transform: translate(114px, 75px); }
+  62%  { transform: translate(-114px, 55px); }
+  75%  { transform: translate(0px, 70px); }
+  87%  { transform: translate(114px, 55px); }
   100% { transform: translate(160px, 0px); }
-   }
+}
       @keyframes moon-glow {
         0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
         50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
@@ -527,14 +529,13 @@ const Profile = () => {
                 <div
                   key={m.id}
                   className="moon-el flex flex-col items-center"
-                  style={
-                    {
-                      position: "absolute",
-                      top: 32,
-                      left: 0,
-                      animation: `moon-orbit 160s linear infinite`,
-                      animationDelay: `${m.orbitDelay}s`,
-                    } as React.CSSProperties
+                  style={{
+  position: 'absolute',
+  top: m.orbitTopOffset,
+  left: m.orbitLeftOffset,
+  animation: `moon-orbit ${m.orbitDuration}s linear infinite`,
+  animationDelay: `${m.orbitDelay}s`,
+} as React.CSSProperties}
                   }
                 >
                   <div
