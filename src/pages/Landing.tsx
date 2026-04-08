@@ -33,14 +33,12 @@ const Landing = () => {
   useEffect(() => {
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     const isStandalone = (navigator as any).standalone === true;
-    const dismissed = localStorage.getItem("plai_install_dismissed");
-    if (isIOS && !isStandalone && !dismissed) {
+    if (isIOS && !isStandalone) {
       setShowInstallOverlay(true);
     }
   }, []);
 
   const dismissInstall = () => {
-    localStorage.setItem("plai_install_dismissed", "1");
     setShowInstallOverlay(false);
   };
 
