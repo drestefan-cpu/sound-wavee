@@ -12,7 +12,6 @@ import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import EmojiReactions from "@/components/EmojiReactions";
 import FollowersModal from "@/components/FollowersModal";
-
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -64,7 +63,6 @@ const Profile = () => {
 
   const isOwnProfile = profile?.id === user?.id;
 
-  // Load profile
   useEffect(() => {
     let cancelled = false;
     const timeout = setTimeout(() => {
@@ -123,7 +121,6 @@ const Profile = () => {
     setLikesCount(count || 0);
   }, [profile]);
 
-  // Load all data
   useEffect(() => {
     if (!profile) return;
     let cancelled = false;
@@ -172,7 +169,6 @@ const Profile = () => {
     };
   }, [profile]);
 
-  // Load followers for moons
   useEffect(() => {
     if (!isOwnProfile || !profile) return;
     const loadFollowers = async () => {
@@ -187,7 +183,6 @@ const Profile = () => {
     loadFollowers();
   }, [isOwnProfile, profile]);
 
-  // Taste match
   useEffect(() => {
     if (isOwnProfile || !user || !profile) return;
     const loadMatch = async () => {
@@ -201,7 +196,6 @@ const Profile = () => {
     loadMatch();
   }, [isOwnProfile, user, profile]);
 
-  // Following list
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "following") return;
     const loadFollowing = async () => {
@@ -217,7 +211,6 @@ const Profile = () => {
     loadFollowing();
   }, [isOwnProfile, user, tab]);
 
-  // Load unseen recommendation count
   useEffect(() => {
     if (!isOwnProfile || !user) return;
     const loadUnseenCount = async () => {
@@ -231,7 +224,6 @@ const Profile = () => {
     loadUnseenCount();
   }, [isOwnProfile, user]);
 
-  // Activity
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "activity") return;
     const loadActivity = async () => {
@@ -295,7 +287,6 @@ const Profile = () => {
         ),
       );
       setActivityLoaded(true);
-
       if (unseenRecCount > 0) {
         await supabase
           .from("recommendations" as any)
@@ -308,7 +299,6 @@ const Profile = () => {
     loadActivity();
   }, [isOwnProfile, user, tab]);
 
-  // Recommendations
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "foryou") return;
     const loadRecs = async () => {
@@ -336,8 +326,6 @@ const Profile = () => {
         body: { user_id: user.id },
         headers: { Authorization: `Bearer ${currentSession?.access_token}` },
       });
-
-      // Also sync Tidal if connected
       const { data: prof } = await supabase.from("profiles").select("tidal_access_token").eq("id", user.id).single();
       if (prof?.tidal_access_token) {
         await supabase.functions.invoke("sync-tidal-likes", {
@@ -345,17 +333,13 @@ const Profile = () => {
           headers: { Authorization: `Bearer ${currentSession?.access_token}` },
         });
       }
-
       if (error) {
         setSyncResult("could not sync — try signing out and back in");
         setTimeout(() => setSyncResult(null), 4000);
       } else {
-        setSyncResult(`✓ done`);
+        setSyncResult("✓ done");
         setTimeout(() => loadCollection(), 1000);
-        // Fade sequence: show "✓ done" for 3s, then fade to 0, then restore last synced
-        setTimeout(() => {
-          setSyncResult(null); // triggers re-render to "last synced X ago" via normal display
-        }, 3500);
+        setTimeout(() => setSyncResult(null), 3500);
       }
     } catch {
       setSyncResult("could not sync");
@@ -399,7 +383,8 @@ const Profile = () => {
 
   const moons = useMemo(() => {
     return followers.slice(0, 5).map((f, idx, arr) => ({
-      id: f.id, username: f.username,
+      id: f.id,
+      username: f.username,
       color: f.profile_color || "#FF2D78",
       size: 8 + seededRandom(f.id + "s") * 8,
       orbitDelay: -((idx / arr.length) * 160),
@@ -456,7 +441,6 @@ const Profile = () => {
   const findsLabel = isOwnProfile ? "your finds" : "finds";
   const collectionLabel = isOwnProfile ? "your collection" : "collection";
 
-  // Tab order: finds · for you · following · collection · activity
   const ownTabs = [
     { key: "finds" as TabType, label: findsLabel },
     { key: "foryou" as TabType, label: "for you", icon: <Heart className="h-3 w-3" /> },
@@ -499,43 +483,49 @@ const Profile = () => {
       />
 
       <main className="mx-auto max-w-feed px-4 py-4 relative">
-        {/* Follower moons with orbital drift */}
+        {/* Follower moons */}
         {isOwnProfile && moons.length > 0 && (
-       <div className="absolute inset-x-0 top-0 h-40 pointer-events-none overflow-visible flex justify-center" style={{ WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 40%, black 70%, transparent 100%)', maskImage: 'linear-gradient(to bottom, transparent 0%, black 40%, black 70%, transparent 100%)' }}>
+          <div
+            className="absolute inset-x-0 top-0 h-40 pointer-events-none overflow-visible flex justify-center"
+            style={{
+              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 40%, black 70%, transparent 100%)",
+              maskImage: "linear-gradient(to bottom, transparent 0%, black 40%, black 70%, transparent 100%)",
+            }}
+          >
             <style>{`
-@keyframes moon-orbit {
-  0%   { transform: translate(160px, 0px); }
-  12%  { transform: translate(114px, -40px); }
-  25%  { transform: translate(0px, -50px); }
-  37%  { transform: translate(-114px, -40px); }
-  50%  { transform: translate(-160px, 0px); }
-  62%  { transform: translate(-114px, 55px); }
-  75%  { transform: translate(0px, 70px); }
-  87%  { transform: translate(114px, 55px); }
-  100% { transform: translate(160px, 0px); }
-}
-      @keyframes moon-glow {
-        0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
-        50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .moon-el { animation: none !important; }
-        .moon-dot { animation: none !important; }
-      }
-    `}</style>
-            {/* Avatar centre anchor — moons orbit around this point */}
+              @keyframes moon-orbit {
+                0%   { transform: translate(160px, 0px); }
+                12%  { transform: translate(114px, -40px); }
+                25%  { transform: translate(0px, -50px); }
+                37%  { transform: translate(-114px, -40px); }
+                50%  { transform: translate(-160px, 0px); }
+                62%  { transform: translate(-114px, 55px); }
+                75%  { transform: translate(0px, 70px); }
+                87%  { transform: translate(114px, 55px); }
+                100% { transform: translate(160px, 0px); }
+              }
+              @keyframes moon-glow {
+                0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
+                50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .moon-el { animation: none !important; }
+                .moon-dot { animation: none !important; }
+              }
+            `}</style>
             <div style={{ position: "absolute", top: 16, width: 0, height: 0 }}>
               {moons.map((m) => (
                 <div
                   key={m.id}
                   className="moon-el flex flex-col items-center"
-                  style={{
-  position: 'absolute',
-  top: m.orbitTopOffset,
-  left: m.orbitLeftOffset,
-  animation: `moon-orbit ${m.orbitDuration}s linear infinite`,
-  animationDelay: `${m.orbitDelay}s`,
-} as React.CSSProperties}
+                  style={
+                    {
+                      position: "absolute",
+                      top: m.orbitTopOffset,
+                      left: m.orbitLeftOffset,
+                      animation: `moon-orbit ${m.orbitDuration}s linear infinite`,
+                      animationDelay: `${m.orbitDelay}s`,
+                    } as React.CSSProperties
                   }
                 >
                   <div
@@ -903,7 +893,6 @@ const Profile = () => {
             )}
           </div>
         ) : (
-          /* Collection tab */
           <>
             <div className="flex gap-2 mb-2">
               <button
