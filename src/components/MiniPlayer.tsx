@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Pause, Play } from "lucide-react";
 import { useSpotifyPlayer } from "@/contexts/SpotifyPlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
 import TrackDetailModal from "@/components/TrackDetailModal";
 
@@ -27,6 +28,7 @@ const MiniPlayer = () => {
     togglePlayPause,
   } = useSpotifyPlayer();
   const { user } = useAuth();
+  const { isSaved, toggleSave } = useSavedTracks();
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
   const [interpolatedProgress, setInterpolatedProgress] = useState(0);
   const [showDetail, setShowDetail] = useState(false);
@@ -107,6 +109,7 @@ const MiniPlayer = () => {
   if (!visible) return null;
 
   const pct = durationMs > 0 ? (progressMs / durationMs) * 100 : 0;
+  const trackSaved = isSaved(spotifyTrackId || "");
 
   return (
     <>
@@ -170,8 +173,8 @@ const MiniPlayer = () => {
             trackDbId: spotifyTrackId,
           }}
           spotifyUrl={`https://open.spotify.com/track/${spotifyTrackId}`}
-          isSaved={false}
-          onToggleSave={() => {}}
+          isSaved={trackSaved}
+          onToggleSave={() => toggleSave(spotifyTrackId, undefined, "miniplayer")}
           onClose={() => setShowDetail(false)}
           hidePlay
         />
