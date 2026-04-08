@@ -216,7 +216,7 @@ const Feed = () => {
     <div className="min-h-screen bg-background pb-20">
       <header
         className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="mx-auto flex max-w-feed items-center justify-between px-4 py-3">
           <div className="flex flex-col">
