@@ -110,7 +110,7 @@ const MiniPlayer = () => {
 
   return (
     <>
-      <div className="fixed left-0 right-0 z-40" style={{ bottom: "calc(4rem + env(safe-area-inset-bottom, 0px))" }}>
+      <div className="fixed left-0 right-0 z-40" style={{ bottom: "calc(4rem + env(safe-area-inset-bottom, 16px))" }}>
         <div className="h-[2px] w-full" style={{ backgroundColor: "#1a2535" }}>
           <div
             className="h-full transition-all duration-1000 ease-linear"
@@ -119,7 +119,7 @@ const MiniPlayer = () => {
         </div>
         <div
           className="flex items-center gap-3 px-4 py-2 border-t border-border cursor-pointer"
-          style={{ backgroundColor: "#0a0e17" }}
+          style={{ backgroundColor: "#0F1520" }}
           onClick={() => setShowDetail(true)}
         >
           {art ? (
@@ -171,7 +171,19 @@ const MiniPlayer = () => {
           spotifyUrl={`https://open.spotify.com/track/${spotifyTrackId}`}
           isSaved={false}
           onToggleSave={() => {}}
+          onShare={() => {
+            if (navigator.share) {
+              navigator.share({
+                title: title || "",
+                text: `${title} by ${artist} — on PLAI`,
+                url: `https://sound-wavee.lovable.app`,
+              });
+            } else {
+              navigator.clipboard.writeText(`${title} by ${artist} — https://sound-wavee.lovable.app`);
+            }
+          }}
           onClose={() => setShowDetail(false)}
+          hidePlay
         />
       )}
     </>
