@@ -404,10 +404,8 @@ const Profile = () => {
                 className="absolute flex flex-col items-center moon-el"
                 style={{
                   left: `${m.left}%`, top: `${m.top}%`,
-                  "--mdx": `${(seededRandom(m.id + "dx") - 0.5) * 12}px`,
-                  "--mdy": `${(seededRandom(m.id + "dy") - 0.5) * 8}px`,
-                  animation: `moon-orbit ${m.driftDuration}s ease-in-out infinite`,
-                  animationDelay: `${m.driftDelay}s`,
+                  animation: `moon-orbit 8s ease-in-out infinite`,
+                  animationDelay: `${(moons.indexOf(m) * (8 / moons.length)).toFixed(2)}s`,
                 } as React.CSSProperties}
               >
                 <div
