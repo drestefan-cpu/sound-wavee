@@ -91,7 +91,7 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         <SectionHeader>your feed</SectionHeader>
 
         <p className="text-sm leading-relaxed mb-2">your feed shows the songs</p>
-        <p className="text-sm leading-relaxed mb-2">your friends are liking —</p>
+        <p className="text-sm leading-relaxed mb-2">your friends are liking</p>
 
         <div className="h-10" />
 
