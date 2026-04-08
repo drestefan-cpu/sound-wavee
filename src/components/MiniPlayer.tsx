@@ -3,6 +3,7 @@ import { Pause, Play } from "lucide-react";
 import { useSpotifyPlayer } from "@/contexts/SpotifyPlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import TrackDetailModal from "@/components/TrackDetailModal";
 
 interface NowPlaying {
   trackId: string;
@@ -28,11 +29,11 @@ const MiniPlayer = () => {
   const { user } = useAuth();
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
   const [interpolatedProgress, setInterpolatedProgress] = useState(0);
+  const [showDetail, setShowDetail] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
   const progressRef = useRef<ReturnType<typeof setInterval>>();
   const tokenRef = useRef<string | null>(null);
 
-  // Load spotify token once
   useEffect(() => {
     if (!user) return;
     supabase
@@ -45,10 +46,8 @@ const MiniPlayer = () => {
       });
   }, [user]);
 
-  // Poll currently playing every 30s
   useEffect(() => {
     if (!user) return;
-
     const poll = async () => {
       if (!tokenRef.current) return;
       try {
@@ -74,11 +73,8 @@ const MiniPlayer = () => {
           isPlaying: data.is_playing,
         });
         setInterpolatedProgress(data.progress_ms || 0);
-      } catch {
-        // silently fail
-      }
+      } catch {}
     };
-
     poll();
     intervalRef.current = setInterval(poll, 30000);
     return () => {
@@ -86,7 +82,6 @@ const MiniPlayer = () => {
     };
   }, [user]);
 
-  // Interpolate progress between polls
   useEffect(() => {
     if (progressRef.current) clearInterval(progressRef.current);
     if (nowPlaying?.isPlaying) {
@@ -99,7 +94,6 @@ const MiniPlayer = () => {
     };
   }, [nowPlaying]);
 
-  // SDK takes priority if active, otherwise use REST polling
   const sdkActive = !!currentTrackId;
   const title = sdkActive ? sdkTitle : nowPlaying?.title;
   const artist = sdkActive ? sdkArtist : nowPlaying?.artist;
@@ -114,68 +108,73 @@ const MiniPlayer = () => {
 
   const pct = durationMs > 0 ? (progressMs / durationMs) * 100 : 0;
 
-  const handleTap = () => {
-    if (spotifyTrackId) {
-      const isStandalone =
-        window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
-      const url = `https://open.spotify.com/track/${spotifyTrackId}`;
-      if (isStandalone) {
-        window.location.href = url;
-      } else {
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
-    }
-  };
-
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-40">
-      <div className="h-[2px] w-full" style={{ backgroundColor: "#1a2535" }}>
-        <div
-          className="h-full transition-all duration-1000 ease-linear"
-          style={{ width: `${pct}%`, backgroundColor: "#FF2D78" }}
-        />
-      </div>
-      <div
-        className="flex items-center gap-3 px-4 py-2 border-t border-border cursor-pointer"
-        style={{ backgroundColor: "#0a0e17" }}
-        onClick={handleTap}
-      >
-        {art ? (
-          <img src={art} alt="" className="h-10 w-10 rounded object-cover flex-shrink-0" />
-        ) : (
+    <>
+      <div className="fixed left-0 right-0 z-40" style={{ bottom: "calc(4rem + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="h-[2px] w-full" style={{ backgroundColor: "#1a2535" }}>
           <div
-            className="h-10 w-10 rounded flex-shrink-0 flex items-center justify-center text-xs text-muted-foreground"
-            style={{ backgroundColor: "#1a2535" }}
-          >
-            ♪
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-medium" style={{ color: "#F0EBE3" }}>
-            {title}
-          </p>
-          <p className="truncate text-[11px]" style={{ color: "#4a6a8a" }}>
-            {artist}
-          </p>
+            className="h-full transition-all duration-1000 ease-linear"
+            style={{ width: `${pct}%`, backgroundColor: "#FF2D78" }}
+          />
         </div>
-        {sdkActive && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlayPause();
-            }}
-            className="h-[30px] w-[30px] rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: "#1a2535" }}
-          >
-            {playing ? (
-              <Pause className="h-3.5 w-3.5" style={{ color: "#F0EBE3" }} />
-            ) : (
-              <Play className="h-3.5 w-3.5 fill-current" style={{ color: "#F0EBE3" }} />
-            )}
-          </button>
-        )}
+        <div
+          className="flex items-center gap-3 px-4 py-2 border-t border-border cursor-pointer"
+          style={{ backgroundColor: "#0a0e17" }}
+          onClick={() => setShowDetail(true)}
+        >
+          {art ? (
+            <img src={art} alt="" className="h-10 w-10 rounded object-cover flex-shrink-0" />
+          ) : (
+            <div
+              className="h-10 w-10 rounded flex-shrink-0 flex items-center justify-center text-xs text-muted-foreground"
+              style={{ backgroundColor: "#1a2535" }}
+            >
+              ♪
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium" style={{ color: "#F0EBE3" }}>
+              {title}
+            </p>
+            <p className="truncate text-[11px]" style={{ color: "#4a6a8a" }}>
+              {artist}
+            </p>
+          </div>
+          {sdkActive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlayPause();
+              }}
+              className="h-[30px] w-[30px] rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "#1a2535" }}
+            >
+              {playing ? (
+                <Pause className="h-3.5 w-3.5" style={{ color: "#F0EBE3" }} />
+              ) : (
+                <Play className="h-3.5 w-3.5 fill-current" style={{ color: "#F0EBE3" }} />
+              )}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+
+      {showDetail && spotifyTrackId && (
+        <TrackDetailModal
+          track={{
+            id: spotifyTrackId,
+            title: title || "",
+            artist: artist || "",
+            albumArtUrl: art,
+            spotifyTrackId: spotifyTrackId,
+          }}
+          spotifyUrl={`https://open.spotify.com/track/${spotifyTrackId}`}
+          isSaved={false}
+          onToggleSave={() => {}}
+          onClose={() => setShowDetail(false)}
+        />
+      )}
+    </>
   );
 };
 
