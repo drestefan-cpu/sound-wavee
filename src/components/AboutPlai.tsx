@@ -70,18 +70,18 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
         </p>
 
         <p className="text-sm leading-relaxed mb-2">music is more interesting</p>
-        <p className="text-sm leading-relaxed mb-2">when you can check in </p>
-        <p className="text-sm leading-relaxed">on your friends.</p>
+        <p className="text-sm leading-relaxed >when you can check in on your friends </p>
 
         <Divider />
-
-        <p className="text-sm leading-relaxed mb-2">your feed shows you what the people</p>
-        <p className="text-sm leading-relaxed mb-2">you follow are liking —</p>
+        <SectionHeader>your feed</SectionHeader>
+        
+        <p className="text-sm leading-relaxed mb-2">your feed shows the songs </p>
+        <p className="text-sm leading-relaxed mb-2">your friends are liking —</p>
 
         <div className="h-10" />
 
         <p className="text-sm leading-relaxed mb-2">react to what resonates.</p>
-        <p className="text-sm leading-relaxed mb-2">save what you want to keep.</p>
+        <p className="text-sm leading-relaxed mb-2">save what you love.</p>
         <p className="text-sm leading-relaxed mb-2">follow the people whose taste</p>
         <p className="text-sm leading-relaxed">you actually trust.</p>
 
