@@ -8,6 +8,7 @@ const personal = [
   "i think you'll like this",
   "oh yeah, you like that?",
   "stay here a minute",
+  "I was just thinking about you",
 ];
 const language = [
   "j'aime bien",
@@ -26,11 +27,11 @@ const ambient = ["have a great day", "make somebody else's day", "this is a good
 export const cheekyMessages = [
   "oh yeah, you like that?",
   "tap me again...",
-  "wait one sec, too fast",
+  "i missed you too",
   "...still here?",
   "you must really like this",
   "you found something",
-  "this is all about you, isn't it?",
+  "this is all about you",
   "hold on, I'll grab you a towel",
   "don't we sound good?",
   "don't forget to tell your friends :)",
