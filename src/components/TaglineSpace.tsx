@@ -90,6 +90,7 @@ const TaglineSpace = () => {
         background: "transparent",
         paddingTop: 60,
         paddingBottom: 60,
+        width: "100%",
       }}
       onClick={handleTap}
       onPointerDown={() => setPressing(true)}

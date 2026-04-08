@@ -262,7 +262,7 @@ const SettingsPage = () => {
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">moon appearance</h3>
           <label className="mb-1.5 block text-sm text-muted-foreground">moon colour</label>
           <p className="text-[10px] text-muted-foreground mb-2">
-            sets the colour of your moon on others' libraries — only visible to those you follow
+            sets the colour of your moon dot in your friends' libraries — only visible to those you follow
           </p>
           <div className="flex items-center gap-3">
             <input
