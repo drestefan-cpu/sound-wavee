@@ -32,6 +32,7 @@ const MiniPlayer = () => {
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
   const [interpolatedProgress, setInterpolatedProgress] = useState(0);
   const [showDetail, setShowDetail] = useState(false);
+  const [dbTrackId, setDbTrackId] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
   const progressRef = useRef<ReturnType<typeof setInterval>>();
   const tokenRef = useRef<string | null>(null);
@@ -96,6 +97,23 @@ const MiniPlayer = () => {
     };
   }, [nowPlaying]);
 
+  // Look up the real DB track ID when spotifyTrackId changes
+  const spotifyTrackId = (!!currentTrackId ? currentTrackId : nowPlaying?.trackId) || null;
+  useEffect(() => {
+    if (!spotifyTrackId) {
+      setDbTrackId(null);
+      return;
+    }
+    supabase
+      .from("tracks")
+      .select("id")
+      .eq("spotify_track_id", spotifyTrackId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setDbTrackId(data?.id || null);
+      });
+  }, [spotifyTrackId]);
+
   const sdkActive = !!currentTrackId;
   const title = sdkActive ? sdkTitle : nowPlaying?.title;
   const artist = sdkActive ? sdkArtist : nowPlaying?.artist;
@@ -103,13 +121,12 @@ const MiniPlayer = () => {
   const progressMs = sdkActive ? sdkProgress : interpolatedProgress;
   const durationMs = sdkActive ? sdkDuration : nowPlaying?.durationMs || 0;
   const playing = sdkActive ? sdkPlaying : nowPlaying?.isPlaying || false;
-  const spotifyTrackId = sdkActive ? currentTrackId : nowPlaying?.trackId;
 
   const visible = sdkActive || !!nowPlaying;
   if (!visible) return null;
 
   const pct = durationMs > 0 ? (progressMs / durationMs) * 100 : 0;
-  const trackSaved = isSaved(spotifyTrackId || "");
+  const trackSaved = isSaved(dbTrackId || spotifyTrackId || "");
 
   return (
     <>
@@ -165,16 +182,16 @@ const MiniPlayer = () => {
       {showDetail && spotifyTrackId && (
         <TrackDetailModal
           track={{
-            id: spotifyTrackId,
+            id: dbTrackId || spotifyTrackId,
             title: title || "",
             artist: artist || "",
             albumArtUrl: art,
             spotifyTrackId: spotifyTrackId,
-            trackDbId: spotifyTrackId,
+            trackDbId: dbTrackId || spotifyTrackId,
           }}
           spotifyUrl={`https://open.spotify.com/track/${spotifyTrackId}`}
           isSaved={trackSaved}
-          onToggleSave={() => toggleSave(spotifyTrackId, undefined, "miniplayer")}
+          onToggleSave={() => toggleSave(dbTrackId || spotifyTrackId, undefined, "miniplayer")}
           onClose={() => setShowDetail(false)}
           hidePlay
         />
