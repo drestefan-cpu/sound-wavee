@@ -10,9 +10,11 @@ interface PageHeaderProps {
 
 const PageHeader = ({ title, showBack = true, rightContent }: PageHeaderProps) => {
   const navigate = useNavigate();
-
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md">
+    <header
+      className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       <div className="mx-auto flex max-w-feed items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           {showBack && (
