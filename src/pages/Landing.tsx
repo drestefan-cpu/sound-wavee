@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -216,6 +216,49 @@ const Landing = () => {
 
         <p className="text-xs text-muted-foreground/40">we only read your likes. nothing else.</p>
       </div>
+
+      {/* iOS Safari install prompt */}
+      <IOSInstallPrompt />
+      {/* Android install prompt */}
+      <AndroidInstallPrompt />
+    </div>
+  );
+};
+
+const IOSInstallPrompt = () => {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const isIos = /iPhone|iPad/.test(navigator.userAgent);
+    const isStandalone = (navigator as any).standalone === true;
+    const dismissed = localStorage.getItem("plai_pwa_dismissed");
+    if (isIos && !isStandalone && !dismissed) setShow(true);
+  }, []);
+  if (!show) return null;
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between" style={{ background: "#0F1520", borderTop: "0.5px solid #1a2535", padding: "10px 16px" }}>
+      <p style={{ fontSize: 11, color: "#4a6a8a" }}>tap Share → "Add to Home Screen" to install PLAI</p>
+      <button onClick={() => { localStorage.setItem("plai_pwa_dismissed", "1"); setShow(false); }} style={{ fontSize: 11, color: "#4a6a8a", marginLeft: 12 }}>×</button>
+    </div>
+  );
+};
+
+const AndroidInstallPrompt = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [visible, setVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); setVisible(true); timerRef.current = setTimeout(() => setVisible(false), 8000); };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => { window.removeEventListener("beforeinstallprompt", handler); if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
+
+  if (!visible || !deferredPrompt) return null;
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+      <button onClick={() => { deferredPrompt.prompt(); setVisible(false); }} className="rounded-full px-5 py-2 text-xs font-medium text-primary-foreground" style={{ background: "#FF2D78" }}>
+        add PLAI to your home screen →
+      </button>
     </div>
   );
 };

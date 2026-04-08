@@ -6,9 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
+import NowPlayingBar from "@/components/NowPlayingBar";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
-import HomeTagline from "@/components/HomeTagline";
+import HomeTagline, { HomeTaglineRef } from "@/components/HomeTagline";
 import UserCard from "@/components/UserCard";
 import RecommendModal from "@/components/RecommendModal";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,8 @@ const Feed = () => {
   const [peopleLoading, setPeopleLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
+  const taglineRef = useRef<HomeTaglineRef>(null);
+  const [logoFlash, setLogoFlash] = useState(false);
   const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string } | null>(null);
 
   // plai picks from DB
@@ -191,8 +194,13 @@ const Feed = () => {
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-feed items-center justify-between px-4 py-3">
           <div className="flex flex-col">
-            <PlaiLogo className="text-xl" />
-            <HomeTagline />
+            <div
+              onClick={() => { taglineRef.current?.cycle(); setLogoFlash(true); setTimeout(() => setLogoFlash(false), 150); }}
+              style={{ cursor: "pointer", userSelect: "none", display: "inline-block", borderRadius: 6, background: logoFlash ? "rgba(255,45,120,0.15)" : "transparent", transition: "background 0.15s ease", padding: "2px 4px" }}
+            >
+              <PlaiLogo className="text-xl" />
+            </div>
+            <HomeTagline ref={taglineRef} />
           </div>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse-live" />
@@ -481,6 +489,7 @@ const Feed = () => {
         <RecommendModal trackId={recommendTrack.id} trackTitle={recommendTrack.title} onClose={() => setRecommendTrack(null)} />
       )}
 
+      <NowPlayingBar />
       <BottomNav />
     </div>
   );
