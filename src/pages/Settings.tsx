@@ -28,6 +28,8 @@ const SettingsPage = () => {
   const [pin, setPin] = useState("");
   const [pinSaving, setPinSaving] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [displayNameSaving, setDisplayNameSaving] = useState(false);
+  const [usernameSaving, setUsernameSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [statusSaved, setStatusSaved] = useState(false);
   const [profileColor, setProfileColor] = useState("#080B12");
@@ -51,12 +53,35 @@ const SettingsPage = () => {
     load();
   }, [user]);
 
+  const handleSaveDisplayName = async () => {
+    if (!user || !displayName.trim()) return;
+    setDisplayNameSaving(true);
+    const { error } = await supabase.from("profiles").update({ display_name: displayName.trim() }).eq("id", user.id);
+    setDisplayNameSaving(false);
+    if (error) {
+      toast.error("couldn't save — try again");
+    } else {
+      toast.success("display name saved ✓");
+    }
+  };
+
+  const handleSaveUsername = async () => {
+    if (!user || !username.trim()) return;
+    setUsernameSaving(true);
+    const slug = username.toLowerCase().replace(/[^a-z0-9._-]/g, "");
+    const { error } = await supabase.from("profiles").update({ username: slug }).eq("id", user.id);
+    setUsernameSaving(false);
+    if (error) {
+      toast.error("couldn't save — try again");
+    } else {
+      toast.success("username saved ✓");
+    }
+  };
+
   const handleSave = async (field: string, value: any) => {
     if (!user) return;
     setSaving(true);
     const update: any = {};
-    if (field === "display_name") update.display_name = value;
-    if (field === "username") update.username = value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (field === "public") update.public = value;
     if (field === "status") update.status = value;
     if (field === "profile_color") update.profile_color = value;
@@ -64,7 +89,6 @@ const SettingsPage = () => {
     setSaving(false);
     if (error) {
       toast.error("couldn't save — try again");
-      console.error("Save error:", error);
     } else {
       toast.success("saved ✓");
     }
@@ -121,14 +145,12 @@ const SettingsPage = () => {
         toast.error("Please sign in first");
         return;
       }
-
       const array = new Uint8Array(64);
       crypto.getRandomValues(array);
       const codeVerifier = btoa(String.fromCharCode(...array))
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=/g, "");
-
       const encoder = new TextEncoder();
       const data = encoder.encode(codeVerifier);
       const digest = await crypto.subtle.digest("SHA-256", data);
@@ -136,35 +158,23 @@ const SettingsPage = () => {
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=/g, "");
-
-      // Use localStorage — survives cross-origin redirects
       localStorage.setItem("tidal_code_verifier", codeVerifier);
       localStorage.setItem("tidal_user_id", user.id);
-
-      // Verify they were saved before redirecting
       const verifyVerifier = localStorage.getItem("tidal_code_verifier");
       const verifyUserId = localStorage.getItem("tidal_user_id");
-      console.log("Saved to localStorage:", { verifyVerifier: !!verifyVerifier, verifyUserId });
-
       if (!verifyVerifier || !verifyUserId) {
         toast.error("Could not save auth state — try again");
         return;
       }
-
       const { data: result } = await supabase.functions.invoke("tidal-auth-url", {
-        body: {
-          code_challenge: codeChallenge,
-          redirect_uri: `${window.location.origin}/auth/tidal/callback`,
-        },
+        body: { code_challenge: codeChallenge, redirect_uri: `${window.location.origin}/auth/tidal/callback` },
       });
-
       if (result?.url) {
         window.location.href = result.url;
       } else {
         toast.error("Could not start Tidal login");
       }
     } catch (err) {
-      console.error("Tidal connect error:", err);
       toast.error("Could not connect to Tidal");
     }
   };
@@ -173,10 +183,7 @@ const SettingsPage = () => {
     if (!user) return;
     await supabase
       .from("profiles")
-      .update({
-        tidal_access_token: null,
-        tidal_refresh_token: null,
-      } as any)
+      .update({ tidal_access_token: null, tidal_refresh_token: null } as any)
       .eq("id", user.id);
     setTidalConnected(false);
     toast.success("Tidal disconnected");
@@ -196,40 +203,49 @@ const SettingsPage = () => {
         <button
           onClick={() => setShowAbout(true)}
           className="text-xs text-muted-foreground hover:text-primary transition-colors"
+          style={{ touchAction: "manipulation" }}
         >
           about plai →
         </button>
 
+        {/* Display name — separate save handler */}
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
           <div className="flex gap-2">
             <Input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveDisplayName()}
               className="bg-card border-border"
             />
             <button
-              onClick={() => handleSave("display_name", displayName)}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
+              onClick={handleSaveDisplayName}
+              disabled={displayNameSaving}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+              style={{ touchAction: "manipulation" }}
             >
-              save
+              {displayNameSaving ? "..." : "save"}
             </button>
           </div>
         </div>
 
+        {/* Username — separate save handler */}
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">username</label>
           <div className="flex gap-2">
             <Input
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveUsername()}
               className="bg-card border-border"
             />
             <button
-              onClick={() => handleSave("username", username)}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
+              onClick={handleSaveUsername}
+              disabled={usernameSaving}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+              style={{ touchAction: "manipulation" }}
             >
-              save
+              {usernameSaving ? "..." : "save"}
             </button>
           </div>
           <span className="text-[10px] text-muted-foreground mt-1 block">letters, numbers, . _ - only</span>
@@ -241,6 +257,7 @@ const SettingsPage = () => {
             <Input
               value={status}
               onChange={(e) => setStatus(e.target.value.slice(0, 80))}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveStatus()}
               placeholder="on rotation"
               className="bg-card border-border"
               maxLength={80}
@@ -249,6 +266,7 @@ const SettingsPage = () => {
               onClick={handleSaveStatus}
               disabled={saving}
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+              style={{ touchAction: "manipulation" }}
             >
               {saving ? "..." : statusSaved ? "saved ✓" : "save"}
             </button>
@@ -275,6 +293,7 @@ const SettingsPage = () => {
             <button
               onClick={() => handleSave("profile_color", profileColor)}
               className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
+              style={{ touchAction: "manipulation" }}
             >
               save
             </button>
@@ -298,6 +317,7 @@ const SettingsPage = () => {
               onClick={handleSavePin}
               disabled={pinSaving || pin.length !== 4}
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+              style={{ touchAction: "manipulation" }}
             >
               {pinSaving ? "saving..." : "save"}
             </button>
@@ -314,6 +334,7 @@ const SettingsPage = () => {
               <button
                 key={p.value}
                 onClick={() => setPreferredPlatform(p.value)}
+                style={{ touchAction: "manipulation" }}
                 className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 ${
                   preferredPlatform === p.value
                     ? "bg-primary text-primary-foreground"
@@ -392,14 +413,11 @@ const SettingsPage = () => {
                 setIsPublic(!isPublic);
                 handleSave("public", !isPublic);
               }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${
-                isPublic ? "bg-primary" : "bg-muted"
-              }`}
+              style={{ touchAction: "manipulation" }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${isPublic ? "bg-primary" : "bg-muted"}`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${
-                  isPublic ? "translate-x-6" : "translate-x-1"
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${isPublic ? "translate-x-6" : "translate-x-1"}`}
               />
             </button>
           </label>
@@ -415,6 +433,7 @@ const SettingsPage = () => {
         <div className="border-t border-border pt-6">
           <button
             onClick={signOut}
+            style={{ touchAction: "manipulation" }}
             className="flex w-full items-center justify-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-medium text-primary transition-all duration-150 hover:bg-primary/10"
           >
             <LogOut className="h-4 w-4" />
@@ -422,9 +441,11 @@ const SettingsPage = () => {
           </button>
         </div>
 
-        <div className="pt-2 pb-4 text-center">
+        {/* Extra padding so admin button is never hidden by mini player */}
+        <div className="pt-2 pb-24 text-center">
           <button
             onClick={() => setShowAdmin(true)}
+            style={{ touchAction: "manipulation" }}
             className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground transition-colors"
           >
             admin →
