@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, ExternalLink, Send, X } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { toast } from "sonner";
 
 interface TrackDetailModalProps {
   track: UnifiedTrackData;
