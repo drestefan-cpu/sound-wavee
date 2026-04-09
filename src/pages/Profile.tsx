@@ -342,6 +342,21 @@ const Profile = () => {
     loadRecs();
   }, [isOwnProfile, user, tab]);
 
+  useEffect(() => {
+    if (!isOwnProfile || !user || tab !== "hidden") return;
+    const loadHidden = async () => {
+      setHiddenLoaded(false);
+      const { data } = await supabase
+        .from("hidden_tracks" as any)
+        .select("*, tracks(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setHiddenTracks(data || []);
+      setHiddenLoaded(true);
+    };
+    loadHidden();
+  }, [isOwnProfile, user, tab]);
+
   const handleSync = async () => {
     if (!user?.id) return;
     setSyncing(true);
