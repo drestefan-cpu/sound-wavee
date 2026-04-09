@@ -416,6 +416,7 @@ const Feed = () => {
                       }}
                       isSaved={isSaved(item.track_id)}
                       onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
+                      onHide={() => setHiddenIds(prev => new Set(prev).add(item.track_id))}
                       onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
                       header={
                         <div className="mb-2 flex items-center gap-3">
