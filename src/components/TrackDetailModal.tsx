@@ -12,6 +12,7 @@ interface TrackDetailModalProps {
   onToggleSave?: () => void;
   onClose: () => void;
   hidePlay?: boolean;
+  onHide?: () => void;
 }
 
 // Log track detail view silently
@@ -44,9 +45,28 @@ const TrackDetailModal = ({
   onToggleSave,
   onClose,
   hidePlay = false,
+  onHide,
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
   const { user } = useAuth();
+
+  const canHide = !!user && !!track.likeId && !!track.trackDbId;
+
+  const handleHide = async () => {
+    if (!user || !track.trackDbId) return;
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await (supabase.from("hidden_tracks" as any).insert({
+        user_id: user.id,
+        track_id: track.trackDbId,
+      }) as any);
+      toast("song hidden — find it in your hidden tab");
+      onClose();
+      onHide?.();
+    } catch {
+      toast.error("couldn't hide song — try again");
+    }
+  };
 
   useEffect(() => {
     if (track?.trackDbId && user?.id) {
@@ -142,6 +162,15 @@ const TrackDetailModal = ({
             <span className="text-[10px] text-muted-foreground">recommend</span>
           </button>
         </div>
+
+        {canHide && (
+          <button
+            onClick={handleHide}
+            className="mt-5 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            hide from my feed
+          </button>
+        )}
       </div>
     </div>
   );
