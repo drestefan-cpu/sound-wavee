@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Heart, ExternalLink, Send, X } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 interface TrackDetailModalProps {
   track: UnifiedTrackData;
@@ -11,6 +13,19 @@ interface TrackDetailModalProps {
   onClose: () => void;
   hidePlay?: boolean;
 }
+
+// Log track detail view silently
+const logTrackView = async (userId: string | null, trackId: string, sourceContext: string) => {
+  if (!userId || !trackId) return;
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    await (supabase.from("track_views" as any).insert({
+      user_id: userId,
+      track_id: trackId,
+      source_context: sourceContext,
+    }) as any);
+  } catch {}
+};
 
 const openUrl = (url: string) => {
   const isStandalone =
@@ -31,6 +46,13 @@ const TrackDetailModal = ({
   hidePlay = false,
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (track?.trackDbId && user?.id) {
+      logTrackView(user.id, track.trackDbId, "detail_modal");
+    }
+  }, []);
 
   const handleOpenSpotify = () => {
     if (track.spotifyTrackId) {
