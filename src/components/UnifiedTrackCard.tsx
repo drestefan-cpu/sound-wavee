@@ -177,6 +177,7 @@ const UnifiedTrackCard = ({
             </div>
           </div>
         </div>
+        {children}
         {showDetail && (
           <TrackDetailModal
             track={track}
@@ -187,6 +188,7 @@ const UnifiedTrackCard = ({
               else toggleSave(trackDbId, sourceUserId, sourceContext);
             }}
             onClose={() => setShowDetail(false)}
+            onHide={onHide}
           />
         )}
       </>
@@ -281,6 +283,7 @@ const UnifiedTrackCard = ({
             else toggleSave(trackDbId, sourceUserId, sourceContext);
           }}
           onClose={() => setShowDetail(false)}
+          onHide={onHide}
         />
       )}
     </>
