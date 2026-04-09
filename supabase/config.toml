@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.sync-tidal-likes]
 verify_jwt = false
+
+[functions.apple-music-developer-token]
+verify_jwt = false
+
+[functions.sync-apple-music-likes]
+verify_jwt = false
