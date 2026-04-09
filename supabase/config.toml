@@ -1,4 +1,4 @@
-project_id = "tpakzgbamrkrnctvgomg"
+project_id = "sylwprldxdgbsncwyhfk"
 
 [functions.sync-spotify-likes]
 verify_jwt = false
