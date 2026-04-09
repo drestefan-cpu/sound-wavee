@@ -36,6 +36,7 @@ const SettingsPage = () => {
   const [showAbout, setShowAbout] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [tidalConnected, setTidalConnected] = useState(false);
+  const [youtubeConnected, setYoutubeConnected] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -48,6 +49,7 @@ const SettingsPage = () => {
         setStatus((data as any).status || "");
         setProfileColor((data as any).profile_color || "#080B12");
         setTidalConnected(!!(data as any).tidal_access_token);
+        setYoutubeConnected(!!(data as any).youtube_access_token);
       }
     };
     load();
@@ -187,6 +189,42 @@ const SettingsPage = () => {
       .eq("id", user.id);
     setTidalConnected(false);
     toast.success("Tidal disconnected");
+  };
+
+  const connectYouTube = async () => {
+    try {
+      const response = await fetch(
+        "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/youtube-auth-url",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
+          },
+          body: JSON.stringify({
+            redirect_uri: window.location.origin + "/auth/youtube/callback",
+          }),
+        }
+      );
+      const result = await response.json();
+      if (result?.url) {
+        window.location.href = result.url;
+      } else {
+        toast.error("Could not connect to YouTube Music");
+      }
+    } catch {
+      toast.error("Could not connect to YouTube Music");
+    }
+  };
+
+  const disconnectYouTube = async () => {
+    if (!user) return;
+    await supabase
+      .from("profiles")
+      .update({ youtube_access_token: null, youtube_refresh_token: null } as any)
+      .eq("id", user.id);
+    setYoutubeConnected(false);
+    toast.success("YouTube Music disconnected");
   };
 
   if (loading) return null;
@@ -379,9 +417,20 @@ const SettingsPage = () => {
               <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-muted" />
+              <span className={`h-2 w-2 rounded-full ${youtubeConnected ? "bg-green-500" : "bg-muted"}`} />
               <span className="text-sm text-foreground">YouTube Music</span>
-              <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
+              {youtubeConnected ? (
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">connected</span>
+                  <button onClick={disconnectYouTube} className="text-[10px] text-destructive hover:underline">
+                    disconnect
+                  </button>
+                </div>
+              ) : (
+                <button onClick={connectYouTube} className="ml-auto text-xs text-primary hover:underline">
+                  connect →
+                </button>
+              )}
             </div>
           </div>
         </div>

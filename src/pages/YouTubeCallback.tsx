@@ -1,0 +1,70 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
+const APIKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+
+const YouTubeCallback = () => {
+  const navigate = useNavigate();
+  const [statusText, setStatusText] = useState("connecting to YouTube Music…");
+
+  useEffect(() => {
+    const handle = async () => {
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (!code) {
+        toast.error("YouTube Music connection failed — missing code");
+        setTimeout(() => navigate("/"), 2000);
+        return;
+      }
+
+      setStatusText("verifying session…");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast.error("Please sign in with Spotify first, then connect YouTube Music in Settings");
+        setTimeout(() => navigate("/"), 2000);
+        return;
+      }
+
+      setStatusText("exchanging token…");
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/youtube-exchange-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: APIKEY,
+        },
+        body: JSON.stringify({
+          code,
+          redirect_uri: window.location.origin + "/auth/youtube/callback",
+          user_id: session.user.id,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        toast.error(`YouTube Music connection failed: ${result.error || "unknown error"}`);
+        setTimeout(() => navigate("/"), 2000);
+        return;
+      }
+
+      toast.success("YouTube Music connected!");
+      navigate("/feed");
+    };
+
+    handle();
+  }, [navigate]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">{statusText}</p>
+      </div>
+    </div>
+  );
+};
+
+export default YouTubeCallback;
