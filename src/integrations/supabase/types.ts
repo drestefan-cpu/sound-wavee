@@ -392,6 +392,7 @@ export type Database = {
           spotify_track_id: string
           tidal_track_id: string | null
           title: string
+          youtube_video_id: string | null
         }
         Insert: {
           album?: string | null
@@ -403,6 +404,7 @@ export type Database = {
           spotify_track_id: string
           tidal_track_id?: string | null
           title: string
+          youtube_video_id?: string | null
         }
         Update: {
           album?: string | null
@@ -414,6 +416,7 @@ export type Database = {
           spotify_track_id?: string
           tidal_track_id?: string | null
           title?: string
+          youtube_video_id?: string | null
         }
         Relationships: []
       }
