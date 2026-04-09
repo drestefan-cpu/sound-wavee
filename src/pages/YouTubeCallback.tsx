@@ -21,41 +21,19 @@ const YouTubeCallback = () => {
       }
 
       setStatusText("verifying session…");
-      let {
+      const {
         data: { session },
       } = await supabase.auth.getSession();
-      let userId = session?.user?.id || null;
+      const userId = session?.user?.id || null;
 
-      // Retry a few times in case session is still loading
-      if (!userId) {
-        for (let i = 0; i < 3; i++) {
-          await new Promise((r) => setTimeout(r, 1500));
-          const { data } = await supabase.auth.getSession();
-          if (data.session?.user?.id) {
-            userId = data.session.user.id;
-            session = data.session;
-            break;
-          }
-        }
-      }
-
-      // No session — create anonymous account so YouTube-only users can use the app
-      if (!userId) {
-        setStatusText("creating your account…");
-        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-        if (anonError || !anonData.user) {
-          toast.error("Could not create account — please try again");
-          setTimeout(() => navigate("/"), 3000);
-          return;
-        }
-        userId = anonData.user.id;
-        // Refresh session after anon sign in
-        const { data: refreshed } = await supabase.auth.getSession();
-        session = refreshed.session;
+      if (!userId || !session) {
+        toast.error("Please sign in with Spotify first, then connect YouTube Music in Settings");
+        setTimeout(() => navigate("/"), 2000);
+        return;
       }
 
       setStatusText("exchanging token…");
-      const authToken = session?.access_token || APIKEY;
+      const authToken = session.access_token;
 
       const response = await fetch(`${SUPABASE_URL}/functions/v1/youtube-exchange-token`, {
         method: "POST",
@@ -80,6 +58,23 @@ const YouTubeCallback = () => {
       }
 
       toast.success("YouTube Music connected!");
+
+      // Trigger initial sync — non-fatal
+      setStatusText("syncing your liked music…");
+      try {
+        await fetch(`${SUPABASE_URL}/functions/v1/sync-youtube-likes`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+            apikey: APIKEY,
+          },
+          body: JSON.stringify({ user_id: userId }),
+        });
+      } catch (e) {
+        console.error("YouTube sync failed (non-fatal):", e);
+      }
+
       navigate("/feed");
     };
 
