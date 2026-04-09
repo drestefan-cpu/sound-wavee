@@ -50,6 +50,42 @@ export type Database = {
           },
         ]
       }
+      hidden_tracks: {
+        Row: {
+          created_at: string | null
+          id: string
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hidden_tracks_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hidden_tracks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       likes: {
         Row: {
           id: string

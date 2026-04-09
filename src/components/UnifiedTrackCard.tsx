@@ -24,6 +24,7 @@ interface UnifiedTrackCardProps {
   isSaved?: boolean;
   onToggleSave?: () => void;
   onShare?: () => void;
+  onHide?: () => void;
   hideReactions?: boolean;
   compact?: boolean;
   header?: React.ReactNode;
@@ -32,6 +33,7 @@ interface UnifiedTrackCardProps {
   placeholderText?: string;
   sourceUserId?: string;
   sourceContext?: string;
+  children?: React.ReactNode;
 }
 
 const openUrl = (url: string) => {
@@ -49,6 +51,7 @@ const UnifiedTrackCard = ({
   isSaved: isSavedProp,
   onToggleSave,
   onShare,
+  onHide,
   hideReactions = false,
   compact = false,
   header,
@@ -57,6 +60,7 @@ const UnifiedTrackCard = ({
   placeholderText,
   sourceUserId,
   sourceContext,
+  children,
 }: UnifiedTrackCardProps) => {
   const { preferredPlatform } = usePlatform();
   const { isSaved: isGloballySaved, toggleSave } = useSavedTracks();
@@ -173,6 +177,7 @@ const UnifiedTrackCard = ({
             </div>
           </div>
         </div>
+        {children}
         {showDetail && (
           <TrackDetailModal
             track={track}
@@ -183,6 +188,7 @@ const UnifiedTrackCard = ({
               else toggleSave(trackDbId, sourceUserId, sourceContext);
             }}
             onClose={() => setShowDetail(false)}
+            onHide={onHide}
           />
         )}
       </>
@@ -277,6 +283,7 @@ const UnifiedTrackCard = ({
             else toggleSave(trackDbId, sourceUserId, sourceContext);
           }}
           onClose={() => setShowDetail(false)}
+          onHide={onHide}
         />
       )}
     </>

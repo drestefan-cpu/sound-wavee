@@ -24,7 +24,7 @@ function seededRandom(seed: string) {
   return Math.abs(h % 1000) / 1000;
 }
 
-type TabType = "finds" | "collection" | "following" | "activity" | "foryou";
+type TabType = "finds" | "collection" | "following" | "activity" | "foryou" | "hidden";
 
 // Log a profile view silently
 const logProfileView = async (viewerId: string, profileId: string, tabViewed: string) => {
@@ -70,6 +70,8 @@ const Profile = () => {
   const [followers, setFollowers] = useState<any[]>([]);
   const [moonsFaded, setMoonsFaded] = useState(false);
   const [unseenRecCount, setUnseenRecCount] = useState(0);
+  const [hiddenTracks, setHiddenTracks] = useState<any[]>([]);
+  const [hiddenLoaded, setHiddenLoaded] = useState(false);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const profileViewLoggedRef = useRef(false);
@@ -340,6 +342,21 @@ const Profile = () => {
     loadRecs();
   }, [isOwnProfile, user, tab]);
 
+  useEffect(() => {
+    if (!isOwnProfile || !user || tab !== "hidden") return;
+    const loadHidden = async () => {
+      setHiddenLoaded(false);
+      const { data } = await supabase
+        .from("hidden_tracks" as any)
+        .select("*, tracks(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setHiddenTracks(data || []);
+      setHiddenLoaded(true);
+    };
+    loadHidden();
+  }, [isOwnProfile, user, tab]);
+
   const handleSync = async () => {
     if (!user?.id) return;
     setSyncing(true);
@@ -472,6 +489,7 @@ const Profile = () => {
     { key: "foryou" as TabType, label: "for you", icon: <Heart className="h-3 w-3" /> },
     { key: "following" as TabType, label: "following", icon: <Users className="h-3 w-3" /> },
     { key: "collection" as TabType, label: collectionLabel },
+    { key: "hidden" as TabType, label: "hidden" },
     { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
   ];
   const otherTabs = [
@@ -905,6 +923,62 @@ const Profile = () => {
                     </p>
                   }
                 />
+              ))
+            )}
+          </div>
+        ) : tab === "hidden" ? (
+          <div className="space-y-2">
+            {!hiddenLoaded ? (
+              <div className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : hiddenTracks.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                no hidden songs
+              </p>
+            ) : (
+              hiddenTracks.map((h: any) => (
+                <div key={h.id}>
+                  <UnifiedTrackCard
+                    compact
+                    hideReactions
+                    track={{
+                      id: h.id,
+                      title: h.tracks?.title || "Unknown",
+                      artist: h.tracks?.artist || "Unknown",
+                      albumArtUrl: h.tracks?.album_art_url,
+                      spotifyTrackId: h.tracks?.spotify_track_id,
+                      trackDbId: h.track_id,
+                    }}
+                    isSaved={isSaved(h.track_id)}
+                    onToggleSave={() => toggleSave(h.track_id)}
+                  />
+                  <div className="flex gap-4 px-3 pt-1 pb-1">
+                    <button
+                      onClick={async () => {
+                        await (supabase.from("hidden_tracks" as any).delete().eq("id", h.id) as any);
+                        setHiddenTracks(prev => prev.filter(t => t.id !== h.id));
+                        toast.success("song back in your feed");
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      unhide
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await Promise.all([
+                          (supabase.from("hidden_tracks" as any).delete().eq("id", h.id) as any),
+                          supabase.from("likes").delete().eq("user_id", user!.id).eq("track_id", h.track_id),
+                        ]);
+                        setHiddenTracks(prev => prev.filter(t => t.id !== h.id));
+                        toast.success("song removed from your collection");
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      remove
+                    </button>
+                  </div>
+                </div>
               ))
             )}
           </div>

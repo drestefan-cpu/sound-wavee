@@ -61,6 +61,7 @@ const Feed = () => {
   const [tab, setTab] = useState<"following" | "trending" | "people" | "plailists">("following");
   const [showWelcome, setShowWelcome] = useState(false);
   const [liveState, setLiveState] = useState<LiveState>("live");
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
 
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<any[]>([]);
@@ -122,6 +123,13 @@ const Feed = () => {
     const init = async () => {
       const ids = await loadFollowing();
       await loadFeed(ids);
+      if (user) {
+        const { data: hiddenData } = await supabase
+          .from("hidden_tracks" as any)
+          .select("track_id")
+          .eq("user_id", user.id);
+        setHiddenIds(new Set((hiddenData || []).map((r: any) => r.track_id)));
+      }
     };
     init();
   }, [user]);
@@ -390,7 +398,7 @@ const Feed = () => {
               </div>
             ) : hasContent ? (
               <div className="space-y-3">
-                {items.map((item) => {
+                {items.filter(item => !hiddenIds.has(item.track_id)).map((item) => {
                   const profile = item.profiles;
                   const track = item.tracks;
                   return (
@@ -408,6 +416,7 @@ const Feed = () => {
                       }}
                       isSaved={isSaved(item.track_id)}
                       onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
+                      onHide={() => setHiddenIds(prev => new Set(prev).add(item.track_id))}
                       onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
                       header={
                         <div className="mb-2 flex items-center gap-3">
