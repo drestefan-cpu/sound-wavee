@@ -26,6 +26,18 @@ function seededRandom(seed: string) {
 
 type TabType = "finds" | "collection" | "following" | "activity" | "foryou";
 
+// Log a profile view silently
+const logProfileView = async (viewerId: string, profileId: string, tabViewed: string) => {
+  if (viewerId === profileId) return; // don't log own profile views
+  try {
+    await (supabase.from("profile_views" as any).insert({
+      viewer_id: viewerId,
+      profile_id: profileId,
+      tab_viewed: tabViewed,
+    }) as any);
+  } catch {}
+};
+
 const Profile = () => {
   const { username } = useParams();
   const { user, loading } = useAuth();
@@ -60,8 +72,22 @@ const Profile = () => {
   const [unseenRecCount, setUnseenRecCount] = useState(0);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const profileViewLoggedRef = useRef(false);
 
   const isOwnProfile = profile?.id === user?.id;
+
+  // Log profile view when profile loads
+  useEffect(() => {
+    if (!profile || !user || profileViewLoggedRef.current) return;
+    profileViewLoggedRef.current = true;
+    logProfileView(user.id, profile.id, tab);
+  }, [profile, user]);
+
+  // Log tab changes as profile views
+  useEffect(() => {
+    if (!profile || !user || isOwnProfile) return;
+    logProfileView(user.id, profile.id, tab);
+  }, [tab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -376,7 +402,7 @@ const Profile = () => {
   };
 
   const copyProfileLink = () => {
-    const link = `https://sound-wavee.lovable.app/profile/${profile?.username || profile?.id}`;
+    const link = `https://onplai.lovable.app/profile/${profile?.username || profile?.id}`;
     navigator.clipboard.writeText(link);
     toast.success("Profile link copied");
   };
@@ -483,7 +509,6 @@ const Profile = () => {
       />
 
       <main className="mx-auto max-w-feed px-4 py-4 relative">
-        {/* Follower moons */}
         {isOwnProfile && moons.length > 0 && (
           <div
             className="absolute inset-x-0 top-0 h-40 pointer-events-none overflow-visible flex justify-center"
@@ -554,7 +579,6 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Profile header */}
         <div className="flex flex-col items-center gap-3 relative z-10">
           <div className="h-16 w-16 overflow-hidden rounded-full bg-primary/20">
             {profile.avatar_url ? (
@@ -603,7 +627,6 @@ const Profile = () => {
             )}
           </div>
 
-          {/* Stats row with sync */}
           <div className="w-full relative flex items-end justify-center">
             <div className="flex gap-5 text-center text-xs">
               {isOwnProfile ? (
@@ -661,21 +684,15 @@ const Profile = () => {
               </button>
             )}
           </div>
-
           {!isOwnProfile && <FollowButton targetUserId={profile.id} />}
         </div>
 
-        {/* Tabs */}
         <div className="mt-4 flex flex-wrap gap-1.5 mb-3">
           {tabList.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 relative ${
-                tab === t.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card border border-border text-muted-foreground"
-              }`}
+              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 relative ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
             >
               {"icon" in t && (t as any).icon}
               {t.label}
@@ -686,7 +703,6 @@ const Profile = () => {
           ))}
         </div>
 
-        {/* Tab content */}
         {!dataLoaded ? (
           <div className="grid grid-cols-3 gap-2">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -965,7 +981,7 @@ const Profile = () => {
             </button>
             <div className="flex justify-center mb-4">
               <QRCodeSVG
-                value={`https://sound-wavee.lovable.app/profile/${profile?.username || profile?.id}`}
+                value={`https://onplai.lovable.app/profile/${profile?.username || profile?.id}`}
                 size={180}
                 bgColor="transparent"
                 fgColor="#F0EBE3"
