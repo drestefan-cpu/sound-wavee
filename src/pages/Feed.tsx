@@ -37,8 +37,19 @@ interface FeedItem {
   };
 }
 
-// Live dot states
 type LiveState = "live" | "new" | "syncing";
+
+// Log search queries silently
+const logSearchQuery = async (userId: string, query: string, resultsCount: number) => {
+  if (!userId || !query.trim()) return;
+  try {
+    await (supabase.from("search_queries" as any).insert({
+      user_id: userId,
+      query: query.trim(),
+      results_count: resultsCount,
+    }) as any);
+  } catch {}
+};
 
 const Feed = () => {
   const { user, loading } = useAuth();
@@ -124,6 +135,7 @@ const Feed = () => {
       const { data } = await request;
       setPeople(data || []);
       setPeopleLoading(false);
+      return data || [];
     },
     [user],
   );
@@ -150,10 +162,14 @@ const Feed = () => {
   const handlePeopleSearch = (val: string) => {
     setPeopleQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => loadPeople(val), 300);
+    debounceRef.current = setTimeout(async () => {
+      const results = await loadPeople(val);
+      if (val.trim() && user?.id) {
+        logSearchQuery(user.id, val, results?.length ?? 0);
+      }
+    }, 300);
   };
 
-  // Flush pending items into feed and return to live state
   const flushPending = useCallback(() => {
     if (pendingItems.length > 0) {
       setItems((prev) => [...pendingItems, ...prev]);
@@ -162,7 +178,6 @@ const Feed = () => {
     setLiveState("live");
   }, [pendingItems]);
 
-  // Handle live dot tap — flush pending or trigger sync
   const handleLiveTap = async () => {
     if (liveState === "new") {
       flushPending();
@@ -203,7 +218,6 @@ const Feed = () => {
             .single();
           if (data) {
             const item = data as unknown as FeedItem;
-            // Queue as pending instead of immediately prepending
             setPendingItems((prev) => [item, ...prev]);
             setLiveState("new");
           }
@@ -243,7 +257,6 @@ const Feed = () => {
     { key: "plailists", label: "plai·lists" },
   ] as const;
 
-  // Live dot rendering
   const LiveIndicator = () => {
     if (liveState === "syncing") {
       return (
@@ -319,11 +332,7 @@ const Feed = () => {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 whitespace-nowrap ${
-                tab === t.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card border border-border text-muted-foreground hover:text-foreground"
-              }`}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 whitespace-nowrap ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}
             >
               {t.label}
             </button>
@@ -567,7 +576,7 @@ const Feed = () => {
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
               ) : plaiPicks.length > 0 ? (
-                plaiPicks.map((pick: any, i: number) => (
+                plaiPicks.map((pick: any) => (
                   <UnifiedTrackCard
                     key={pick.id}
                     compact
