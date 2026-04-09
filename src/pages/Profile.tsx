@@ -24,7 +24,7 @@ function seededRandom(seed: string) {
   return Math.abs(h % 1000) / 1000;
 }
 
-type TabType = "finds" | "collection" | "following" | "activity" | "foryou";
+type TabType = "finds" | "collection" | "following" | "activity" | "foryou" | "hidden";
 
 // Log a profile view silently
 const logProfileView = async (viewerId: string, profileId: string, tabViewed: string) => {
@@ -70,6 +70,8 @@ const Profile = () => {
   const [followers, setFollowers] = useState<any[]>([]);
   const [moonsFaded, setMoonsFaded] = useState(false);
   const [unseenRecCount, setUnseenRecCount] = useState(0);
+  const [hiddenTracks, setHiddenTracks] = useState<any[]>([]);
+  const [hiddenLoaded, setHiddenLoaded] = useState(false);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const profileViewLoggedRef = useRef(false);
@@ -472,6 +474,7 @@ const Profile = () => {
     { key: "foryou" as TabType, label: "for you", icon: <Heart className="h-3 w-3" /> },
     { key: "following" as TabType, label: "following", icon: <Users className="h-3 w-3" /> },
     { key: "collection" as TabType, label: collectionLabel },
+    { key: "hidden" as TabType, label: "hidden" },
     { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
   ];
   const otherTabs = [
