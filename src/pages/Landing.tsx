@@ -37,6 +37,32 @@ const Landing = () => {
     setShowInstallOverlay(false);
   };
 
+  const connectYouTube = async () => {
+    try {
+      const response = await fetch(
+        "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/youtube-auth-url",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
+          },
+          body: JSON.stringify({
+            redirect_uri: window.location.origin + "/auth/youtube/callback",
+          }),
+        }
+      );
+      const result = await response.json();
+      if (result?.url) {
+        window.location.href = result.url;
+      } else {
+        toast.error("Could not connect to YouTube Music");
+      }
+    } catch {
+      toast.error("Could not connect to YouTube Music");
+    }
+  };
+
   const connectTidal = async () => {
     try {
       const array = new Uint8Array(64);
@@ -270,7 +296,7 @@ const Landing = () => {
           </button>
 
           <button
-            onClick={() => toast("YouTube Music coming soon")}
+            onClick={connectYouTube}
             className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
             style={{ touchAction: "manipulation" }}
           >
