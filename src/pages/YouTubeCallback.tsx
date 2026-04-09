@@ -4,8 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
-const APIKEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+const APIKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
 
 const YouTubeCallback = () => {
   const navigate = useNavigate();
@@ -21,19 +20,36 @@ const YouTubeCallback = () => {
       }
 
       setStatusText("verifying session…");
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const userId = session?.user?.id || null;
+      let { data: { session } } = await supabase.auth.getSession();
+      let userId = session?.user?.id || null;
 
-      if (!userId || !session) {
-        toast.error("Please sign in with Spotify first, then connect YouTube Music in Settings");
-        setTimeout(() => navigate("/"), 2000);
-        return;
+      if (!userId) {
+        for (let i = 0; i < 3; i++) {
+          await new Promise((r) => setTimeout(r, 1500));
+          const { data } = await supabase.auth.getSession();
+          if (data.session?.user?.id) {
+            userId = data.session.user.id;
+            session = data.session;
+            break;
+          }
+        }
+      }
+
+      if (!userId) {
+        setStatusText("creating your account…");
+        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+        if (anonError || !anonData.user) {
+          toast.error("Could not create account — please try again");
+          setTimeout(() => navigate("/"), 3000);
+          return;
+        }
+        userId = anonData.user.id;
+        const { data: refreshed } = await supabase.auth.getSession();
+        session = refreshed.session;
       }
 
       setStatusText("exchanging token…");
-      const authToken = session.access_token;
+      const authToken = session?.access_token || APIKEY;
 
       const response = await fetch(`${SUPABASE_URL}/functions/v1/youtube-exchange-token`, {
         method: "POST",
@@ -59,7 +75,6 @@ const YouTubeCallback = () => {
 
       toast.success("YouTube Music connected!");
 
-      // Trigger initial sync — non-fatal
       setStatusText("syncing your liked music…");
       try {
         await fetch(`${SUPABASE_URL}/functions/v1/sync-youtube-likes`, {
