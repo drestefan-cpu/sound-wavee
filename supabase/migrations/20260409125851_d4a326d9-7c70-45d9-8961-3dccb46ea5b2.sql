@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS likes_user_id_track_id_key ON public.likes (user_id, track_id);

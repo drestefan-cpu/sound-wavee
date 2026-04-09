@@ -1,0 +1,2 @@
+ALTER TABLE public.tracks ADD COLUMN IF NOT EXISTS youtube_video_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS tracks_youtube_video_id_key ON public.tracks (youtube_video_id) WHERE youtube_video_id IS NOT NULL;
