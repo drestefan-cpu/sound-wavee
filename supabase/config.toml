@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.sync-apple-music-likes]
 verify_jwt = false
+
+[functions.youtube-auth-url]
+verify_jwt = false
+
+[functions.youtube-exchange-token]
+verify_jwt = false
+
+[functions.sync-youtube-likes]
+verify_jwt = false
