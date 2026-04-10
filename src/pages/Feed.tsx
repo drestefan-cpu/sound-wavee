@@ -190,6 +190,9 @@ const Feed = () => {
   const [artistLoading, setArtistLoading] = useState(true);
   const [artistFallback, setArtistFallback] = useState(false);
   const [artistEmptyState, setArtistEmptyState] = useState<"no-followed-artists" | "no-releases" | null>(null);
+  const [artistFollowedCount, setArtistFollowedCount] = useState(0);
+  const [artistMatchedCount, setArtistMatchedCount] = useState(0);
+  const [artistHasTestRelease, setArtistHasTestRelease] = useState(false);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -289,6 +292,9 @@ const Feed = () => {
       setArtistLoading(true);
       setArtistEmptyState(null);
       setArtistFallback(false);
+      setArtistFollowedCount(0);
+      setArtistMatchedCount(0);
+      setArtistHasTestRelease(false);
 
       try {
         const { data: followedRows, error: followedError } = await (supabase
@@ -301,6 +307,7 @@ const Feed = () => {
         const followedNames = [...new Set(((followedRows || []) as any[])
           .map((row: any) => normalizeArtistName(row.artist_name))
           .filter(Boolean))];
+        setArtistFollowedCount(followedNames.length);
 
         if (followedNames.length === 0) {
           setArtistItems([]);
@@ -386,6 +393,8 @@ const Feed = () => {
             badge: getArtistBadge(row.release_date),
             likedBy: likedByTrackId.get(trackIdBySpotifyId.get(row.spotify_track_id) || "") || undefined,
           })) as ArtistReleaseItem[];
+        setArtistMatchedCount(matched.length);
+        setArtistHasTestRelease(matched.some((row) => row.title === "New Drop (Test)"));
 
         if (matched.length === 0) {
           setArtistItems([]);
@@ -399,6 +408,8 @@ const Feed = () => {
       } catch {
         setArtistItems(artistReleaseFallbackItems);
         setArtistFallback(true);
+        setArtistMatchedCount(0);
+        setArtistHasTestRelease(false);
         setArtistLoading(false);
       }
     };
@@ -791,6 +802,13 @@ const Feed = () => {
           </>
         ) : tab === "artists" ? (
           <div className="space-y-6">
+            <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
+              <div>user: {user.id}</div>
+              <div>followed artists: {artistFollowedCount}</div>
+              <div>matched releases: {artistMatchedCount}</div>
+              <div>popular releases: {artistItems.slice(0, 3).length}</div>
+              <div>has "New Drop (Test)": {artistHasTestRelease ? "yes" : "no"}</div>
+            </div>
             {artistLoading ? (
               <div className="flex justify-center py-12">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
