@@ -878,7 +878,7 @@ const Profile = () => {
         ) : (
           <>
             {/* Collection tab with hidden filter inside */}
-            <div className="flex gap-2 mb-3 flex-wrap">
+            <div className="flex gap-2 mb-3 flex-wrap justify-center">
               <button
                 onClick={() => setCollectionFilter("30d")}
                 className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "30d" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
