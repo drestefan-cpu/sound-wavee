@@ -72,6 +72,7 @@ const Profile = () => {
   const [unseenRecCount, setUnseenRecCount] = useState(0);
   const [hiddenTracks, setHiddenTracks] = useState<any[]>([]);
   const [hiddenLoaded, setHiddenLoaded] = useState(false);
+  const [viewerHiddenIds, setViewerHiddenIds] = useState<Set<string>>(new Set());
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const profileViewLoggedRef = useRef(false);
