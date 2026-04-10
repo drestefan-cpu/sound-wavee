@@ -335,7 +335,7 @@ const Feed = () => {
       </header>
 
       <div className="mx-auto max-w-feed px-4 pt-3">
-        .flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {tabs.map((t) => (
             <button
               key={t.key}
