@@ -205,7 +205,7 @@ const Feed = () => {
       }
     };
     checkOnboarding();
-  }, [user]);
+  }, [user, followingIds]);
 
   const loadFollowing = useCallback(async () => {
     if (!user) return [];
@@ -334,11 +334,44 @@ const Feed = () => {
           });
         }
 
-        const socialProofBySpotifyId = new Map(
-          artistReleaseFallbackItems
-            .filter((item) => item.likedBy && item.spotifyTrackId)
-            .map((item) => [item.spotifyTrackId, item.likedBy]),
-        );
+        const likedByTrackId = new Map<
+          string,
+          {
+            id: string;
+            username: string;
+            displayName: string;
+            avatarUrl: string | null;
+          }[]
+        >();
+
+        if (followingIds.length > 0) {
+          const matchedTrackIds = [...new Set(Array.from(trackIdBySpotifyId.values()).filter(Boolean))];
+          if (matchedTrackIds.length > 0) {
+            const { data: likeRows } = await (supabase
+              .from("likes" as any)
+              .select(
+                "track_id, user_id, profiles!likes_user_id_fkey(id, username, display_name, avatar_url)",
+              )
+              .in("user_id", followingIds)
+              .in("track_id", matchedTrackIds) as any);
+
+            ((likeRows || []) as any[]).forEach((row) => {
+              const profile = row.profiles;
+              if (!row.track_id || !profile?.id) return;
+              const existing = likedByTrackId.get(row.track_id) || [];
+              if (existing.some((friend) => friend.id === profile.id)) return;
+              likedByTrackId.set(row.track_id, [
+                ...existing,
+                {
+                  id: profile.id,
+                  username: profile.username || "user",
+                  displayName: profile.display_name || profile.username || "User",
+                  avatarUrl: profile.avatar_url || null,
+                },
+              ]);
+            });
+          }
+        }
 
         const matched = ((releaseRows || []) as any[])
           .filter((row) => followedNames.includes(normalizeArtistName(row.artist_name)))
@@ -351,7 +384,7 @@ const Feed = () => {
             albumArtUrl: row.album_art_url,
             trackDbId: trackIdBySpotifyId.get(row.spotify_track_id),
             badge: getArtistBadge(row.release_date),
-            likedBy: socialProofBySpotifyId.get(row.spotify_track_id) || undefined,
+            likedBy: likedByTrackId.get(trackIdBySpotifyId.get(row.spotify_track_id) || "") || undefined,
           })) as ArtistReleaseItem[];
 
         if (matched.length === 0) {
