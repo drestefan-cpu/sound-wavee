@@ -189,6 +189,7 @@ const UnifiedTrackCard = ({
             }}
             onClose={() => setShowDetail(false)}
             onHide={onHide}
+            isOwnTrack={!sourceUserId}
           />
         )}
       </>
@@ -284,6 +285,7 @@ const UnifiedTrackCard = ({
           }}
           onClose={() => setShowDetail(false)}
           onHide={onHide}
+          isOwnTrack={!sourceUserId}
         />
       )}
     </>

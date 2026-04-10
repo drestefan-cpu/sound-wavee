@@ -13,6 +13,7 @@ interface TrackDetailModalProps {
   onClose: () => void;
   hidePlay?: boolean;
   onHide?: () => void;
+  isOwnTrack?: boolean;
 }
 
 // Log track detail view silently
@@ -46,11 +47,12 @@ const TrackDetailModal = ({
   onClose,
   hidePlay = false,
   onHide,
+  isOwnTrack,
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
   const { user } = useAuth();
 
-  const canHide = !!user && !!track.likeId && !!track.trackDbId;
+  const canHide = !!user && !!track.likeId && !!track.trackDbId && isOwnTrack !== false;
 
   const handleHide = async () => {
     if (!user || !track.trackDbId) return;

@@ -72,6 +72,7 @@ const Profile = () => {
   const [unseenRecCount, setUnseenRecCount] = useState(0);
   const [hiddenTracks, setHiddenTracks] = useState<any[]>([]);
   const [hiddenLoaded, setHiddenLoaded] = useState(false);
+  const [viewerHiddenIds, setViewerHiddenIds] = useState<Set<string>>(new Set());
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const profileViewLoggedRef = useRef(false);
@@ -223,6 +224,19 @@ const Profile = () => {
     };
     loadMatch();
   }, [isOwnProfile, user, profile]);
+
+  // Load viewer's hidden track IDs to filter other users' profiles
+  useEffect(() => {
+    if (isOwnProfile || !user) { setViewerHiddenIds(new Set()); return; }
+    const load = async () => {
+      const { data } = await supabase
+        .from("hidden_tracks")
+        .select("track_id")
+        .eq("user_id", user.id);
+      setViewerHiddenIds(new Set((data || []).map((r: any) => r.track_id)));
+    };
+    load();
+  }, [isOwnProfile, user]);
 
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "following") return;
@@ -480,7 +494,14 @@ const Profile = () => {
   const displayName =
     profile.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "musician";
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-  const filteredLikes = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
+  const filteredLikes = (() => {
+    let result = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
+    if (!isOwnProfile && viewerHiddenIds.size > 0) result = result.filter((l: any) => !viewerHiddenIds.has(l.track_id));
+    return result;
+  })();
+  const filteredSavedTracks = !isOwnProfile && viewerHiddenIds.size > 0
+    ? savedTracks.filter((s: any) => !viewerHiddenIds.has(s.track_id))
+    : savedTracks;
   const findsLabel = isOwnProfile ? "your finds" : "finds";
   const collectionLabel = isOwnProfile ? "your collection" : "collection";
 
@@ -728,9 +749,9 @@ const Profile = () => {
             ))}
           </div>
         ) : tab === "finds" ? (
-          savedTracks.length > 0 ? (
+          filteredSavedTracks.length > 0 ? (
             <div className="space-y-2">
-              {savedTracks.map((s: any) => (
+              {filteredSavedTracks.map((s: any) => (
                 <UnifiedTrackCard
                   key={s.id}
                   compact
