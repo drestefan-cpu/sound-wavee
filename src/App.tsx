@@ -30,23 +30,23 @@ const App = () => (
         <AuthProvider>
           <PlatformProvider>
             <SavedTracksProvider>
+              <Starfield />
               <SpotifyPlayerProvider>
-                <Starfield />
                 <MiniPlayer />
-                <Routes>
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/feed" element={<Feed />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/profile/:username" element={<Profile />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/demo" element={<Demo />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/auth/tidal/callback" element={<TidalCallback />} />
-                  <Route path="/auth/youtube/callback" element={<YouTubeCallback />} />
-                  <Route path="/auth/google/callback" element={<GoogleCallback />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
               </SpotifyPlayerProvider>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/feed" element={<Feed />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:username" element={<Profile />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/demo" element={<Demo />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/auth/tidal/callback" element={<TidalCallback />} />
+                <Route path="/auth/youtube/callback" element={<YouTubeCallback />} />
+                <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </SavedTracksProvider>
           </PlatformProvider>
         </AuthProvider>
