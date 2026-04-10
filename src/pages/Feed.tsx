@@ -139,7 +139,12 @@ const artistReleaseFallbackItems: ArtistReleaseItem[] = [
   },
 ];
 
-const normalizeArtistName = (value?: string | null) => value?.trim().toLowerCase() || "";
+const normalizeArtistName = (value?: string | null) =>
+  value
+    ?.normalize("NFKC")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase() || "";
 
 const getArtistBadge = (releaseDate?: string | null): ArtistReleaseItem["badge"] => {
   if (!releaseDate) return undefined;
@@ -193,6 +198,10 @@ const Feed = () => {
   const [artistFollowedCount, setArtistFollowedCount] = useState(0);
   const [artistMatchedCount, setArtistMatchedCount] = useState(0);
   const [artistHasTestRelease, setArtistHasTestRelease] = useState(false);
+  const [artistFollowedDebug, setArtistFollowedDebug] = useState<{ raw: string; normalized: string }[]>([]);
+  const [artistReleaseDebug, setArtistReleaseDebug] = useState<{ raw: string; normalized: string }[]>([]);
+  const [artistHasDestinFollowed, setArtistHasDestinFollowed] = useState(false);
+  const [artistHasDestinRelease, setArtistHasDestinRelease] = useState(false);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -295,6 +304,10 @@ const Feed = () => {
       setArtistFollowedCount(0);
       setArtistMatchedCount(0);
       setArtistHasTestRelease(false);
+      setArtistFollowedDebug([]);
+      setArtistReleaseDebug([]);
+      setArtistHasDestinFollowed(false);
+      setArtistHasDestinRelease(false);
 
       try {
         const { data: followedRows, error: followedError } = await (supabase
@@ -304,10 +317,19 @@ const Feed = () => {
 
         if (followedError) throw followedError;
 
-        const followedNames = [...new Set(((followedRows || []) as any[])
-          .map((row: any) => normalizeArtistName(row.artist_name))
-          .filter(Boolean))];
+        const followedRawNames = ((followedRows || []) as any[])
+          .map((row: any) => row.artist_name)
+          .filter((value: any) => typeof value === "string" && value.trim().length > 0);
+        setArtistFollowedDebug(
+          followedRawNames.slice(0, 5).map((name: string) => ({
+            raw: name,
+            normalized: normalizeArtistName(name),
+          })),
+        );
+
+        const followedNames = [...new Set(followedRawNames.map((name: string) => normalizeArtistName(name)).filter(Boolean))];
         setArtistFollowedCount(followedNames.length);
+        setArtistHasDestinFollowed(followedNames.includes(normalizeArtistName("DESTIN CONRAD")));
 
         if (followedNames.length === 0) {
           setArtistItems([]);
@@ -322,6 +344,19 @@ const Feed = () => {
           .order("release_date", { ascending: false }) as any);
 
         if (releaseError) throw releaseError;
+
+        const releaseArtistNames = ((releaseRows || []) as any[])
+          .map((row: any) => row.artist_name)
+          .filter((value: any) => typeof value === "string" && value.trim().length > 0);
+        setArtistReleaseDebug(
+          releaseArtistNames.slice(0, 5).map((name: string) => ({
+            raw: name,
+            normalized: normalizeArtistName(name),
+          })),
+        );
+        setArtistHasDestinRelease(
+          releaseArtistNames.some((name: string) => normalizeArtistName(name) === normalizeArtistName("DESTIN CONRAD")),
+        );
 
         const releaseSpotifyIds = [...new Set(((releaseRows || []) as any[])
           .map((row: any) => row.spotify_track_id)
@@ -410,6 +445,8 @@ const Feed = () => {
         setArtistFallback(true);
         setArtistMatchedCount(0);
         setArtistHasTestRelease(false);
+        setArtistReleaseDebug([]);
+        setArtistHasDestinRelease(false);
         setArtistLoading(false);
       }
     };
@@ -808,6 +845,34 @@ const Feed = () => {
               <div>matched releases: {artistMatchedCount}</div>
               <div>popular releases: {artistItems.slice(0, 3).length}</div>
               <div>has "New Drop (Test)": {artistHasTestRelease ? "yes" : "no"}</div>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground space-y-2">
+              <div>
+                <div className="font-medium text-foreground">followed artists debug</div>
+                {artistFollowedDebug.length > 0 ? (
+                  artistFollowedDebug.map((item, index) => (
+                    <div key={`followed-${index}`}>
+                      raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
+                    </div>
+                  ))
+                ) : (
+                  <div>none</div>
+                )}
+                <div>has DESTIN CONRAD in followed list: {artistHasDestinFollowed ? "yes" : "no"}</div>
+              </div>
+              <div>
+                <div className="font-medium text-foreground">release artists debug</div>
+                {artistReleaseDebug.length > 0 ? (
+                  artistReleaseDebug.map((item, index) => (
+                    <div key={`release-${index}`}>
+                      raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
+                    </div>
+                  ))
+                ) : (
+                  <div>none</div>
+                )}
+                <div>has DESTIN CONRAD in releases list: {artistHasDestinRelease ? "yes" : "no"}</div>
+              </div>
             </div>
             {artistLoading ? (
               <div className="flex justify-center py-12">
