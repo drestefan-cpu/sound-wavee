@@ -296,7 +296,7 @@ const Landing = () => {
           </button>
         </div>
 
-        <p className="text-xs text-muted-foreground/40">come have a good time.</p>
+        <p className="text-xs text-muted-foreground/40">Come have a good time </p>
       </div>
 
       <AndroidInstallPrompt />
