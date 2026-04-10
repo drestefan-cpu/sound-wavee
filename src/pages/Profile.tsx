@@ -697,7 +697,7 @@ const Profile = () => {
           {!isOwnProfile && <FollowButton targetUserId={profile.id} />}
         </div>
 
-        <div className="mt-4 flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+        <div className="mt-4 flex gap-1.5 mb-3 justify-center flex-wrap">
           {tabList.map((t) => (
             <button
               key={t.key}
