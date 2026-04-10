@@ -468,6 +468,34 @@ const Profile = () => {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
   const ownHiddenIds = new Set(hiddenTracks.map((h: any) => h.track_id));
 
+  const handleUnhideTrack = async (hiddenId: string) => {
+    await (supabase
+      .from("hidden_tracks" as any)
+      .delete()
+      .eq("id", hiddenId) as any);
+    setHiddenTracks((prev) => prev.filter((t) => t.id !== hiddenId));
+    toast.success("song back in your feed");
+  };
+
+  const handleRemoveHiddenTrack = async (hiddenId: string, trackId: string) => {
+    if (!user) return;
+
+    await Promise.all([
+      supabase
+        .from("hidden_tracks" as any)
+        .delete()
+        .eq("id", hiddenId) as any,
+      supabase.from("likes").delete().eq("user_id", user.id).eq("track_id", trackId),
+      supabase.from("saved_tracks").delete().eq("user_id", user.id).eq("track_id", trackId),
+    ]);
+
+    setHiddenTracks((prev) => prev.filter((t) => t.id !== hiddenId));
+    setLikes((prev) => prev.filter((like) => like.track_id !== trackId));
+    setSavedTracks((prev) => prev.filter((saved) => saved.track_id !== trackId));
+    setLikesCount((prev) => Math.max(0, prev - 1));
+    toast.success("song removed from your collection");
+  };
+
   const filteredLikes = (() => {
     let result = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
     if (isOwnProfile) result = result.filter((l: any) => !ownHiddenIds.has(l.track_id));
@@ -929,30 +957,13 @@ const Profile = () => {
                       />
                       <div className="flex gap-4 px-3 pt-1 pb-1">
                         <button
-                          onClick={async () => {
-                            await (supabase
-                              .from("hidden_tracks" as any)
-                              .delete()
-                              .eq("id", h.id) as any);
-                            setHiddenTracks((prev) => prev.filter((t) => t.id !== h.id));
-                            toast.success("song back in your feed");
-                          }}
+                          onClick={() => handleUnhideTrack(h.id)}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
                           unhide
                         </button>
                         <button
-                          onClick={async () => {
-                            await Promise.all([
-                              supabase
-                                .from("hidden_tracks" as any)
-                                .delete()
-                                .eq("id", h.id) as any,
-                              supabase.from("likes").delete().eq("user_id", user!.id).eq("track_id", h.track_id),
-                            ]);
-                            setHiddenTracks((prev) => prev.filter((t) => t.id !== h.id));
-                            toast.success("song removed from your collection");
-                          }}
+                          onClick={() => handleRemoveHiddenTrack(h.id, h.track_id)}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
                           remove
