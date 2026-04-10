@@ -494,7 +494,14 @@ const Profile = () => {
   const displayName =
     profile.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "musician";
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-  const filteredLikes = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
+  const filteredLikes = (() => {
+    let result = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
+    if (!isOwnProfile && viewerHiddenIds.size > 0) result = result.filter((l: any) => !viewerHiddenIds.has(l.track_id));
+    return result;
+  })();
+  const filteredSavedTracks = !isOwnProfile && viewerHiddenIds.size > 0
+    ? savedTracks.filter((s: any) => !viewerHiddenIds.has(s.track_id))
+    : savedTracks;
   const findsLabel = isOwnProfile ? "your finds" : "finds";
   const collectionLabel = isOwnProfile ? "your collection" : "collection";
 
