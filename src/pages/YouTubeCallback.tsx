@@ -79,9 +79,21 @@ const YouTubeCallback = () => {
       // Returning user — their data is already under existing_user_id
       if (result.existing_user_id && result.existing_user_id !== userId) {
         setStatusText("welcome back…");
-        await supabase.auth.signOut();
         toast.success("Welcome back to PLAI!");
-        setTimeout(() => navigate("/"), 1500);
+        // Don't sign out — keep current session, their data is merged
+        setStatusText("syncing your liked music…");
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/sync-youtube-likes`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+              apikey: APIKEY,
+            },
+            body: JSON.stringify({ user_id: result.existing_user_id }),
+          });
+        } catch (e) {}
+        navigate("/feed");
         return;
       }
 
