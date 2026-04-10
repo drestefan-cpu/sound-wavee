@@ -37,6 +37,8 @@ const SettingsPage = () => {
   const [showAdmin, setShowAdmin] = useState(false);
   const [tidalConnected, setTidalConnected] = useState(false);
   const [youtubeConnected, setYoutubeConnected] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarSaving, setAvatarSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -50,6 +52,7 @@ const SettingsPage = () => {
         setProfileColor((data as any).profile_color || "#080B12");
         setTidalConnected(!!(data as any).tidal_access_token);
         setYoutubeConnected(!!(data as any).youtube_access_token);
+        setAvatarUrl((data as any).avatar_url || "");
       }
     };
     load();
@@ -193,19 +196,17 @@ const SettingsPage = () => {
 
   const connectYouTube = async () => {
     try {
-      const response = await fetch(
-        "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/youtube-auth-url",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
-          },
-          body: JSON.stringify({
-            redirect_uri: window.location.origin + "/auth/youtube/callback",
-          }),
-        }
-      );
+      const response = await fetch("https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/youtube-auth-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey:
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
+        },
+        body: JSON.stringify({
+          redirect_uri: window.location.origin + "/auth/youtube/callback",
+        }),
+      });
       const result = await response.json();
       if (result?.url) {
         window.location.href = result.url;
@@ -287,6 +288,45 @@ const SettingsPage = () => {
             </button>
           </div>
           <span className="text-[10px] text-muted-foreground mt-1 block">letters, numbers, . _ - only</span>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <label className="mb-1.5 block text-sm text-muted-foreground">profile photo</label>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setAvatarUrl("")} />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
+                  {displayName?.[0]?.toUpperCase() || "?"}
+                </div>
+              )}
+            </div>
+            <Input
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder="paste an image URL"
+              className="bg-card border-border"
+            />
+          </div>
+          <button
+            onClick={async () => {
+              if (!user || !avatarUrl.trim()) return;
+              setAvatarSaving(true);
+              const { error } = await supabase
+                .from("profiles")
+                .update({ avatar_url: avatarUrl.trim() } as any)
+                .eq("id", user.id);
+              setAvatarSaving(false);
+              if (error) toast.error("couldn't save — try again");
+              else toast.success("photo saved ✓");
+            }}
+            disabled={avatarSaving}
+            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+            style={{ touchAction: "manipulation" }}
+          >
+            {avatarSaving ? "..." : "save"}
+          </button>
         </div>
 
         <div className="border-t border-border pt-6">
