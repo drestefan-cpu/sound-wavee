@@ -387,7 +387,7 @@ const Feed = () => {
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">{item.time_ago}</span>
                             <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                              Spotify
+                              Music
                             </span>
                           </div>
                         </div>
@@ -398,66 +398,68 @@ const Feed = () => {
               </div>
             ) : hasContent ? (
               <div className="space-y-3">
-                {items.filter(item => !hiddenIds.has(item.track_id)).map((item) => {
-                  const profile = item.profiles;
-                  const track = item.tracks;
-                  return (
-                    <UnifiedTrackCard
-                      key={item.id}
-                      track={{
-                        id: track?.id,
-                        title: track?.title,
-                        artist: track?.artist,
-                        album: track?.album,
-                        albumArtUrl: track?.album_art_url,
-                        spotifyTrackId: track?.spotify_track_id,
-                        likeId: item.id,
-                        trackDbId: item.track_id,
-                      }}
-                      isSaved={isSaved(item.track_id)}
-                      onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
-                      onHide={() => setHiddenIds(prev => new Set(prev).add(item.track_id))}
-                      onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
-                      header={
-                        <div className="mb-2 flex items-center gap-3">
-                          <Link to={`/profile/${profile?.username || profile?.id}`}>
-                            <div className="h-9 w-9 overflow-hidden rounded-full bg-primary/20">
-                              {profile?.avatar_url ? (
-                                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
-                                  {(profile?.display_name || "U")[0].toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                          </Link>
-                          <div className="flex-1 min-w-0">
-                            <Link
-                              to={`/profile/${profile?.username || profile?.id}`}
-                              className="text-sm font-medium text-foreground hover:text-primary transition-colors duration-150"
-                            >
-                              {profile?.display_name || "User"}
+                {items
+                  .filter((item) => !hiddenIds.has(item.track_id))
+                  .map((item) => {
+                    const profile = item.profiles;
+                    const track = item.tracks;
+                    return (
+                      <UnifiedTrackCard
+                        key={item.id}
+                        track={{
+                          id: track?.id,
+                          title: track?.title,
+                          artist: track?.artist,
+                          album: track?.album,
+                          albumArtUrl: track?.album_art_url,
+                          spotifyTrackId: track?.spotify_track_id,
+                          likeId: item.id,
+                          trackDbId: item.track_id,
+                        }}
+                        isSaved={isSaved(item.track_id)}
+                        onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
+                        onHide={() => setHiddenIds((prev) => new Set(prev).add(item.track_id))}
+                        onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
+                        header={
+                          <div className="mb-2 flex items-center gap-3">
+                            <Link to={`/profile/${profile?.username || profile?.id}`}>
+                              <div className="h-9 w-9 overflow-hidden rounded-full bg-primary/20">
+                                {profile?.avatar_url ? (
+                                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
+                                    {(profile?.display_name || "U")[0].toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
                             </Link>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const seconds = Math.floor((Date.now() - new Date(item.liked_at).getTime()) / 1000);
-                                  if (seconds < 60) return "just now";
-                                  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-                                  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-                                  return `${Math.floor(seconds / 86400)}d ago`;
-                                })()}
-                              </span>
-                              <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                Spotify
-                              </span>
+                            <div className="flex-1 min-w-0">
+                              <Link
+                                to={`/profile/${profile?.username || profile?.id}`}
+                                className="text-sm font-medium text-foreground hover:text-primary transition-colors duration-150"
+                              >
+                                {profile?.display_name || "User"}
+                              </Link>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {(() => {
+                                    const seconds = Math.floor((Date.now() - new Date(item.liked_at).getTime()) / 1000);
+                                    if (seconds < 60) return "just now";
+                                    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+                                    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+                                    return `${Math.floor(seconds / 86400)}d ago`;
+                                  })()}
+                                </span>
+                                <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                  {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : "Spotify"}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      }
-                    />
-                  );
-                })}
+                        }
+                      />
+                    );
+                  })}
               </div>
             ) : feedLoading ? (
               <div className="flex justify-center py-20">
@@ -616,23 +618,21 @@ const Feed = () => {
                   />
                 ))
               ) : (
-                trendingTracks
-                  .slice(0, 10)
-                  .map((track, i) => (
-                    <UnifiedTrackCard
-                      key={track.position}
-                      compact
-                      hideReactions
-                      track={{
-                        id: `plai-${track.position}`,
-                        title: track.title,
-                        artist: track.artist,
-                        spotifyTrackId: track.spotifyTrackId,
-                        albumArtUrl: track.albumArtUrl,
-                      }}
-                      subtitle={<span className="text-[10px] text-muted-foreground">#{i + 1}</span>}
-                    />
-                  ))
+                trendingTracks.slice(0, 10).map((track, i) => (
+                  <UnifiedTrackCard
+                    key={track.position}
+                    compact
+                    hideReactions
+                    track={{
+                      id: `plai-${track.position}`,
+                      title: track.title,
+                      artist: track.artist,
+                      spotifyTrackId: track.spotifyTrackId,
+                      albumArtUrl: track.albumArtUrl,
+                    }}
+                    subtitle={<span className="text-[10px] text-muted-foreground">#{i + 1}</span>}
+                  />
+                ))
               )}
             </div>
             <div className="rounded-xl border border-border bg-card p-4 text-center">
