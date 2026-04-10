@@ -4,14 +4,17 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
-const APIKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+const APIKEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
 
 const GoogleCallback = () => {
   const navigate = useNavigate();
   const [statusText, setStatusText] = useState("connecting your account…");
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
         subscription.unsubscribe();
         setStatusText("syncing your liked music…");
@@ -23,7 +26,10 @@ const GoogleCallback = () => {
               apikey: APIKEY,
               Authorization: `Bearer ${session.access_token}`,
             },
-            body: JSON.stringify({ user_id: session.user.id }),
+            body: JSON.stringify({
+              user_id: session.user.id,
+              access_token: session.provider_token,
+            }),
           });
         } catch (e) {
           console.error("Sync failed (non-fatal):", e);
@@ -45,11 +51,16 @@ const GoogleCallback = () => {
             apikey: APIKEY,
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ user_id: session.user.id }),
-        }).catch(() => {}).finally(() => {
-          toast.success("YouTube Music connected!");
-          navigate("/feed");
-        });
+          body: JSON.stringify({
+            user_id: session.user.id,
+            access_token: session.provider_token,
+          }),
+        })
+          .catch(() => {})
+          .finally(() => {
+            toast.success("YouTube Music connected!");
+            navigate("/feed");
+          });
       }
     });
 
