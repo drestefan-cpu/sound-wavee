@@ -749,9 +749,9 @@ const Profile = () => {
             ))}
           </div>
         ) : tab === "finds" ? (
-          savedTracks.length > 0 ? (
+          filteredSavedTracks.length > 0 ? (
             <div className="space-y-2">
-              {savedTracks.map((s: any) => (
+              {filteredSavedTracks.map((s: any) => (
                 <UnifiedTrackCard
                   key={s.id}
                   compact
