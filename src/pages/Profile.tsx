@@ -72,10 +72,10 @@ const Profile = () => {
   const [unseenRecCount, setUnseenRecCount] = useState(0);
   const [hiddenTracks, setHiddenTracks] = useState<any[]>([]);
   const [hiddenLoaded, setHiddenLoaded] = useState(false);
-  const [viewerHiddenIds, setViewerHiddenIds] = useState<Set<string>>(new Set());
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const profileViewLoggedRef = useRef(false);
+  const [profileOwnerHiddenIds, setProfileOwnerHiddenIds] = useState<Set<string>>(new Set());
 
   const isOwnProfile = profile?.id === user?.id;
 
@@ -225,18 +225,17 @@ const Profile = () => {
     loadMatch();
   }, [isOwnProfile, user, profile]);
 
-  // Load viewer's hidden track IDs to filter other users' profiles
   useEffect(() => {
-    if (isOwnProfile || !user) { setViewerHiddenIds(new Set()); return; }
+    if (isOwnProfile || !profile) return;
     const load = async () => {
       const { data } = await supabase
-        .from("hidden_tracks")
+        .from("hidden_tracks" as any)
         .select("track_id")
-        .eq("user_id", user.id);
-      setViewerHiddenIds(new Set((data || []).map((r: any) => r.track_id)));
+        .eq("user_id", profile.id);
+      setProfileOwnerHiddenIds(new Set((data || []).map((r: any) => r.track_id)));
     };
     load();
-  }, [isOwnProfile, user]);
+  }, [isOwnProfile, profile]);
 
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "following") return;
@@ -496,12 +495,9 @@ const Profile = () => {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
   const filteredLikes = (() => {
     let result = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
-    if (!isOwnProfile && viewerHiddenIds.size > 0) result = result.filter((l: any) => !viewerHiddenIds.has(l.track_id));
+    if (!isOwnProfile) result = result.filter((l: any) => !profileOwnerHiddenIds.has(l.track_id));
     return result;
   })();
-  const filteredSavedTracks = !isOwnProfile && viewerHiddenIds.size > 0
-    ? savedTracks.filter((s: any) => !viewerHiddenIds.has(s.track_id))
-    : savedTracks;
   const findsLabel = isOwnProfile ? "your finds" : "finds";
   const collectionLabel = isOwnProfile ? "your collection" : "collection";
 
@@ -749,9 +745,9 @@ const Profile = () => {
             ))}
           </div>
         ) : tab === "finds" ? (
-          filteredSavedTracks.length > 0 ? (
+          savedTracks.length > 0 ? (
             <div className="space-y-2">
-              {filteredSavedTracks.map((s: any) => (
+              {savedTracks.map((s: any) => (
                 <UnifiedTrackCard
                   key={s.id}
                   compact
@@ -954,9 +950,7 @@ const Profile = () => {
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
             ) : hiddenTracks.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                no hidden songs
-              </p>
+              <p className="py-6 text-center text-sm text-muted-foreground">no hidden songs</p>
             ) : (
               hiddenTracks.map((h: any) => (
                 <div key={h.id}>
@@ -977,8 +971,11 @@ const Profile = () => {
                   <div className="flex gap-4 px-3 pt-1 pb-1">
                     <button
                       onClick={async () => {
-                        await (supabase.from("hidden_tracks" as any).delete().eq("id", h.id) as any);
-                        setHiddenTracks(prev => prev.filter(t => t.id !== h.id));
+                        await (supabase
+                          .from("hidden_tracks" as any)
+                          .delete()
+                          .eq("id", h.id) as any);
+                        setHiddenTracks((prev) => prev.filter((t) => t.id !== h.id));
                         toast.success("song back in your feed");
                       }}
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -988,10 +985,13 @@ const Profile = () => {
                     <button
                       onClick={async () => {
                         await Promise.all([
-                          (supabase.from("hidden_tracks" as any).delete().eq("id", h.id) as any),
+                          supabase
+                            .from("hidden_tracks" as any)
+                            .delete()
+                            .eq("id", h.id) as any,
                           supabase.from("likes").delete().eq("user_id", user!.id).eq("track_id", h.track_id),
                         ]);
-                        setHiddenTracks(prev => prev.filter(t => t.id !== h.id));
+                        setHiddenTracks((prev) => prev.filter((t) => t.id !== h.id));
                         toast.success("song removed from your collection");
                       }}
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors"
