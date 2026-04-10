@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { followArtistForTrack } from "@/lib/followedArtists";
 
 interface SavedTracksContextType {
   savedTrackIds: Set<string>;
@@ -54,6 +55,10 @@ export function SavedTracksProvider({ children }: { children: ReactNode }) {
       if (error) {
         setSavedTrackIds(prev => { const n = new Set(prev); n.delete(trackId); return n; });
         toast.error("couldn't save — try again");
+      } else {
+        try {
+          await followArtistForTrack(user.id, trackId, "saved_track");
+        } catch {}
       }
     }
   }, [user, savedTrackIds]);

@@ -37,7 +37,106 @@ interface FeedItem {
   };
 }
 
+interface ArtistReleaseItem {
+  id: string;
+  title: string;
+  artist: string;
+  album?: string | null;
+  spotifyTrackId: string;
+  albumArtUrl: string | null;
+  badge?: "today" | "new";
+  likedBy?: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  }[];
+}
+
 type LiveState = "live" | "new" | "syncing";
+
+const artistReleaseItems: ArtistReleaseItem[] = [
+  {
+    id: "artist-release-1",
+    title: trendingTracks[0].title,
+    artist: trendingTracks[0].artist,
+    album: "SWIM - Single",
+    spotifyTrackId: trendingTracks[0].spotifyTrackId,
+    albumArtUrl: trendingTracks[0].albumArtUrl,
+    badge: "today",
+    likedBy: [
+      { id: demoUsers[0].id, username: demoUsers[0].username, displayName: demoUsers[0].display_name, avatarUrl: null },
+      { id: demoUsers[2].id, username: demoUsers[2].username, displayName: demoUsers[2].display_name, avatarUrl: null },
+    ],
+  },
+  {
+    id: "artist-release-2",
+    title: trendingTracks[2].title,
+    artist: trendingTracks[2].artist,
+    album: "Live at the Jazz Cafe",
+    spotifyTrackId: trendingTracks[2].spotifyTrackId,
+    albumArtUrl: trendingTracks[2].albumArtUrl,
+    badge: "today",
+    likedBy: [
+      { id: demoUsers[1].id, username: demoUsers[1].username, displayName: demoUsers[1].display_name, avatarUrl: null },
+    ],
+  },
+  {
+    id: "artist-release-3",
+    title: trendingTracks[4].title,
+    artist: trendingTracks[4].artist,
+    album: "Ordinary EP",
+    spotifyTrackId: trendingTracks[4].spotifyTrackId,
+    albumArtUrl: trendingTracks[4].albumArtUrl,
+    badge: "new",
+    likedBy: [
+      { id: demoUsers[0].id, username: demoUsers[0].username, displayName: demoUsers[0].display_name, avatarUrl: null },
+      { id: demoUsers[3].id, username: demoUsers[3].username, displayName: demoUsers[3].display_name, avatarUrl: null },
+      { id: demoUsers[4].id, username: demoUsers[4].username, displayName: demoUsers[4].display_name, avatarUrl: null },
+      { id: demoUsers[5].id, username: demoUsers[5].username, displayName: demoUsers[5].display_name, avatarUrl: null },
+    ],
+  },
+  {
+    id: "artist-release-4",
+    title: trendingTracks[6].title,
+    artist: trendingTracks[6].artist,
+    album: "GNX",
+    spotifyTrackId: trendingTracks[6].spotifyTrackId,
+    albumArtUrl: trendingTracks[6].albumArtUrl,
+    badge: "new",
+    likedBy: [
+      { id: demoUsers[2].id, username: demoUsers[2].username, displayName: demoUsers[2].display_name, avatarUrl: null },
+      { id: demoUsers[4].id, username: demoUsers[4].username, displayName: demoUsers[4].display_name, avatarUrl: null },
+    ],
+  },
+  {
+    id: "artist-release-5",
+    title: trendingTracks[8].title,
+    artist: trendingTracks[8].artist,
+    album: "rosie",
+    spotifyTrackId: trendingTracks[8].spotifyTrackId,
+    albumArtUrl: trendingTracks[8].albumArtUrl,
+    likedBy: [
+      { id: demoUsers[3].id, username: demoUsers[3].username, displayName: demoUsers[3].display_name, avatarUrl: null },
+    ],
+  },
+  {
+    id: "artist-release-6",
+    title: trendingTracks[10].title,
+    artist: trendingTracks[10].artist,
+    album: "I've Tried Everything But Therapy (Part 1)",
+    spotifyTrackId: trendingTracks[10].spotifyTrackId,
+    albumArtUrl: trendingTracks[10].albumArtUrl,
+  },
+  {
+    id: "artist-release-7",
+    title: trendingTracks[12].title,
+    artist: trendingTracks[12].artist,
+    album: "I'm the Problem",
+    spotifyTrackId: trendingTracks[12].spotifyTrackId,
+    albumArtUrl: trendingTracks[12].albumArtUrl,
+  },
+];
 
 // Log search queries silently
 const logSearchQuery = async (userId: string, query: string, resultsCount: number) => {
@@ -58,7 +157,7 @@ const Feed = () => {
   const [pendingItems, setPendingItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
-  const [tab, setTab] = useState<"following" | "trending" | "people" | "plailists">("following");
+  const [tab, setTab] = useState<"following" | "artists" | "trending" | "people" | "plailists">("following");
   const [showWelcome, setShowWelcome] = useState(false);
   const [liveState, setLiveState] = useState<LiveState>("live");
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
@@ -74,6 +173,8 @@ const Feed = () => {
 
   const [plaiPicks, setPlaiPicks] = useState<any[]>([]);
   const [picksLoading, setPicksLoading] = useState(false);
+  const artistHighlights = artistReleaseItems.slice(0, 3);
+  const artistReleases = artistReleaseItems.slice(3);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -259,10 +360,78 @@ const Feed = () => {
   const hasContent = items.length > 0;
 
   const tabs = [
-    { key: "following", label: "following" },
-    { key: "trending", label: "trending" },
+    { key: "following", label: "friends" },
+    { key: "artists", label: "artists" },
     { key: "people", label: "people" },
-    { key: "plailists", label: "plai·lists" },
+  ] as const;
+
+  const renderArtistBadge = (badge?: ArtistReleaseItem["badge"]) => {
+    if (!badge) return null;
+    return (
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] ${
+          badge === "today"
+            ? "bg-primary text-primary-foreground"
+            : "bg-secondary text-muted-foreground"
+        }`}
+      >
+        {badge}
+      </span>
+    );
+  };
+
+  const renderLikedBy = (likedBy?: ArtistReleaseItem["likedBy"]) => {
+    if (!likedBy || likedBy.length === 0) return null;
+    const visible = likedBy.slice(0, 3);
+    const overflow = likedBy.length - visible.length;
+    const lead = visible[0];
+    return (
+      <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center">
+          {visible.map((friend, index) => (
+            <div
+              key={friend.id}
+              className="-ml-1 first:ml-0 h-5 w-5 overflow-hidden rounded-full border border-background bg-primary/20"
+              style={{ zIndex: visible.length - index }}
+            >
+              {friend.avatarUrl ? (
+                <img src={friend.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[9px] font-bold text-primary">
+                  {friend.displayName[0]?.toUpperCase() || friend.username[0]?.toUpperCase() || "?"}
+                </div>
+              )}
+            </div>
+          ))}
+          {overflow > 0 && (
+            <div className="-ml-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-background bg-card px-1 text-[9px] font-medium text-muted-foreground">
+              +{overflow}
+            </div>
+          )}
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          liked by @{lead.username}
+          {likedBy.length > 1 ? ` +${likedBy.length - 1}` : ""}
+        </p>
+      </div>
+    );
+  };
+
+  const artistSections = [
+    {
+      key: "popular",
+      title: "Popular releases",
+      subtitle: "music your friends are loving",
+      items: artistHighlights,
+      compact: false,
+    },
+    {
+      key: "all",
+      title: "All releases",
+      subtitle: "Latest drops from the artists you follow",
+      items: artistReleases,
+      compact: true,
+    },
   ] as const;
 
   const LiveIndicator = () => {
@@ -479,6 +648,57 @@ const Feed = () => {
               </div>
             )}
           </>
+        ) : tab === "artists" ? (
+          <div className="space-y-6">
+            {artistSections.map((section) => (
+              <section key={section.key} className="space-y-3">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <h3 className="font-display text-lg text-foreground">{section.title}</h3>
+                    <p className="text-xs text-muted-foreground">{section.subtitle}</p>
+                  </div>
+                  {section.key === "popular" && (
+                    <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[9px] text-muted-foreground">
+                      mock artist feed
+                    </span>
+                  )}
+                </div>
+                <div className={section.compact ? "space-y-2" : "space-y-3"}>
+                  {section.items.map((track) => (
+                    <UnifiedTrackCard
+                      key={track.id}
+                      compact={section.compact}
+                      hideReactions={section.compact}
+                      track={{
+                        id: track.id,
+                        title: track.title,
+                        artist: track.artist,
+                        album: track.album,
+                        spotifyTrackId: track.spotifyTrackId,
+                        albumArtUrl: track.albumArtUrl,
+                        likeId: track.id,
+                        localOnly: true,
+                      }}
+                      onShare={() => setRecommendTrack({ id: track.id, title: track.title })}
+                      subtitle={
+                        section.compact ? (
+                          <div>
+                            {renderArtistBadge(track.badge)}
+                            {renderLikedBy(track.likedBy)}
+                          </div>
+                        ) : (
+                          <div>
+                            {renderArtistBadge(track.badge)}
+                            {renderLikedBy(track.likedBy)}
+                          </div>
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         ) : tab === "trending" ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-2">

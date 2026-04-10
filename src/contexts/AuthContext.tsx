@@ -13,6 +13,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTO_SYNC_INTERVAL = 7 * 60 * 1000; // 7 minutes
+const isLocalDev =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+const localDevUser = isLocalDev
+  ? ({
+      id: "local-dev-user",
+      app_metadata: {},
+      user_metadata: {
+        full_name: "Local Dev",
+        name: "Local Dev",
+      },
+      aud: "authenticated",
+      created_at: new Date(0).toISOString(),
+    } as User)
+  : null;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -89,6 +105,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Handle OAuth redirect — FIRST useEffect
   useEffect(() => {
+    if (isLocalDev) {
+      setLoading(false);
+      return;
+    }
+
     const handleOAuthRedirect = async () => {
       const hash = window.location.hash;
       if (!hash || !hash.includes("provider_token")) return;
@@ -150,6 +171,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (isLocalDev) {
+      setLoading(false);
+      return;
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -182,6 +208,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (isLocalDev) return;
+
     if (session?.user) {
       syncIntervalRef.current = setInterval(() => {
         triggerAutoSync(session.user.id);
@@ -193,6 +221,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user?.id]);
 
   const signInWithSpotify = async () => {
+    if (isLocalDev) {
+      setLoading(false);
+      return;
+    }
+
     await supabase.auth.signInWithOAuth({
       provider: "spotify",
       options: {
@@ -204,6 +237,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (isLocalDev) {
+      setSession(null);
+      setLoading(false);
+      window.location.href = "/";
+      return;
+    }
+
     await supabase.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
@@ -214,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         session,
-        user: session?.user ?? null,
+        user: session?.user ?? localDevUser ?? null,
         loading,
         signInWithSpotify,
         signOut,

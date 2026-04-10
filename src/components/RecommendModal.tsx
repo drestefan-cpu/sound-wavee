@@ -3,6 +3,7 @@ import { X, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { followArtistForTrack } from "@/lib/followedArtists";
 
 interface RecommendModalProps {
   trackId: string;
@@ -44,6 +45,9 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
       console.error("Recommend error:", error);
       toast.error("couldn't send — try again");
     } else {
+      try {
+        await followArtistForTrack(user.id, trackId, "sent_track");
+      } catch {}
       toast.success("recommended!");
       onClose();
     }
