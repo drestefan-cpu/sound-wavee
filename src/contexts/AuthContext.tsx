@@ -25,13 +25,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     providerRefreshToken: string | null,
     metadata: any,
   ) => {
+    // Check existing profile first — never overwrite display_name or avatar_url
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("display_name, avatar_url")
+      .eq("id", userId)
+      .single();
+
     const { error: upsertError } = await supabase.from("profiles").upsert(
       {
         id: userId,
         spotify_access_token: providerToken,
         spotify_refresh_token: providerRefreshToken,
-        display_name: metadata?.full_name || metadata?.name,
-        avatar_url: metadata?.avatar_url || metadata?.picture,
+        display_name: existingProfile?.display_name || metadata?.full_name || metadata?.name,
+        avatar_url: existingProfile?.avatar_url || metadata?.avatar_url || metadata?.picture,
       } as any,
       { onConflict: "id" },
     );
@@ -59,8 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const lastSynced = profile?.last_synced_at ? new Date(profile.last_synced_at).getTime() : 0;
       const now = Date.now();
       const timeSinceSync = now - lastSynced;
-      // Require both: longer than AUTO_SYNC_INTERVAL AND at least 60s since last sync
-      // This prevents double-sync on login (storeTokensAndSync runs first, then this fires 3s later)
       if (!lastSynced || (timeSinceSync > AUTO_SYNC_INTERVAL && timeSinceSync > 60000)) {
         console.log("Auto-sync: triggering background sync");
         const {
@@ -100,16 +105,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log("OAuth redirect captured, storing token for:", session.user.id);
 
+      // Check existing profile first — never overwrite display_name or avatar_url
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("display_name, avatar_url")
+        .eq("id", session.user.id)
+        .single();
+
       const { error: upsertError } = await supabase.from("profiles").upsert(
         {
           id: session.user.id,
           spotify_access_token: providerToken,
           spotify_refresh_token: providerRefreshToken,
           display_name:
+            existingProfile?.display_name ||
             session.user.user_metadata?.full_name ||
             session.user.user_metadata?.name ||
             session.user.email?.split("@")[0],
-          avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+          avatar_url:
+            existingProfile?.avatar_url ||
+            session.user.user_metadata?.avatar_url ||
+            session.user.user_metadata?.picture,
         } as any,
         { onConflict: "id" },
       );
@@ -149,7 +165,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
       }
 
-      // Auto-sync on sign in — delayed to avoid double-sync with storeTokensAndSync
       if (event === "SIGNED_IN" && session?.user) {
         setTimeout(() => triggerAutoSync(session.user.id), 3000);
       }
@@ -166,7 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Set up recurring sync interval
   useEffect(() => {
     if (session?.user) {
       syncIntervalRef.current = setInterval(() => {
