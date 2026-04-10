@@ -44,6 +44,7 @@ interface ArtistReleaseItem {
   album?: string | null;
   spotifyTrackId: string;
   albumArtUrl: string | null;
+  trackDbId?: string;
   badge?: "today" | "new";
   likedBy?: {
     id: string;
@@ -55,7 +56,7 @@ interface ArtistReleaseItem {
 
 type LiveState = "live" | "new" | "syncing";
 
-const artistReleaseItems: ArtistReleaseItem[] = [
+const artistReleaseFallbackItems: ArtistReleaseItem[] = [
   {
     id: "artist-release-1",
     title: trendingTracks[0].title,
@@ -138,6 +139,18 @@ const artistReleaseItems: ArtistReleaseItem[] = [
   },
 ];
 
+const normalizeArtistName = (value?: string | null) => value?.trim().toLowerCase() || "";
+
+const getArtistBadge = (releaseDate?: string | null): ArtistReleaseItem["badge"] => {
+  if (!releaseDate) return undefined;
+  const today = new Date();
+  const release = new Date(releaseDate);
+  const diffDays = Math.floor((today.getTime() - release.getTime()) / 86400000);
+  if (diffDays <= 1) return "today";
+  if (diffDays <= 7) return "new";
+  return undefined;
+};
+
 // Log search queries silently
 const logSearchQuery = async (userId: string, query: string, resultsCount: number) => {
   if (!userId || !query.trim()) return;
@@ -173,8 +186,10 @@ const Feed = () => {
 
   const [plaiPicks, setPlaiPicks] = useState<any[]>([]);
   const [picksLoading, setPicksLoading] = useState(false);
-  const artistHighlights = artistReleaseItems.slice(0, 3);
-  const artistReleases = artistReleaseItems.slice(3);
+  const [artistItems, setArtistItems] = useState<ArtistReleaseItem[]>(artistReleaseFallbackItems);
+  const [artistLoading, setArtistLoading] = useState(true);
+  const [artistFallback, setArtistFallback] = useState(false);
+  const [artistEmptyState, setArtistEmptyState] = useState<"no-followed-artists" | "no-releases" | null>(null);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -267,6 +282,96 @@ const Feed = () => {
         });
     }
   }, [tab]);
+
+  useEffect(() => {
+    const loadArtistReleases = async () => {
+      if (!user) return;
+      setArtistLoading(true);
+      setArtistEmptyState(null);
+      setArtistFallback(false);
+
+      try {
+        const { data: followedRows, error: followedError } = await (supabase
+          .from("user_followed_artists" as any)
+          .select("artist_name")
+          .eq("user_id", user.id) as any);
+
+        if (followedError) throw followedError;
+
+        const followedNames = [...new Set(((followedRows || []) as any[])
+          .map((row: any) => normalizeArtistName(row.artist_name))
+          .filter(Boolean))];
+
+        if (followedNames.length === 0) {
+          setArtistItems([]);
+          setArtistEmptyState("no-followed-artists");
+          setArtistLoading(false);
+          return;
+        }
+
+        const { data: releaseRows, error: releaseError } = await (supabase
+          .from("artist_releases" as any)
+          .select("*")
+          .order("release_date", { ascending: false }) as any);
+
+        if (releaseError) throw releaseError;
+
+        const releaseSpotifyIds = [...new Set(((releaseRows || []) as any[])
+          .map((row: any) => row.spotify_track_id)
+          .filter(Boolean))];
+
+        const trackIdBySpotifyId = new Map<string, string>();
+        if (releaseSpotifyIds.length > 0) {
+          const { data: trackRows } = await (supabase
+            .from("tracks")
+            .select("id, spotify_track_id")
+            .in("spotify_track_id", releaseSpotifyIds) as any);
+
+          ((trackRows || []) as any[]).forEach((trackRow) => {
+            if (trackRow.spotify_track_id && trackRow.id) {
+              trackIdBySpotifyId.set(trackRow.spotify_track_id, trackRow.id);
+            }
+          });
+        }
+
+        const socialProofBySpotifyId = new Map(
+          artistReleaseFallbackItems
+            .filter((item) => item.likedBy && item.spotifyTrackId)
+            .map((item) => [item.spotifyTrackId, item.likedBy]),
+        );
+
+        const matched = ((releaseRows || []) as any[])
+          .filter((row) => followedNames.includes(normalizeArtistName(row.artist_name)))
+          .map((row) => ({
+            id: row.id,
+            title: row.title,
+            artist: row.artist_name,
+            album: row.album,
+            spotifyTrackId: row.spotify_track_id,
+            albumArtUrl: row.album_art_url,
+            trackDbId: trackIdBySpotifyId.get(row.spotify_track_id),
+            badge: getArtistBadge(row.release_date),
+            likedBy: socialProofBySpotifyId.get(row.spotify_track_id) || undefined,
+          })) as ArtistReleaseItem[];
+
+        if (matched.length === 0) {
+          setArtistItems([]);
+          setArtistEmptyState("no-releases");
+          setArtistLoading(false);
+          return;
+        }
+
+        setArtistItems(matched);
+        setArtistLoading(false);
+      } catch {
+        setArtistItems(artistReleaseFallbackItems);
+        setArtistFallback(true);
+        setArtistLoading(false);
+      }
+    };
+
+    loadArtistReleases();
+  }, [user]);
 
   const handlePeopleSearch = (val: string) => {
     setPeopleQuery(val);
@@ -416,6 +521,9 @@ const Feed = () => {
       </div>
     );
   };
+
+  const artistHighlights = artistItems.slice(0, 3);
+  const artistReleases = artistItems;
 
   const artistSections = [
     {
@@ -650,6 +758,31 @@ const Feed = () => {
           </>
         ) : tab === "artists" ? (
           <div className="space-y-6">
+            {artistLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : artistEmptyState === "no-followed-artists" ? (
+              <div className="rounded-xl border border-border bg-card p-5 text-center">
+                <h3 className="text-sm font-medium text-foreground">Follow more artists to build this feed</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Your Artists tab will fill in as you save and share tracks by artists you love.
+                </p>
+              </div>
+            ) : artistEmptyState === "no-releases" ? (
+              <div className="rounded-xl border border-border bg-card p-5 text-center">
+                <h3 className="text-sm font-medium text-foreground">No releases yet</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  We found followed artists, but there are no matching seeded releases yet.
+                </p>
+              </div>
+            ) : (
+              <>
+                {artistFallback && (
+                  <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
+                    showing fallback releases while real artist data finishes connecting
+                  </div>
+                )}
             {artistSections.map((section) => (
               <section key={section.key} className="space-y-3">
                 <div className="flex items-end justify-between gap-3">
@@ -657,11 +790,6 @@ const Feed = () => {
                     <h3 className="font-display text-lg text-foreground">{section.title}</h3>
                     <p className="text-xs text-muted-foreground">{section.subtitle}</p>
                   </div>
-                  {section.key === "popular" && (
-                    <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[9px] text-muted-foreground">
-                      mock artist feed
-                    </span>
-                  )}
                 </div>
                 <div className={section.compact ? "space-y-2" : "space-y-3"}>
                   {section.items.map((track) => (
@@ -670,16 +798,31 @@ const Feed = () => {
                       compact={section.compact}
                       hideReactions={section.compact}
                       track={{
-                        id: track.id,
+                        id: track.trackDbId || track.id,
                         title: track.title,
                         artist: track.artist,
                         album: track.album,
                         spotifyTrackId: track.spotifyTrackId,
                         albumArtUrl: track.albumArtUrl,
-                        likeId: track.id,
-                        localOnly: true,
+                        likeId: track.trackDbId || track.id,
+                        trackDbId: track.trackDbId,
+                        localOnly: !track.trackDbId,
                       }}
-                      onShare={() => setRecommendTrack({ id: track.id, title: track.title })}
+                      isSaved={track.trackDbId ? isSaved(track.trackDbId) : false}
+                      onToggleSave={() => {
+                        if (!track.trackDbId) {
+                          toast("save will unlock once this release is synced");
+                          return;
+                        }
+                        toggleSave(track.trackDbId, undefined, "artists");
+                      }}
+                      onShare={() => {
+                        if (!track.trackDbId) {
+                          toast("sharing will unlock once this release is synced");
+                          return;
+                        }
+                        setRecommendTrack({ id: track.trackDbId, title: track.title });
+                      }}
                       subtitle={
                         section.compact ? (
                           <div>
@@ -698,6 +841,8 @@ const Feed = () => {
                 </div>
               </section>
             ))}
+              </>
+            )}
           </div>
         ) : tab === "trending" ? (
           <div className="space-y-2">
