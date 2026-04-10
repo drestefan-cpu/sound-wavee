@@ -379,30 +379,6 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h3>
-          <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
-          <div className="flex gap-2">
-            <Input
-              type="password"
-              inputMode="numeric"
-              maxLength={4}
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="••••"
-              className="bg-card border-border w-24 text-center tracking-[0.3em]"
-            />
-            <button
-              onClick={handleSavePin}
-              disabled={pinSaving || pin.length !== 4}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
-              style={{ touchAction: "manipulation" }}
-            >
-              {pinSaving ? "saving..." : "save"}
-            </button>
-          </div>
-        </div>
-
-        <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
             preferred platform
           </h3>
@@ -476,21 +452,6 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">notifications</h3>
-          <label className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-foreground">push notifications</p>
-              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
-                coming soon
-              </span>
-            </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted cursor-not-allowed opacity-50">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
-            </button>
-          </label>
-        </div>
-
-        <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">privacy</h3>
           <label className="flex items-center justify-between">
             <div>
@@ -508,6 +469,44 @@ const SettingsPage = () => {
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${isPublic ? "translate-x-6" : "translate-x-1"}`}
               />
+            </button>
+          </label>
+          <div className="mt-6">
+            <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h4>
+            <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
+            <div className="flex gap-2">
+              <Input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="••••"
+                className="bg-card border-border w-24 text-center tracking-[0.3em]"
+              />
+              <button
+                onClick={handleSavePin}
+                disabled={pinSaving || pin.length !== 4}
+                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+                style={{ touchAction: "manipulation" }}
+              >
+                {pinSaving ? "saving..." : "save"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">notifications</h3>
+          <label className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-foreground">push notifications</p>
+              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                coming soon
+              </span>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted cursor-not-allowed opacity-50">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
             </button>
           </label>
         </div>
