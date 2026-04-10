@@ -3,47 +3,67 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
+const APIKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+
 const GoogleCallback = () => {
   const navigate = useNavigate();
   const [statusText, setStatusText] = useState("connecting your account…");
 
   useEffect(() => {
-    const handle = async () => {
-      let session = null;
-      for (let i = 0; i < 5; i++) {
-        await new Promise((r) => setTimeout(r, 1000));
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user) {
-          session = data.session;
-          break;
-        }
-      }
-      if (!session) {
-        toast.error("Connection failed — please try again");
-        navigate("/");
-        return;
-      }
-      setStatusText("syncing your liked music…");
-      try {
-        await fetch(
-          "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/sync-youtube-likes",
-          {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        subscription.unsubscribe();
+        setStatusText("syncing your liked music…");
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/sync-youtube-likes`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
+              apikey: APIKEY,
               Authorization: `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({ user_id: session.user.id }),
-          }
-        );
-      } catch (e) {
-        console.error("Sync failed (non-fatal):", e);
+          });
+        } catch (e) {
+          console.error("Sync failed (non-fatal):", e);
+        }
+        toast.success("YouTube Music connected!");
+        navigate("/feed");
       }
-      toast.success("YouTube Music connected!");
-      navigate("/feed");
+    });
+
+    // Also check if session already exists
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        subscription.unsubscribe();
+        setStatusText("syncing your liked music…");
+        fetch(`${SUPABASE_URL}/functions/v1/sync-youtube-likes`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: APIKEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ user_id: session.user.id }),
+        }).catch(() => {}).finally(() => {
+          toast.success("YouTube Music connected!");
+          navigate("/feed");
+        });
+      }
+    });
+
+    // Timeout fallback
+    const timeout = setTimeout(() => {
+      subscription.unsubscribe();
+      toast.error("Connection failed — please try again");
+      navigate("/");
+    }, 15000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
-    handle();
   }, [navigate]);
 
   return (
