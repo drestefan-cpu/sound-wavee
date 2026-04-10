@@ -38,29 +38,18 @@ const Landing = () => {
   };
 
   const connectYouTube = async () => {
-    try {
-      const response = await fetch(
-        "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/youtube-auth-url",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
-          },
-          body: JSON.stringify({
-            redirect_uri: window.location.origin + "/auth/youtube/callback",
-          }),
-        }
-      );
-      const result = await response.json();
-      if (result?.url) {
-        window.location.href = result.url;
-      } else {
-        toast.error("Could not connect to YouTube Music");
-      }
-    } catch {
-      toast.error("Could not connect to YouTube Music");
-    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        scopes: "https://www.googleapis.com/auth/youtube",
+        redirectTo: window.location.origin + "/auth/google/callback",
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
+    });
+    if (error) toast.error("Could not connect to Google");
   };
 
   const connectTidal = async () => {
