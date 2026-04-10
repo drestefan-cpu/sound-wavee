@@ -35,20 +35,67 @@ serve(async (req) => {
       })
     }
 
+    // Get YouTube channel ID for this user
+    const channelRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` }
+    })
+    const channelData = await channelRes.json()
+    const youtubeUserId = channelData.items?.[0]?.id || null
+    const youtubeDisplayName = channelData.items?.[0]?.snippet?.title || null
+    const youtubeAvatar = channelData.items?.[0]?.snippet?.thumbnails?.default?.url || null
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    await supabase.from('profiles').update({
-      youtube_access_token: tokens.access_token,
-      youtube_refresh_token: tokens.refresh_token || null,
-    } as any).eq('id', user_id)
+    // Check if a profile already exists with this YouTube user ID
+    let existingUserId: string | null = null
+    if (youtubeUserId) {
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('youtube_user_id', youtubeUserId)
+        .maybeSingle()
+      if (existingProfile) existingUserId = existingProfile.id
+    }
 
-    return new Response(JSON.stringify({ success: true }), {
+    const targetUserId = existingUserId || user_id
+
+    // Update or create profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', targetUserId)
+      .maybeSingle()
+
+    if (profile) {
+      await supabase.from('profiles').update({
+        youtube_access_token: tokens.access_token,
+        youtube_refresh_token: tokens.refresh_token || null,
+        youtube_user_id: youtubeUserId,
+        display_name: profile ? undefined : youtubeDisplayName,
+        avatar_url: profile ? undefined : youtubeAvatar,
+      } as any).eq('id', targetUserId)
+    } else {
+      await supabase.from('profiles').insert({
+        id: targetUserId,
+        youtube_access_token: tokens.access_token,
+        youtube_refresh_token: tokens.refresh_token || null,
+        youtube_user_id: youtubeUserId,
+        display_name: youtubeDisplayName,
+        avatar_url: youtubeAvatar,
+      } as any)
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      youtube_user_id: youtubeUserId,
+      existing_user_id: existingUserId,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
-  } catch (err) {
+  } catch (err: any) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
