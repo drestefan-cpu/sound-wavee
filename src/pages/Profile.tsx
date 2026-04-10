@@ -3,7 +3,7 @@ import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
-import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkles, Disc3 } from "lucide-react";
+import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, sparkle, library } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
 import PageHeader from "@/components/PageHeader";
@@ -480,13 +480,13 @@ const Profile = () => {
 
   const ownTabs = [
     { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
-    { key: "foryou" as TabType, label: "for you", icon: <Sparkles className="h-3 w-3" /> },
-    { key: "collection" as TabType, label: collectionLabel, icon: <Disc3 className="h-3 w-3" /> },
+    { key: "foryou" as TabType, label: "for you", icon: <sparkle className="h-3 w-3" /> },
+    { key: "collection" as TabType, label: collectionLabel, icon: <library className="h-3 w-3" /> },
     { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
   ];
   const otherTabs = [
     { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
-    { key: "collection" as TabType, label: collectionLabel, icon: <Disc3 className="h-3 w-3" /> },
+    { key: "collection" as TabType, label: collectionLabel, icon: <library className="h-3 w-3" /> },
   ];
   const tabList = isOwnProfile ? ownTabs : otherTabs;
 
