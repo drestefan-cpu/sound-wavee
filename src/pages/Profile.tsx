@@ -225,6 +225,19 @@ const Profile = () => {
     loadMatch();
   }, [isOwnProfile, user, profile]);
 
+  // Load viewer's hidden track IDs to filter other users' profiles
+  useEffect(() => {
+    if (isOwnProfile || !user) { setViewerHiddenIds(new Set()); return; }
+    const load = async () => {
+      const { data } = await supabase
+        .from("hidden_tracks")
+        .select("track_id")
+        .eq("user_id", user.id);
+      setViewerHiddenIds(new Set((data || []).map((r: any) => r.track_id)));
+    };
+    load();
+  }, [isOwnProfile, user]);
+
   useEffect(() => {
     if (!isOwnProfile || !user || tab !== "following") return;
     const loadFollowing = async () => {
