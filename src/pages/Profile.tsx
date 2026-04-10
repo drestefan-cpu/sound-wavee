@@ -474,11 +474,15 @@ const Profile = () => {
       .delete()
       .eq("id", hiddenId) as any);
     setHiddenTracks((prev) => prev.filter((t) => t.id !== hiddenId));
-    toast.success("song back in your feed");
+    toast.success("song back in your collection");
   };
 
-  const handleRemoveHiddenTrack = async (hiddenId: string, trackId: string) => {
+  const handleRemoveHiddenTrack = async (hiddenId: string, trackId: string, trackTitle?: string) => {
     if (!user) return;
+    const confirmed = window.confirm(
+      `Remove ${trackTitle ? `"${trackTitle}"` : "this song"} from your collection? This will remove it from your PLAI collection entirely.`,
+    );
+    if (!confirmed) return;
 
     await Promise.all([
       supabase
@@ -963,7 +967,7 @@ const Profile = () => {
                           unhide
                         </button>
                         <button
-                          onClick={() => handleRemoveHiddenTrack(h.id, h.track_id)}
+                          onClick={() => handleRemoveHiddenTrack(h.id, h.track_id, h.tracks?.title)}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
                           remove

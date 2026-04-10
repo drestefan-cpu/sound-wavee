@@ -62,7 +62,7 @@ const TrackDetailModal = ({
         user_id: user.id,
         track_id: track.trackDbId,
       }) as any);
-      toast("song hidden — find it in your hidden tab");
+      toast("song hidden from your collection — find it in your hidden tab");
       onClose();
       onHide?.();
     } catch {
@@ -170,7 +170,7 @@ const TrackDetailModal = ({
             onClick={handleHide}
             className="mt-5 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            hide from my feed
+            hide from my collection
           </button>
         )}
       </div>
