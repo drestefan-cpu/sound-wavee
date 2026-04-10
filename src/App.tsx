@@ -17,6 +17,7 @@ import Demo from "./pages/Demo";
 import Admin from "./pages/Admin";
 import TidalCallback from "./pages/TidalCallback";
 import YouTubeCallback from "./pages/YouTubeCallback";
+import GoogleCallback from "./pages/GoogleCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/auth/tidal/callback" element={<TidalCallback />} />
                   <Route path="/auth/youtube/callback" element={<YouTubeCallback />} />
+                  <Route path="/auth/google/callback" element={<GoogleCallback />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </SpotifyPlayerProvider>
