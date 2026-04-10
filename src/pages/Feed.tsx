@@ -105,7 +105,7 @@ const Feed = () => {
       const followIds = ids || followingIds;
       const userIds = [...followIds, user.id];
       const { data, error } = await supabase
-        .from("likes")
+        .from("feed_likes" as any)
         .select(
           `id, liked_at, user_id, track_id, profiles!likes_user_id_fkey(id, display_name, avatar_url, username), tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)`,
         )
@@ -335,7 +335,7 @@ const Feed = () => {
       </header>
 
       <div className="mx-auto max-w-feed px-4 pt-3">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        .flex gap-2 overflow-x-auto no-scrollbar">
           {tabs.map((t) => (
             <button
               key={t.key}
@@ -387,7 +387,7 @@ const Feed = () => {
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">{item.time_ago}</span>
                             <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                              Music
+                              music
                             </span>
                           </div>
                         </div>
