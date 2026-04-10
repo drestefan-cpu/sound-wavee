@@ -47,6 +47,7 @@ const TrackDetailModal = ({
   onClose,
   hidePlay = false,
   onHide,
+  isOwnTrack,
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
   const { user } = useAuth();
