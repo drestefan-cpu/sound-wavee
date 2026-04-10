@@ -3,14 +3,12 @@ import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
-import { RefreshCw, QrCode, X, Copy, Bell, Users, Heart, Send } from "lucide-react";
+import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkles, Disc3 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
-import PlaiLogo from "@/components/PlaiLogo";
 import PageHeader from "@/components/PageHeader";
 import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
-import EmojiReactions from "@/components/EmojiReactions";
 import FollowersModal from "@/components/FollowersModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
@@ -24,11 +22,10 @@ function seededRandom(seed: string) {
   return Math.abs(h % 1000) / 1000;
 }
 
-type TabType = "finds" | "collection" | "following" | "activity" | "foryou" | "hidden";
+type TabType = "finds" | "collection" | "activity" | "foryou";
 
-// Log a profile view silently
 const logProfileView = async (viewerId: string, profileId: string, tabViewed: string) => {
-  if (viewerId === profileId) return; // don't log own profile views
+  if (viewerId === profileId) return;
   try {
     await (supabase.from("profile_views" as any).insert({
       viewer_id: viewerId,
@@ -52,9 +49,7 @@ const Profile = () => {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [tab, setTab] = useState<TabType>("finds");
-  const [followingList, setFollowingList] = useState<any[]>([]);
-  const [followingLoaded, setFollowingLoaded] = useState(false);
-  const [collectionFilter, setCollectionFilter] = useState<"30d" | "all">("30d");
+  const [collectionFilter, setCollectionFilter] = useState<"30d" | "all" | "hidden">("30d");
   const [showFlappy, setShowFlappy] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [usernameEdit, setUsernameEdit] = useState(false);
@@ -79,14 +74,12 @@ const Profile = () => {
 
   const isOwnProfile = profile?.id === user?.id;
 
-  // Log profile view when profile loads
   useEffect(() => {
     if (!profile || !user || profileViewLoggedRef.current) return;
     profileViewLoggedRef.current = true;
     logProfileView(user.id, profile.id, tab);
   }, [profile, user]);
 
-  // Log tab changes as profile views
   useEffect(() => {
     if (!profile || !user || isOwnProfile) return;
     logProfileView(user.id, profile.id, tab);
@@ -198,6 +191,21 @@ const Profile = () => {
     };
   }, [profile]);
 
+  // Load own hidden tracks on mount
+  useEffect(() => {
+    if (!isOwnProfile || !user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("hidden_tracks" as any)
+        .select("*, tracks(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setHiddenTracks(data || []);
+      setHiddenLoaded(true);
+    };
+    load();
+  }, [isOwnProfile, user]);
+
   useEffect(() => {
     if (!isOwnProfile || !profile) return;
     const loadFollowers = async () => {
@@ -236,21 +244,6 @@ const Profile = () => {
     };
     load();
   }, [isOwnProfile, profile]);
-
-  useEffect(() => {
-    if (!isOwnProfile || !user || tab !== "following") return;
-    const loadFollowing = async () => {
-      setFollowingLoaded(false);
-      const { data } = await supabase
-        .from("follows")
-        .select("following_id, profiles!follows_following_id_fkey(id, display_name, username, avatar_url)")
-        .eq("follower_id", user.id)
-        .order("created_at", { ascending: false });
-      setFollowingList(data || []);
-      setFollowingLoaded(true);
-    };
-    loadFollowing();
-  }, [isOwnProfile, user, tab]);
 
   useEffect(() => {
     if (!isOwnProfile || !user) return;
@@ -355,21 +348,6 @@ const Profile = () => {
     loadRecs();
   }, [isOwnProfile, user, tab]);
 
-  useEffect(() => {
-    if (!isOwnProfile || !user || tab !== "hidden") return;
-    const loadHidden = async () => {
-      setHiddenLoaded(false);
-      const { data } = await supabase
-        .from("hidden_tracks" as any)
-        .select("*, tracks(*)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      setHiddenTracks(data || []);
-      setHiddenLoaded(true);
-    };
-    loadHidden();
-  }, [isOwnProfile, user, tab]);
-
   const handleSync = async () => {
     if (!user?.id) return;
     setSyncing(true);
@@ -403,11 +381,6 @@ const Profile = () => {
     } finally {
       setSyncing(false);
     }
-  };
-
-  const handleRemoveSaved = async (savedId: string) => {
-    setSavedTracks((prev) => prev.filter((s) => s.id !== savedId));
-    await supabase.from("saved_tracks").delete().eq("id", savedId);
   };
 
   const handleEasterEggTap = () => {
@@ -493,25 +466,27 @@ const Profile = () => {
   const displayName =
     profile.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "musician";
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+  const ownHiddenIds = new Set(hiddenTracks.map((h: any) => h.track_id));
+
   const filteredLikes = (() => {
     let result = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
-    if (!isOwnProfile) result = result.filter((l: any) => !profileOwnerHiddenIds.has(l.track_id));
+    if (isOwnProfile) result = result.filter((l: any) => !ownHiddenIds.has(l.track_id));
+    else result = result.filter((l: any) => !profileOwnerHiddenIds.has(l.track_id));
     return result;
   })();
-  const findsLabel = isOwnProfile ? "your finds" : "finds";
-  const collectionLabel = isOwnProfile ? "your collection" : "collection";
+
+  const findsLabel = "finds";
+  const collectionLabel = "collection";
 
   const ownTabs = [
-    { key: "finds" as TabType, label: findsLabel },
-    { key: "foryou" as TabType, label: "for you", icon: <Heart className="h-3 w-3" /> },
-    { key: "following" as TabType, label: "following", icon: <Users className="h-3 w-3" /> },
-    { key: "collection" as TabType, label: collectionLabel },
-    { key: "hidden" as TabType, label: "hidden" },
+    { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
+    { key: "foryou" as TabType, label: "for you", icon: <Sparkles className="h-3 w-3" /> },
+    { key: "collection" as TabType, label: collectionLabel, icon: <Disc3 className="h-3 w-3" /> },
     { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
   ];
   const otherTabs = [
-    { key: "finds" as TabType, label: findsLabel },
-    { key: "collection" as TabType, label: collectionLabel },
+    { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
+    { key: "collection" as TabType, label: collectionLabel, icon: <Disc3 className="h-3 w-3" /> },
   ];
   const tabList = isOwnProfile ? ownTabs : otherTabs;
 
@@ -722,12 +697,12 @@ const Profile = () => {
           {!isOwnProfile && <FollowButton targetUserId={profile.id} />}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-1.5 mb-3">
+        <div className="mt-4 flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
           {tabList.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 relative ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
+              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 relative flex-shrink-0 ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
             >
               {"icon" in t && (t as any).icon}
               {t.label}
@@ -781,49 +756,6 @@ const Profile = () => {
             <p className="py-6 text-center text-sm text-muted-foreground">
               {isOwnProfile ? "songs you discover on PLAI live here — save them from the feed" : "no finds yet"}
             </p>
-          )
-        ) : tab === "following" ? (
-          !followingLoaded ? (
-            <div className="flex justify-center py-6">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          ) : followingList.length > 0 ? (
-            <div className="space-y-1.5">
-              {followingList.map((f: any) => {
-                const p = f.profiles;
-                if (!p) return null;
-                return (
-                  <Link
-                    key={p.id}
-                    to={`/profile/${p.username || p.id}`}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5 hover:bg-card/80 transition-colors"
-                  >
-                    <div
-                      className="h-9 w-9 overflow-hidden rounded-full flex-shrink-0"
-                      style={{ backgroundColor: "#FF2D78" }}
-                    >
-                      {p.avatar_url ? (
-                        <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
-                          {(p.display_name || "U")[0].toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{p.display_name || "User"}</p>
-                      <p className="text-xs text-muted-foreground">@{p.username || "user"}</p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="py-6 text-center">
-              <p className="text-sm text-muted-foreground mb-3">
-                you're not following anyone yet — find friends in the people tab
-              </p>
-            </div>
           )
         ) : tab === "activity" ? (
           <div className="space-y-1.5">
@@ -943,83 +875,94 @@ const Profile = () => {
               ))
             )}
           </div>
-        ) : tab === "hidden" ? (
-          <div className="space-y-2">
-            {!hiddenLoaded ? (
-              <div className="flex justify-center py-6">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : hiddenTracks.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">no hidden songs</p>
-            ) : (
-              hiddenTracks.map((h: any) => (
-                <div key={h.id}>
-                  <UnifiedTrackCard
-                    compact
-                    hideReactions
-                    track={{
-                      id: h.id,
-                      title: h.tracks?.title || "Unknown",
-                      artist: h.tracks?.artist || "Unknown",
-                      albumArtUrl: h.tracks?.album_art_url,
-                      spotifyTrackId: h.tracks?.spotify_track_id,
-                      trackDbId: h.track_id,
-                    }}
-                    isSaved={isSaved(h.track_id)}
-                    onToggleSave={() => toggleSave(h.track_id)}
-                  />
-                  <div className="flex gap-4 px-3 pt-1 pb-1">
-                    <button
-                      onClick={async () => {
-                        await (supabase
-                          .from("hidden_tracks" as any)
-                          .delete()
-                          .eq("id", h.id) as any);
-                        setHiddenTracks((prev) => prev.filter((t) => t.id !== h.id));
-                        toast.success("song back in your feed");
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      unhide
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await Promise.all([
-                          supabase
-                            .from("hidden_tracks" as any)
-                            .delete()
-                            .eq("id", h.id) as any,
-                          supabase.from("likes").delete().eq("user_id", user!.id).eq("track_id", h.track_id),
-                        ]);
-                        setHiddenTracks((prev) => prev.filter((t) => t.id !== h.id));
-                        toast.success("song removed from your collection");
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      remove
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         ) : (
           <>
-            <div className="flex gap-2 mb-2">
+            {/* Collection tab with hidden filter inside */}
+            <div className="flex gap-2 mb-3 flex-wrap">
               <button
                 onClick={() => setCollectionFilter("30d")}
                 className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "30d" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
               >
-                last 30 days ({likes.filter((l) => l.liked_at >= thirtyDaysAgo).length})
+                last 30 days ({likes.filter((l) => l.liked_at >= thirtyDaysAgo && !ownHiddenIds.has(l.track_id)).length}
+                )
               </button>
               <button
                 onClick={() => setCollectionFilter("all")}
                 className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "all" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
               >
-                all time ({likes.length})
+                all time ({likes.filter((l) => !ownHiddenIds.has(l.track_id)).length})
               </button>
+              {isOwnProfile && (
+                <button
+                  onClick={() => setCollectionFilter("hidden")}
+                  className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "hidden" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
+                >
+                  hidden ({hiddenTracks.length})
+                </button>
+              )}
             </div>
-            {filteredLikes.length > 0 ? (
+
+            {collectionFilter === "hidden" ? (
+              !hiddenLoaded ? (
+                <div className="flex justify-center py-6">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              ) : hiddenTracks.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">no hidden songs</p>
+              ) : (
+                <div className="space-y-2">
+                  {hiddenTracks.map((h: any) => (
+                    <div key={h.id}>
+                      <UnifiedTrackCard
+                        compact
+                        hideReactions
+                        track={{
+                          id: h.id,
+                          title: h.tracks?.title || "Unknown",
+                          artist: h.tracks?.artist || "Unknown",
+                          albumArtUrl: h.tracks?.album_art_url,
+                          spotifyTrackId: h.tracks?.spotify_track_id,
+                          trackDbId: h.track_id,
+                        }}
+                        isSaved={isSaved(h.track_id)}
+                        onToggleSave={() => toggleSave(h.track_id)}
+                      />
+                      <div className="flex gap-4 px-3 pt-1 pb-1">
+                        <button
+                          onClick={async () => {
+                            await (supabase
+                              .from("hidden_tracks" as any)
+                              .delete()
+                              .eq("id", h.id) as any);
+                            setHiddenTracks((prev) => prev.filter((t) => t.id !== h.id));
+                            toast.success("song back in your feed");
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          unhide
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await Promise.all([
+                              supabase
+                                .from("hidden_tracks" as any)
+                                .delete()
+                                .eq("id", h.id) as any,
+                              supabase.from("likes").delete().eq("user_id", user!.id).eq("track_id", h.track_id),
+                            ]);
+                            setHiddenTracks((prev) => prev.filter((t) => t.id !== h.id));
+                            toast.success("song removed from your collection");
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : filteredLikes.length > 0 ? (
               <div className="space-y-2">
                 {filteredLikes.map((like: any) => (
                   <UnifiedTrackCard
@@ -1046,7 +989,7 @@ const Profile = () => {
               </div>
             ) : (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                {isOwnProfile ? "your Spotify likes will appear here — tap sync to import" : "no tracks yet"}
+                {isOwnProfile ? "your likes will appear here — tap sync to import" : "no tracks yet"}
               </p>
             )}
           </>
