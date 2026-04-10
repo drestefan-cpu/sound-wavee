@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
-const APIKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+const APIKEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
 
 const YouTubeCallback = () => {
   const navigate = useNavigate();
@@ -20,7 +21,9 @@ const YouTubeCallback = () => {
       }
 
       setStatusText("verifying session…");
-      let { data: { session } } = await supabase.auth.getSession();
+      let {
+        data: { session },
+      } = await supabase.auth.getSession();
       let userId = session?.user?.id || null;
 
       if (!userId) {
@@ -70,6 +73,15 @@ const YouTubeCallback = () => {
       if (!response.ok || !result.success) {
         toast.error(`YouTube Music connection failed: ${result.error || "unknown error"}`);
         setTimeout(() => navigate("/"), 2000);
+        return;
+      }
+
+      // Returning user — their data is already under existing_user_id
+      if (result.existing_user_id && result.existing_user_id !== userId) {
+        setStatusText("welcome back…");
+        await supabase.auth.signOut();
+        toast.success("Welcome back to PLAI!");
+        setTimeout(() => navigate("/"), 1500);
         return;
       }
 
