@@ -266,6 +266,14 @@ const Landing = () => {
           </button>
 
           <button
+            onClick={connectYouTube}
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
+            style={{ touchAction: "manipulation" }}
+          >
+            continue with YouTube Music
+          </button>
+
+          <button
             onClick={connectTidal}
             className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
             style={{ touchAction: "manipulation" }}
@@ -282,14 +290,6 @@ const Landing = () => {
             style={{ touchAction: "manipulation" }}
           >
             continue with Apple Music
-          </button>
-
-          <button
-            onClick={connectYouTube}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
-            style={{ touchAction: "manipulation" }}
-          >
-            continue with YouTube Music
           </button>
         </div>
 
