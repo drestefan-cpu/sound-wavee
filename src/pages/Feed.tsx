@@ -646,7 +646,7 @@ const Feed = () => {
 
   const tabs = [
     { key: "following", label: "friends" },
-    { key: "artists", label: "artists", wip: true },
+    { key: "artists", label: "artists" },
     { key: "people", label: "people" },
   ] as const;
 
@@ -799,14 +799,7 @@ const Feed = () => {
               onClick={() => setTab(t.key)}
               className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 whitespace-nowrap ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}
             >
-              <span className="inline-flex items-center gap-1.5">
-                <span>{t.label}</span>
-                {t.wip && (
-                  <span className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                    WIP
-                  </span>
-                )}
-              </span>
+              {t.label}
             </button>
           ))}
         </div>
@@ -1015,13 +1008,16 @@ const Feed = () => {
                     showing fallback releases while real artist data finishes connecting
                   </div>
                 )}
-            {artistSections.map((section) => (
+                {artistSections.map((section) => (
               <section key={section.key} className="space-y-3">
                 <div className="flex items-end justify-between gap-3">
                   <div>
                     <h3 className="font-display text-lg text-foreground">{section.title}</h3>
                     <p className="text-xs text-muted-foreground">{section.subtitle}</p>
                   </div>
+                  {section.key === "popular" && (
+                    <span className="text-xs text-muted-foreground">WIP</span>
+                  )}
                 </div>
                 <div className={section.compact ? "space-y-2" : "space-y-3"}>
                   {section.items.map((track) => (
