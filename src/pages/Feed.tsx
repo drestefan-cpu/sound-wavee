@@ -574,15 +574,13 @@ const Feed = () => {
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "likes" }, (payload) => {
         const deletedLike = payload.old as any;
-        if (followingIds.includes(deletedLike.user_id) || deletedLike.user_id === user.id) {
-          setItems((prev) => {
-            const nextItems = prev.filter((item) => item.id !== deletedLike.id);
-            cachedFeedItems = nextItems;
-            return nextItems;
-          });
-          setPendingItems((prev) => prev.filter((item) => item.id !== deletedLike.id));
-          cachedFeedItems = (cachedFeedItems || []).filter((item) => item.id !== deletedLike.id);
-        }
+        setItems((prev) => {
+          const nextItems = prev.filter((item) => item.id !== deletedLike.id);
+          cachedFeedItems = nextItems;
+          return nextItems;
+        });
+        setPendingItems((prev) => prev.filter((item) => item.id !== deletedLike.id));
+        cachedFeedItems = (cachedFeedItems || []).filter((item) => item.id !== deletedLike.id);
       })
       .subscribe();
     return () => {
