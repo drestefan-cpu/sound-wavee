@@ -570,14 +570,21 @@ const Feed = () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      await supabase.functions.invoke("sync-spotify-likes", {
+      const { error } = await supabase.functions.invoke("sync-spotify-likes", {
         body: { user_id: user?.id },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
+      if (error) {
+        console.error("Feed sync failed:", error);
+        toast.error("sync failed — try again");
+        setLiveState("live");
+        return;
+      }
       const ids = await loadFollowing();
       await loadFeed(ids);
       setLiveState("live");
-    } catch {
+    } catch (error) {
+      console.error("Feed sync failed:", error);
       toast.error("sync failed — try again");
       setLiveState("live");
     }

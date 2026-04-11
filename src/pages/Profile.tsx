@@ -453,6 +453,10 @@ const Profile = () => {
         setSyncResult("could not sync — try signing out and back in");
         setTimeout(() => setSyncResult(null), 4000);
       } else {
+        const { data: refreshedProfile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        if (refreshedProfile) {
+          setProfile((prev: any) => ({ ...prev, ...refreshedProfile }));
+        }
         setSyncResult("✓ done");
         setTimeout(() => loadCollection(), 1000);
         setTimeout(() => setSyncResult(null), 3500);
