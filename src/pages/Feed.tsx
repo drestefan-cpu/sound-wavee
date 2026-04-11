@@ -563,6 +563,7 @@ const Feed = () => {
             return nextItems;
           });
           setPendingItems((prev) => prev.filter((item) => item.id !== deletedLike.id));
+          cachedFeedItems = (cachedFeedItems || []).filter((item) => item.id !== deletedLike.id);
         }
       })
       .subscribe();
@@ -824,6 +825,7 @@ const Feed = () => {
                         }}
                         isSaved={isSaved(item.track_id)}
                         onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
+                        sourceUserId={item.user_id}
                         onHide={() =>
                           setHiddenIds((prev) => {
                             const next = new Set(prev);
