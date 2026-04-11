@@ -54,10 +54,10 @@ const NotifyBell = ({ targetUserId, targetUsername }: NotifyBellProps) => {
     <button
       type="button"
       onClick={toggle}
-      className={`flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-150 ${
+      className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 appearance-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${
         enabled
-          ? "border-primary/35 bg-background text-primary shadow-sm"
-          : "border-border bg-background/40 text-muted-foreground hover:text-foreground hover:border-primary/20"
+          ? "border-primary bg-transparent text-primary hover:bg-primary/10"
+          : "border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/5 hover:border-border"
       }`}
       style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
       aria-pressed={enabled}
