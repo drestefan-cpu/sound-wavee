@@ -603,6 +603,7 @@ const Profile = () => {
     },
     [],
   );
+  const visibleCollectionCount = filteredLikes.length;
 
   const findsLabel = "finds";
   const collectionLabel = "collection";
@@ -803,7 +804,7 @@ const Profile = () => {
                     <p className="text-muted-foreground">following</p>
                   </button>
                   <div>
-                    <p className="font-medium text-foreground text-sm">{likesCount}</p>
+                    <p className="font-medium text-foreground text-sm">{visibleCollectionCount}</p>
                     <p className="text-muted-foreground">collection</p>
                   </div>
                 </>
@@ -814,7 +815,7 @@ const Profile = () => {
                     <p className="text-muted-foreground">finds</p>
                   </div>
                   <div>
-                    <p className="font-medium text-foreground text-sm">{likesCount}</p>
+                    <p className="font-medium text-foreground text-sm">{visibleCollectionCount}</p>
                     <p className="text-muted-foreground">collection</p>
                   </div>
                 </>
