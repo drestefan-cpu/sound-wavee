@@ -568,18 +568,45 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">notifications</h3>
-          <label className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-foreground">push notifications</p>
-              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
-                coming soon
-              </span>
-            </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted cursor-not-allowed opacity-50">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
-            </button>
-          </label>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">push notifications</h3>
+          <p className="text-[10px] text-muted-foreground mb-4">choose which notifications you'd like to receive</p>
+          <div className="space-y-4">
+            {([
+              { key: "push_follows" as const, label: "new followers", desc: "when someone follows you" },
+              { key: "push_reactions" as const, label: "reactions", desc: "when someone reacts to your song" },
+              { key: "push_saves" as const, label: "saves", desc: "when someone saves your song" },
+              { key: "push_recommendations" as const, label: "recommendations", desc: "when someone recommends you a song" },
+            ]).map((item) => (
+              <label key={item.key} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-foreground">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!user) return;
+                    const next = { ...notifSettings, [item.key]: !notifSettings[item.key] };
+                    setNotifSettings(next);
+                    // Upsert settings
+                    const { error } = await (supabase
+                      .from("user_notification_settings" as any)
+                      .upsert({ user_id: user.id, ...next } as any, { onConflict: "user_id" }) as any);
+                    if (error) toast.error("couldn't save — try again");
+                  }}
+                  style={{ touchAction: "manipulation" }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${
+                    notifSettings[item.key] ? "bg-primary" : "bg-muted"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition-transform duration-150 ${
+                      notifSettings[item.key] ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="border-t border-border pt-12 pb-6">
