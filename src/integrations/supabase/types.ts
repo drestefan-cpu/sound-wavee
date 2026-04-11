@@ -165,10 +165,12 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          current_mood: string | null
           display_name: string | null
           id: string
           last_synced_at: string | null
           login_pin: string | null
+          mood_set_at: string | null
           onboarding_complete: boolean
           platform: string | null
           preferred_platform: string | null
@@ -186,10 +188,12 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          current_mood?: string | null
           display_name?: string | null
           id: string
           last_synced_at?: string | null
           login_pin?: string | null
+          mood_set_at?: string | null
           onboarding_complete?: boolean
           platform?: string | null
           preferred_platform?: string | null
@@ -207,10 +211,12 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          current_mood?: string | null
           display_name?: string | null
           id?: string
           last_synced_at?: string | null
           login_pin?: string | null
+          mood_set_at?: string | null
           onboarding_complete?: boolean
           platform?: string | null
           preferred_platform?: string | null
