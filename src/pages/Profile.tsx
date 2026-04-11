@@ -13,7 +13,7 @@ import FollowersModal from "@/components/FollowersModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-import { getMoodBySlug, getMoodRing } from "@/lib/moods";
+import { getMoodBySlug } from "@/lib/moods";
 
 function seededRandom(seed: string) {
   let h = 0;
@@ -89,7 +89,7 @@ const Profile = () => {
   const [recsLoaded, setRecsLoaded] = useState(false);
   const [tasteMatch, setTasteMatch] = useState<number | null>(null);
   const [followers, setFollowers] = useState<any[]>([]);
-  const [moonsFaded, setMoonsFaded] = useState(false);
+  const [activeMoonId, setActiveMoonId] = useState<string | null>(null);
   const [unseenRecCount, setUnseenRecCount] = useState(0);
   const [hiddenTracks, setHiddenTracks] = useState<any[]>(cachedSnapshot?.hiddenTracks ?? []);
   const [hiddenLoaded, setHiddenLoaded] = useState(cachedSnapshot?.hiddenLoaded ?? false);
@@ -99,6 +99,7 @@ const Profile = () => {
   const [pendingRemoveTrack, setPendingRemoveTrack] = useState<{ hiddenId: string; trackId: string; title?: string } | null>(null);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const moonRevealTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const profileViewLoggedRef = useRef(false);
   const [profileOwnerHiddenIds, setProfileOwnerHiddenIds] = useState<Set<string>>(new Set());
 
@@ -297,10 +298,15 @@ const Profile = () => {
         .eq("following_id", profile.id)
         .limit(50);
       setFollowers((data || []).map((f: any) => f.profiles).filter(Boolean));
-      setTimeout(() => setMoonsFaded(true), 2500);
     };
     loadFollowers();
   }, [isOwnProfile, profile]);
+
+  useEffect(() => {
+    return () => {
+      if (moonRevealTimerRef.current) clearTimeout(moonRevealTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (isOwnProfile || !user || !profile) return;
@@ -508,6 +514,15 @@ const Profile = () => {
       orbitLeftOffset: (seededRandom(f.id + "ol") - 0.5) * 30,
     }));
   }, [followers]);
+  const activeMoodEmoji = profile?.current_mood ? getMoodBySlug(profile.current_mood)?.emoji : null;
+
+  const handleMoonTap = (moonId: string) => {
+    setActiveMoonId(moonId);
+    if (moonRevealTimerRef.current) clearTimeout(moonRevealTimerRef.current);
+    moonRevealTimerRef.current = setTimeout(() => {
+      setActiveMoonId(null);
+    }, 5000);
+  };
 
   if (loading) return null;
   if (!user && !username) return <Navigate to="/" replace />;
@@ -697,8 +712,19 @@ const Profile = () => {
                     } as React.CSSProperties
                   }
                 >
-                  <div
-                    className="rounded-full moon-dot"
+                  {activeMoonId === m.id && activeMoodEmoji && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 text-[12px] transition-opacity duration-300"
+                      style={{ opacity: 1 }}
+                    >
+                      {activeMoodEmoji}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleMoonTap(m.id)}
+                    className="rounded-full moon-dot pointer-events-auto appearance-none border-0 bg-transparent p-0"
                     style={
                       {
                         position: "relative",
@@ -709,30 +735,13 @@ const Profile = () => {
                         "--moon-color": m.color,
                         "--moon-color-dim": `${m.color}66`,
                         animation: `moon-glow 2.5s ease-in-out infinite`,
+                        WebkitTapHighlightColor: "transparent",
                       } as React.CSSProperties
                     }
-                  >
-                    {getMoodRing(profile?.current_mood) && (
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute rounded-full"
-                        style={
-                          {
-                            inset: -3,
-                            background: getMoodRing(profile?.current_mood)?.background,
-                            transform: "translate(1px, -1px)",
-                            padding: 1,
-                            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                            WebkitMaskComposite: "xor",
-                            maskComposite: "exclude",
-                          } as React.CSSProperties
-                        }
-                      />
-                    )}
-                  </div>
+                  />
                   <span
-                    className="text-[8px] mt-0.5 transition-opacity duration-[2000ms]"
-                    style={{ color: "#F0EBE3", opacity: moonsFaded ? 0 : 1 }}
+                    className="pointer-events-none absolute top-full mt-0.5 left-1/2 -translate-x-1/2 text-[8px] transition-opacity duration-300 whitespace-nowrap"
+                    style={{ color: "#F0EBE3", opacity: activeMoonId === m.id ? 1 : 0 }}
                   >
                     @{m.username || "·"}
                   </span>
@@ -782,11 +791,6 @@ const Profile = () => {
             )}
             {profile?.status && (
               <p className="text-[11px] text-muted-foreground/70 italic mt-0.5">"{profile.status}"</p>
-            )}
-            {profile?.current_mood && getMoodBySlug(profile.current_mood) && (
-              <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                {getMoodBySlug(profile.current_mood)!.emoji} {getMoodBySlug(profile.current_mood)!.label}
-              </p>
             )}
             {!isOwnProfile && tasteMatch !== null && (
               <span className="inline-block mt-1 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-medium text-primary-foreground">
