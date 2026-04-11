@@ -13,21 +13,33 @@ export const getMoodBySlug = (slug: string | null | undefined) =>
 
 export const getMoodRing = (
   slug: string | null | undefined,
-): { borderColor?: string; background?: string } | null => {
+): { background: string } | null => {
   switch (slug) {
     case "floating":
-      return { borderColor: "rgba(244, 247, 255, 0.55)" };
+      return {
+        background:
+          "conic-gradient(from 216deg, transparent 0deg 248deg, rgba(244, 247, 255, 0.5) 248deg 356deg, transparent 356deg 360deg)",
+      };
     case "in_motion":
-      return { borderColor: "rgba(214, 187, 120, 0.6)" };
+      return {
+        background:
+          "conic-gradient(from 216deg, transparent 0deg 248deg, rgba(214, 187, 120, 0.58) 248deg 356deg, transparent 356deg 360deg)",
+      };
     case "outside":
       return {
         background:
-          "linear-gradient(135deg, rgba(198, 180, 230, 0.55), rgba(224, 181, 197, 0.45), rgba(216, 192, 144, 0.5))",
+          "conic-gradient(from 216deg, transparent 0deg 248deg, rgba(198, 180, 230, 0.5) 248deg 284deg, rgba(224, 181, 197, 0.42) 284deg 320deg, rgba(216, 192, 144, 0.48) 320deg 356deg, transparent 356deg 360deg)",
       };
     case "in_my_feels":
-      return { borderColor: "rgba(146, 171, 214, 0.55)" };
+      return {
+        background:
+          "conic-gradient(from 216deg, transparent 0deg 248deg, rgba(146, 171, 214, 0.55) 248deg 356deg, transparent 356deg 360deg)",
+      };
     case "just_here":
-      return { borderColor: "rgba(168, 168, 176, 0.3)" };
+      return {
+        background:
+          "conic-gradient(from 216deg, transparent 0deg 248deg, rgba(168, 168, 176, 0.28) 248deg 356deg, transparent 356deg 360deg)",
+      };
     default:
       return null;
   }

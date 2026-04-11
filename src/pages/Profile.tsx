@@ -629,16 +629,12 @@ const Profile = () => {
                         style={
                           {
                             inset: -3,
-                            border: getMoodRing(profile?.current_mood)?.borderColor
-                              ? `1px solid ${getMoodRing(profile?.current_mood)?.borderColor}`
-                              : "1px solid transparent",
                             background: getMoodRing(profile?.current_mood)?.background,
-                            WebkitMask: getMoodRing(profile?.current_mood)?.background
-                              ? "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)"
-                              : undefined,
-                            WebkitMaskComposite: getMoodRing(profile?.current_mood)?.background ? "xor" : undefined,
-                            maskComposite: getMoodRing(profile?.current_mood)?.background ? "exclude" : undefined,
-                            padding: getMoodRing(profile?.current_mood)?.background ? 1 : undefined,
+                            transform: "translate(1px, -1px)",
+                            padding: 1,
+                            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                            WebkitMaskComposite: "xor",
+                            maskComposite: "exclude",
                           } as React.CSSProperties
                         }
                       />
