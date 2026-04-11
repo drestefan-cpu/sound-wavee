@@ -91,7 +91,6 @@ const Profile = () => {
   const [followers, setFollowers] = useState<any[]>([]);
   const [moonsFaded, setMoonsFaded] = useState(false);
   const [activeMoonId, setActiveMoonId] = useState<string | null>(null);
-  const [activeMoonNonce, setActiveMoonNonce] = useState(0);
   const [unseenRecCount, setUnseenRecCount] = useState(0);
   const [hiddenTracks, setHiddenTracks] = useState<any[]>(cachedSnapshot?.hiddenTracks ?? []);
   const [hiddenLoaded, setHiddenLoaded] = useState(cachedSnapshot?.hiddenLoaded ?? false);
@@ -297,7 +296,7 @@ const Profile = () => {
     const loadFollowers = async () => {
       const { data } = await supabase
         .from("follows")
-        .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color, current_mood)")
+        .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color)")
         .eq("following_id", profile.id)
         .limit(50);
       setFollowers((data || []).map((f: any) => f.profiles).filter(Boolean));
@@ -515,7 +514,6 @@ const Profile = () => {
       id: f.id,
       username: f.username,
       color: f.profile_color || "#FF2D78",
-      mood: f.current_mood || null,
       size: 8 + seededRandom(f.id + "s") * 8,
       orbitDelay: -((idx / arr.length) * 160),
       orbitDuration: 120 + seededRandom(f.id + "t") * 80,
@@ -523,10 +521,10 @@ const Profile = () => {
       orbitLeftOffset: (seededRandom(f.id + "ol") - 0.5) * 30,
     }));
   }, [followers]);
+  const activeMoodEmoji = profile?.current_mood ? getMoodBySlug(profile.current_mood)?.emoji : null;
 
   const handleMoonTap = (moonId: string) => {
     setActiveMoonId(moonId);
-    setActiveMoonNonce((prev) => prev + 1);
     if (moonRevealTimerRef.current) clearTimeout(moonRevealTimerRef.current);
     moonRevealTimerRef.current = setTimeout(() => {
       setActiveMoonId(null);
@@ -724,44 +722,32 @@ const Profile = () => {
                   <button
                     type="button"
                     onClick={() => handleMoonTap(m.id)}
-                    className="pointer-events-auto appearance-none border-0 bg-transparent p-0 flex items-center justify-center"
+                    className="rounded-full moon-dot pointer-events-auto appearance-none border-0 bg-transparent p-0"
                     style={
                       {
                         position: "relative",
-                        width: 32,
-                        height: 32,
+                        width: m.size,
+                        height: m.size,
+                        backgroundColor: m.color,
+                        opacity: 0.75,
+                        "--moon-color": m.color,
+                        "--moon-color-dim": `${m.color}66`,
+                        animation: `moon-glow 2.5s ease-in-out infinite`,
                         WebkitTapHighlightColor: "transparent",
-                        touchAction: "manipulation",
                       } as React.CSSProperties
                     }
-                  >
-                    <span
-                      className="rounded-full moon-dot"
-                      style={
-                        {
-                          width: m.size,
-                          height: m.size,
-                          backgroundColor: m.color,
-                          opacity: 0.75,
-                          "--moon-color": m.color,
-                          "--moon-color-dim": `${m.color}66`,
-                          animation: `moon-glow 2.5s ease-in-out infinite`,
-                        } as React.CSSProperties
-                      }
-                    />
-                  </button>
+                  />
                   {activeMoonId === m.id && (
                     <div
-                      key={`${m.id}-${activeMoonNonce}`}
                       className="pointer-events-none absolute inset-0"
                     >
-                      {m.mood && getMoodBySlug(m.mood)?.emoji && (
+                      {activeMoodEmoji && (
                         <span
                           aria-hidden="true"
                           className="absolute -top-4 left-1/2 -translate-x-1/2 text-[12px] transition-opacity duration-300"
                           style={{ opacity: 1 }}
                         >
-                          {getMoodBySlug(m.mood)?.emoji}
+                          {activeMoodEmoji}
                         </span>
                       )}
                       <span
