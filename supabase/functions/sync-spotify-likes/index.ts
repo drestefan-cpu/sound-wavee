@@ -61,6 +61,13 @@ serve(async (req) => {
     const spotifyData = await spotifyRes.json()
     let syncedCount = 0
 
+    const { data: exclusionRows } = await supabaseAdmin
+      .from("collection_exclusions")
+      .select("track_id")
+      .eq("user_id", user_id)
+
+    const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
+
     for (const item of spotifyData.items || []) {
       const track = item.track
       if (!track?.id) continue
@@ -79,6 +86,8 @@ serve(async (req) => {
         .single()
 
       if (!trackData?.id) continue
+
+      if (excludedTrackIds.has(trackData.id)) continue
 
       await supabaseAdmin
         .from("likes")
