@@ -13,7 +13,7 @@ import FollowersModal from "@/components/FollowersModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-import { getMoodBySlug, getMoodGlow } from "@/lib/moods";
+import { getMoodBySlug, getMoodRing } from "@/lib/moods";
 
 function seededRandom(seed: string) {
   let h = 0;
@@ -584,8 +584,8 @@ const Profile = () => {
                 100% { transform: translate(160px, 0px); }
               }
               @keyframes moon-glow {
-                0%, 100% { box-shadow: 0 0 6px 2px var(--moon-glow-color, var(--moon-color)), 0 0 12px 4px var(--moon-glow-dim, var(--moon-color-dim)); }
-                50% { box-shadow: 0 0 12px 4px var(--moon-glow-color, var(--moon-color)), 0 0 24px 8px var(--moon-glow-dim, var(--moon-color-dim)); }
+                0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
+                50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
               }
               @media (prefers-reduced-motion: reduce) {
                 .moon-el { animation: none !important; }
@@ -611,18 +611,39 @@ const Profile = () => {
                     className="rounded-full moon-dot"
                     style={
                       {
+                        position: "relative",
                         width: m.size,
                         height: m.size,
                         backgroundColor: m.color,
                         opacity: 0.75,
                         "--moon-color": m.color,
                         "--moon-color-dim": `${m.color}66`,
-                        "--moon-glow-color": getMoodGlow(profile?.current_mood)?.color ?? undefined,
-                        "--moon-glow-dim": getMoodGlow(profile?.current_mood)?.dim ?? undefined,
                         animation: `moon-glow 2.5s ease-in-out infinite`,
                       } as React.CSSProperties
                     }
-                  />
+                  >
+                    {getMoodRing(profile?.current_mood) && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute rounded-full"
+                        style={
+                          {
+                            inset: -3,
+                            border: getMoodRing(profile?.current_mood)?.borderColor
+                              ? `1px solid ${getMoodRing(profile?.current_mood)?.borderColor}`
+                              : "1px solid transparent",
+                            background: getMoodRing(profile?.current_mood)?.background,
+                            WebkitMask: getMoodRing(profile?.current_mood)?.background
+                              ? "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)"
+                              : undefined,
+                            WebkitMaskComposite: getMoodRing(profile?.current_mood)?.background ? "xor" : undefined,
+                            maskComposite: getMoodRing(profile?.current_mood)?.background ? "exclude" : undefined,
+                            padding: getMoodRing(profile?.current_mood)?.background ? 1 : undefined,
+                          } as React.CSSProperties
+                        }
+                      />
+                    )}
+                  </div>
                   <span
                     className="text-[8px] mt-0.5 transition-opacity duration-[2000ms]"
                     style={{ color: "#F0EBE3", opacity: moonsFaded ? 0 : 1 }}
