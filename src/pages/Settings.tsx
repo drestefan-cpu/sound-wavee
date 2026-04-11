@@ -13,6 +13,13 @@ import AboutPlai from "@/components/AboutPlai";
 import AdminPanel from "@/components/AdminPanel";
 import { MOODS, getMoodBySlug } from "@/lib/moods";
 
+interface NotifSettings {
+  push_follows: boolean;
+  push_reactions: boolean;
+  push_saves: boolean;
+  push_recommendations: boolean;
+}
+
 const platformOptions = [
   { value: "spotify", label: "Spotify" },
   { value: "apple_music", label: "Apple Music" },
@@ -41,6 +48,13 @@ const SettingsPage = () => {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [currentMood, setCurrentMood] = useState<string | null>(null);
+  const [notifSettings, setNotifSettings] = useState<NotifSettings>({
+    push_follows: true,
+    push_reactions: true,
+    push_saves: true,
+    push_recommendations: true,
+  });
+  const [notifLoaded, setNotifLoaded] = useState(false);
 
   useEffect(() => {
     const load = async () => {
