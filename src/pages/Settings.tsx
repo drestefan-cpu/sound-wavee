@@ -596,8 +596,8 @@ const SettingsPage = () => {
                   style={{ touchAction: "manipulation" }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-all duration-200 ${
                     notifSettings[item.key]
-                      ? "border-primary/25 bg-primary/30"
-                      : "border-border/80 bg-muted/45"
+                      ? "border-primary/35 bg-primary/55"
+                      : "border-border/80 bg-muted/65"
                   }`}
                 >
                   <span

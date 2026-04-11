@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, BellOff } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -52,20 +52,18 @@ const NotifyBell = ({ targetUserId, targetUsername }: NotifyBellProps) => {
 
   return (
     <button
+      type="button"
       onClick={toggle}
-      className={`flex h-9 w-9 items-center justify-center rounded-md border transition-all duration-150 ${
+      className={`flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-150 ${
         enabled
-          ? "border-input bg-background text-foreground shadow-sm"
-          : "border-border bg-background/40 text-muted-foreground hover:text-foreground hover:border-input"
+          ? "border-primary/35 bg-background text-primary shadow-sm"
+          : "border-border bg-background/40 text-muted-foreground hover:text-foreground hover:border-primary/20"
       }`}
-      style={{ touchAction: "manipulation" }}
+      style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+      aria-pressed={enabled}
       aria-label={enabled ? "Disable notifications" : "Enable notifications"}
     >
-      {enabled ? (
-        <Bell className="h-4 w-4" />
-      ) : (
-        <Bell className="h-4 w-4" />
-      )}
+      <Bell className="h-4 w-4" />
     </button>
   );
 };
