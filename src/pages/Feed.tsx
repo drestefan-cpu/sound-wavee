@@ -174,6 +174,7 @@ const Feed = () => {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [pendingItems, setPendingItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [filtersReady, setFiltersReady] = useState(false);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [tab, setTab] = useState<"following" | "artists" | "trending" | "people" | "plailists">("following");
   const [showWelcome, setShowWelcome] = useState(false);
@@ -250,18 +251,23 @@ const Feed = () => {
 
   useEffect(() => {
     const init = async () => {
-      const ids = await loadFollowing();
-      await loadFeed(ids);
-      if (user) {
-        const [hiddenRes, exclusionsRes] = await Promise.all([
-          supabase
-            .from("hidden_tracks" as any)
-            .select("track_id")
-            .eq("user_id", user.id),
-          supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", user.id),
-        ]);
-        setHiddenIds(new Set(((hiddenRes.data || []) as any[]).map((r: any) => r.track_id)));
-        setCollectionExclusionIds(new Set(((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id)));
+      setFiltersReady(false);
+      try {
+        const ids = await loadFollowing();
+        await loadFeed(ids);
+        if (user) {
+          const [hiddenRes, exclusionsRes] = await Promise.all([
+            supabase
+              .from("hidden_tracks" as any)
+              .select("track_id")
+              .eq("user_id", user.id),
+            supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", user.id),
+          ]);
+          setHiddenIds(new Set(((hiddenRes.data || []) as any[]).map((r: any) => r.track_id)));
+          setCollectionExclusionIds(new Set(((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id)));
+        }
+      } finally {
+        setFiltersReady(true);
       }
     };
     init();
@@ -557,6 +563,7 @@ const Feed = () => {
   const hasFollowing = followingIds.length > 0;
   const visibleFeedItems = items.filter((item) => !hiddenIds.has(item.track_id) && !collectionExclusionIds.has(item.track_id));
   const hasContent = visibleFeedItems.length > 0;
+  const showFeedLoading = feedLoading || !filtersReady;
 
   const tabs = [
     { key: "following", label: "friends" },
@@ -722,7 +729,7 @@ const Feed = () => {
       <main className="mx-auto max-w-feed px-4 py-4">
         {tab === "following" ? (
           <>
-            {!hasFollowing && !hasContent && !feedLoading ? (
+            {!hasFollowing && !hasContent && !showFeedLoading ? (
               <div className="space-y-3">
                 <div className="rounded-xl border border-primary/30 bg-card p-4 text-center">
                   <p className="text-sm text-foreground mb-1">this is what your feed looks like</p>
@@ -830,7 +837,7 @@ const Feed = () => {
                     );
                   })}
               </div>
-            ) : feedLoading ? (
+            ) : showFeedLoading ? (
               <div className="flex justify-center py-20">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
