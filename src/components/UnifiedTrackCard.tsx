@@ -3,6 +3,7 @@ import { Heart, Play, Send } from "lucide-react";
 import { getTrackUrl } from "@/lib/trackLinks";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
+import { useAuth } from "@/contexts/AuthContext";
 import EmojiReactions from "@/components/EmojiReactions";
 import TrackDetailModal from "@/components/TrackDetailModal";
 
@@ -64,6 +65,7 @@ const UnifiedTrackCard = ({
 }: UnifiedTrackCardProps) => {
   const { preferredPlatform } = usePlatform();
   const { isSaved: isGloballySaved, toggleSave } = useSavedTracks();
+  const { user } = useAuth();
   const [bouncing, setBouncing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
 
@@ -71,6 +73,7 @@ const UnifiedTrackCard = ({
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
   const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist);
   const isCurrentlyPlaying = false;
+  const isOwnTrack = sourceUserId ? sourceUserId === user?.id : true;
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -189,7 +192,7 @@ const UnifiedTrackCard = ({
             }}
             onClose={() => setShowDetail(false)}
             onHide={onHide}
-            isOwnTrack={!sourceUserId}
+            isOwnTrack={isOwnTrack}
           />
         )}
       </>
@@ -285,7 +288,7 @@ const UnifiedTrackCard = ({
           }}
           onClose={() => setShowDetail(false)}
           onHide={onHide}
-          isOwnTrack={!sourceUserId}
+          isOwnTrack={isOwnTrack}
         />
       )}
     </>
