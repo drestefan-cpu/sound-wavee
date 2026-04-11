@@ -143,6 +143,8 @@ const artistReleaseFallbackItems: ArtistReleaseItem[] = [
   },
 ];
 
+const USE_MOCK_ARTIST_TAB = true;
+
 const normalizeArtistName = (value?: string | null) =>
   value
     ?.normalize("NFKC")
@@ -362,6 +364,22 @@ const Feed = () => {
   useEffect(() => {
     const loadArtistReleases = async () => {
       if (!user) return;
+
+      if (USE_MOCK_ARTIST_TAB) {
+        setArtistItems(artistReleaseFallbackItems);
+        setArtistLoading(false);
+        setArtistFallback(false);
+        setArtistEmptyState(null);
+        setArtistFollowedCount(artistReleaseFallbackItems.length);
+        setArtistMatchedCount(artistReleaseFallbackItems.length);
+        setArtistHasTestRelease(false);
+        setArtistFollowedDebug([]);
+        setArtistReleaseDebug([]);
+        setArtistHasDestinFollowed(false);
+        setArtistHasDestinRelease(false);
+        return;
+      }
+
       setArtistLoading(true);
       setArtistEmptyState(null);
       setArtistFallback(false);
@@ -926,41 +944,45 @@ const Feed = () => {
           </>
         ) : tab === "artists" ? (
           <div className="space-y-6">
-            <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
-              <div>user: {user.id}</div>
-              <div>followed artists: {artistFollowedCount}</div>
-              <div>matched releases: {artistMatchedCount}</div>
-              <div>popular releases: {artistItems.slice(0, 3).length}</div>
-              <div>has "New Drop (Test)": {artistHasTestRelease ? "yes" : "no"}</div>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground space-y-2">
-              <div>
-                <div className="font-medium text-foreground">followed artists debug</div>
-                {artistFollowedDebug.length > 0 ? (
-                  artistFollowedDebug.map((item, index) => (
-                    <div key={`followed-${index}`}>
-                      raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
-                    </div>
-                  ))
-                ) : (
-                  <div>none</div>
-                )}
-                <div>has DESTIN CONRAD in followed list: {artistHasDestinFollowed ? "yes" : "no"}</div>
-              </div>
-              <div>
-                <div className="font-medium text-foreground">release artists debug</div>
-                {artistReleaseDebug.length > 0 ? (
-                  artistReleaseDebug.map((item, index) => (
-                    <div key={`release-${index}`}>
-                      raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
-                    </div>
-                  ))
-                ) : (
-                  <div>none</div>
-                )}
-                <div>has DESTIN CONRAD in releases list: {artistHasDestinRelease ? "yes" : "no"}</div>
-              </div>
-            </div>
+            {!USE_MOCK_ARTIST_TAB && (
+              <>
+                <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
+                  <div>user: {user.id}</div>
+                  <div>followed artists: {artistFollowedCount}</div>
+                  <div>matched releases: {artistMatchedCount}</div>
+                  <div>popular releases: {artistItems.slice(0, 3).length}</div>
+                  <div>has "New Drop (Test)": {artistHasTestRelease ? "yes" : "no"}</div>
+                </div>
+                <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground space-y-2">
+                  <div>
+                    <div className="font-medium text-foreground">followed artists debug</div>
+                    {artistFollowedDebug.length > 0 ? (
+                      artistFollowedDebug.map((item, index) => (
+                        <div key={`followed-${index}`}>
+                          raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
+                        </div>
+                      ))
+                    ) : (
+                      <div>none</div>
+                    )}
+                    <div>has DESTIN CONRAD in followed list: {artistHasDestinFollowed ? "yes" : "no"}</div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">release artists debug</div>
+                    {artistReleaseDebug.length > 0 ? (
+                      artistReleaseDebug.map((item, index) => (
+                        <div key={`release-${index}`}>
+                          raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
+                        </div>
+                      ))
+                    ) : (
+                      <div>none</div>
+                    )}
+                    <div>has DESTIN CONRAD in releases list: {artistHasDestinRelease ? "yes" : "no"}</div>
+                  </div>
+                </div>
+              </>
+            )}
             {artistLoading ? (
               <div className="flex justify-center py-12">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -981,7 +1003,7 @@ const Feed = () => {
               </div>
             ) : (
               <>
-                {artistFallback && (
+                {artistFallback && !USE_MOCK_ARTIST_TAB && (
                   <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
                     showing fallback releases while real artist data finishes connecting
                   </div>
