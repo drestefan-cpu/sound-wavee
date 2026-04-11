@@ -67,6 +67,8 @@ const Profile = () => {
   const [unseenRecCount, setUnseenRecCount] = useState(0);
   const [hiddenTracks, setHiddenTracks] = useState<any[]>([]);
   const [hiddenLoaded, setHiddenLoaded] = useState(false);
+  const [collectionExclusionIds, setCollectionExclusionIds] = useState<Set<string>>(new Set());
+  const [pendingRemoveTrack, setPendingRemoveTrack] = useState<{ hiddenId: string; trackId: string; title?: string } | null>(null);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const profileViewLoggedRef = useRef(false);
@@ -127,20 +129,24 @@ const Profile = () => {
 
   const loadCollection = useCallback(async () => {
     if (!profile) return;
-    const { data } = await supabase
-      .from("likes")
-      .select(
-        "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)",
-      )
-      .eq("user_id", profile.id)
-      .order("liked_at", { ascending: false })
-      .limit(100);
-    setLikes(data || []);
-    const { count } = await supabase
-      .from("likes")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", profile.id);
-    setLikesCount(count || 0);
+    const [likesRes, countRes, exclusionsRes] = await Promise.all([
+      supabase
+        .from("likes")
+        .select(
+          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)",
+        )
+        .eq("user_id", profile.id)
+        .order("liked_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("likes")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", profile.id),
+      supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", profile.id),
+    ]);
+    setLikes(likesRes.data || []);
+    setLikesCount(countRes.count || 0);
+    setCollectionExclusionIds(new Set(((exclusionsRes.data || []) as any[]).map((row) => row.track_id)));
   }, [profile]);
 
   useEffect(() => {
@@ -151,7 +157,7 @@ const Profile = () => {
     }, 5000);
     const loadData = async () => {
       try {
-        const [likesRes, savedRes, fcRes, fgcRes, lcRes, scRes] = await Promise.all([
+        const [likesRes, savedRes, fcRes, fgcRes, lcRes, scRes, exclusionsRes] = await Promise.all([
           supabase
             .from("likes")
             .select(
@@ -170,6 +176,7 @@ const Profile = () => {
           supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id),
           supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
           supabase.from("saved_tracks").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
+          supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", profile.id),
         ]);
         if (!cancelled) {
           setLikes(likesRes.data || []);
@@ -178,6 +185,7 @@ const Profile = () => {
           setFollowingCount(fgcRes.count || 0);
           setLikesCount(lcRes.count || 0);
           setFindsCount(scRes.count || 0);
+          setCollectionExclusionIds(new Set((((exclusionsRes as any).data) || []).map((row: any) => row.track_id)));
           setDataLoaded(true);
         }
       } catch {
@@ -477,14 +485,13 @@ const Profile = () => {
     toast.success("song back in your collection");
   };
 
-  const handleRemoveHiddenTrack = async (hiddenId: string, trackId: string, trackTitle?: string) => {
+  const handleRemoveHiddenTrack = async (hiddenId: string, trackId: string) => {
     if (!user) return;
-    const confirmed = window.confirm(
-      `Remove ${trackTitle ? `"${trackTitle}"` : "this song"} from your collection? This will remove it from your PLAI collection entirely.`,
-    );
-    if (!confirmed) return;
 
     await Promise.all([
+      supabase
+        .from("collection_exclusions" as any)
+        .upsert({ user_id: user.id, track_id: trackId } as any, { onConflict: "user_id,track_id" }),
       supabase
         .from("hidden_tracks" as any)
         .delete()
@@ -496,12 +503,15 @@ const Profile = () => {
     setHiddenTracks((prev) => prev.filter((t) => t.id !== hiddenId));
     setLikes((prev) => prev.filter((like) => like.track_id !== trackId));
     setSavedTracks((prev) => prev.filter((saved) => saved.track_id !== trackId));
+    setCollectionExclusionIds((prev) => new Set(prev).add(trackId));
     setLikesCount((prev) => Math.max(0, prev - 1));
+    setPendingRemoveTrack(null);
     toast.success("song removed from your collection");
   };
 
   const filteredLikes = (() => {
     let result = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
+    result = result.filter((l: any) => !collectionExclusionIds.has(l.track_id));
     if (isOwnProfile) result = result.filter((l: any) => !ownHiddenIds.has(l.track_id));
     else result = result.filter((l: any) => !profileOwnerHiddenIds.has(l.track_id));
     return result;
@@ -915,14 +925,14 @@ const Profile = () => {
                 onClick={() => setCollectionFilter("30d")}
                 className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "30d" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
               >
-                last 30 days ({likes.filter((l) => l.liked_at >= thirtyDaysAgo && !ownHiddenIds.has(l.track_id)).length}
+                last 30 days ({likes.filter((l) => l.liked_at >= thirtyDaysAgo && !collectionExclusionIds.has(l.track_id) && !ownHiddenIds.has(l.track_id)).length}
                 )
               </button>
               <button
                 onClick={() => setCollectionFilter("all")}
                 className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "all" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
               >
-                all time ({likes.filter((l) => !ownHiddenIds.has(l.track_id)).length})
+                all time ({likes.filter((l) => !collectionExclusionIds.has(l.track_id) && !ownHiddenIds.has(l.track_id)).length})
               </button>
               {isOwnProfile && (
                 <button
@@ -967,7 +977,13 @@ const Profile = () => {
                           unhide
                         </button>
                         <button
-                          onClick={() => handleRemoveHiddenTrack(h.id, h.track_id, h.tracks?.title)}
+                          onClick={() =>
+                            setPendingRemoveTrack({
+                              hiddenId: h.id,
+                              trackId: h.track_id,
+                              title: h.tracks?.title,
+                            })
+                          }
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
                           remove
@@ -1053,6 +1069,43 @@ const Profile = () => {
 
       {followModal && profile && (
         <FollowersModal profileId={profile.id} mode={followModal} onClose={() => setFollowModal(null)} />
+      )}
+      {pendingRemoveTrack && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setPendingRemoveTrack(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl p-6 max-w-xs w-full mx-4 text-center relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setPendingRemoveTrack(null)}
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="text-lg font-medium text-foreground">remove from collection?</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {pendingRemoveTrack.title ? `"${pendingRemoveTrack.title}" will be removed from your PLAI collection.` : "This song will be removed from your PLAI collection."}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">you can still like it again later if you change your mind.</p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setPendingRemoveTrack(null)}
+                className="flex-1 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-150 hover:text-foreground"
+              >
+                cancel
+              </button>
+              <button
+                onClick={() => handleRemoveHiddenTrack(pendingRemoveTrack.hiddenId, pendingRemoveTrack.trackId)}
+                className="flex-1 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
+              >
+                remove
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {showFlappy && <FlappyBird onClose={() => setShowFlappy(false)} />}
       <BottomNav />
