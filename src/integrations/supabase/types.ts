@@ -122,6 +122,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          read: boolean
+          track_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          read?: boolean
+          track_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          read?: boolean
+          track_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plai_picks: {
         Row: {
           active: boolean | null
@@ -459,6 +492,54 @@ export type Database = {
           tidal_track_id?: string | null
           title?: string
           youtube_video_id?: string | null
+        }
+        Relationships: []
+      }
+      user_notification_settings: {
+        Row: {
+          created_at: string
+          push_follows: boolean
+          push_reactions: boolean
+          push_recommendations: boolean
+          push_saves: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          push_follows?: boolean
+          push_reactions?: boolean
+          push_recommendations?: boolean
+          push_saves?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          push_follows?: boolean
+          push_reactions?: boolean
+          push_recommendations?: boolean
+          push_saves?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_notify_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          id?: string
+          target_user_id?: string
         }
         Relationships: []
       }
