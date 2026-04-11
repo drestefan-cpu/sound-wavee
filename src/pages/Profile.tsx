@@ -722,21 +722,31 @@ const Profile = () => {
                   <button
                     type="button"
                     onClick={() => handleMoonTap(m.id)}
-                    className="rounded-full moon-dot pointer-events-auto appearance-none border-0 bg-transparent p-0"
+                    className="pointer-events-auto appearance-none border-0 bg-transparent p-0 flex items-center justify-center"
                     style={
                       {
                         position: "relative",
-                        width: m.size,
-                        height: m.size,
-                        backgroundColor: m.color,
-                        opacity: 0.75,
-                        "--moon-color": m.color,
-                        "--moon-color-dim": `${m.color}66`,
-                        animation: `moon-glow 2.5s ease-in-out infinite`,
+                        width: 32,
+                        height: 32,
                         WebkitTapHighlightColor: "transparent",
                       } as React.CSSProperties
                     }
-                  />
+                  >
+                    <span
+                      className="rounded-full moon-dot"
+                      style={
+                        {
+                          width: m.size,
+                          height: m.size,
+                          backgroundColor: m.color,
+                          opacity: 0.75,
+                          "--moon-color": m.color,
+                          "--moon-color-dim": `${m.color}66`,
+                          animation: `moon-glow 2.5s ease-in-out infinite`,
+                        } as React.CSSProperties
+                      }
+                    />
+                  </button>
                   {activeMoonId === m.id && (
                     <div
                       className="pointer-events-none absolute inset-0"
