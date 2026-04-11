@@ -53,16 +53,16 @@ const NotifyBell = ({ targetUserId, targetUsername }: NotifyBellProps) => {
   return (
     <button
       onClick={toggle}
-      className={`flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-150 ${
+      className={`flex h-9 w-9 items-center justify-center rounded-md border transition-all duration-150 ${
         enabled
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+          ? "border-input bg-background text-foreground shadow-sm"
+          : "border-border bg-background/40 text-muted-foreground hover:text-foreground hover:border-input"
       }`}
       style={{ touchAction: "manipulation" }}
       aria-label={enabled ? "Disable notifications" : "Enable notifications"}
     >
       {enabled ? (
-        <Bell className="h-4 w-4" fill="currentColor" />
+        <Bell className="h-4 w-4" />
       ) : (
         <Bell className="h-4 w-4" />
       )}

@@ -1,20 +1,17 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Disc, Settings, Bell } from "lucide-react";
+import { Home, Disc, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRef } from "react";
-import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const lastTapRef = useRef<number>(0);
-  const unread = useUnreadNotifications();
 
   const links = [
     { to: "/feed", icon: Home, label: "Feed" },
     { to: `/profile/${user?.id || ""}`, icon: Disc, label: "Library" },
-    { to: "/notifications", icon: Bell, label: "Alerts", badge: unread > 0 },
     { to: "/settings", icon: Settings, label: "Settings" },
   ];
 
@@ -39,7 +36,7 @@ const BottomNav = () => {
     >
       <div className="mx-auto flex max-w-feed items-center justify-around py-2">
         {links.map(({ to, icon: Icon, label, badge }) => {
-          const active = location.pathname === to || (to !== "/settings" && to !== "/notifications" && location.pathname.startsWith(to + "/"));
+          const active = location.pathname === to || (to !== "/settings" && location.pathname.startsWith(to + "/"));
           return (
             <button
               key={to}
