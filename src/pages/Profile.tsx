@@ -25,6 +25,23 @@ function seededRandom(seed: string) {
 
 type TabType = "finds" | "collection" | "activity" | "foryou";
 
+type ProfileSnapshot = {
+  profile: any;
+  likes: any[];
+  savedTracks: any[];
+  followerCount: number;
+  followingCount: number;
+  likesCount: number;
+  findsCount: number;
+  collectionExclusionIds: string[];
+  hiddenTracks: any[];
+  hiddenLoaded: boolean;
+};
+
+const profileSnapshots = new Map<string, ProfileSnapshot>();
+
+const getProfileCacheKey = (username?: string) => username || "__self__";
+
 const logProfileView = async (viewerId: string, profileId: string, tabViewed: string) => {
   if (viewerId === profileId) return;
   try {
@@ -40,13 +57,15 @@ const Profile = () => {
   const { username } = useParams();
   const { user, loading } = useAuth();
   const { isSaved, toggleSave } = useSavedTracks();
-  const [profile, setProfile] = useState<any>(null);
-  const [likes, setLikes] = useState<any[]>([]);
-  const [savedTracks, setSavedTracks] = useState<any[]>([]);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [likesCount, setLikesCount] = useState(0);
-  const [findsCount, setFindsCount] = useState(0);
+  const cacheKey = getProfileCacheKey(username);
+  const cachedSnapshot = profileSnapshots.get(cacheKey);
+  const [profile, setProfile] = useState<any>(cachedSnapshot?.profile ?? null);
+  const [likes, setLikes] = useState<any[]>(cachedSnapshot?.likes ?? []);
+  const [savedTracks, setSavedTracks] = useState<any[]>(cachedSnapshot?.savedTracks ?? []);
+  const [followerCount, setFollowerCount] = useState(cachedSnapshot?.followerCount ?? 0);
+  const [followingCount, setFollowingCount] = useState(cachedSnapshot?.followingCount ?? 0);
+  const [likesCount, setLikesCount] = useState(cachedSnapshot?.likesCount ?? 0);
+  const [findsCount, setFindsCount] = useState(cachedSnapshot?.findsCount ?? 0);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [tab, setTab] = useState<TabType>("finds");
@@ -55,7 +74,7 @@ const Profile = () => {
   const [showQR, setShowQR] = useState(false);
   const [usernameEdit, setUsernameEdit] = useState(false);
   const [newUsername, setNewUsername] = useState("");
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(!!cachedSnapshot);
   const [profileFailed, setProfileFailed] = useState(false);
   const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
   const [activity, setActivity] = useState<any[]>([]);
@@ -66,9 +85,11 @@ const Profile = () => {
   const [followers, setFollowers] = useState<any[]>([]);
   const [moonsFaded, setMoonsFaded] = useState(false);
   const [unseenRecCount, setUnseenRecCount] = useState(0);
-  const [hiddenTracks, setHiddenTracks] = useState<any[]>([]);
-  const [hiddenLoaded, setHiddenLoaded] = useState(false);
-  const [collectionExclusionIds, setCollectionExclusionIds] = useState<Set<string>>(new Set());
+  const [hiddenTracks, setHiddenTracks] = useState<any[]>(cachedSnapshot?.hiddenTracks ?? []);
+  const [hiddenLoaded, setHiddenLoaded] = useState(cachedSnapshot?.hiddenLoaded ?? false);
+  const [collectionExclusionIds, setCollectionExclusionIds] = useState<Set<string>>(
+    () => new Set(cachedSnapshot?.collectionExclusionIds ?? []),
+  );
   const [pendingRemoveTrack, setPendingRemoveTrack] = useState<{ hiddenId: string; trackId: string; title?: string } | null>(null);
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -78,10 +99,56 @@ const Profile = () => {
   const isOwnProfile = profile?.id === user?.id;
 
   useEffect(() => {
+    const snapshot = profileSnapshots.get(cacheKey);
+    profileViewLoggedRef.current = false;
+    setProfile(snapshot?.profile ?? null);
+    setLikes(snapshot?.likes ?? []);
+    setSavedTracks(snapshot?.savedTracks ?? []);
+    setFollowerCount(snapshot?.followerCount ?? 0);
+    setFollowingCount(snapshot?.followingCount ?? 0);
+    setLikesCount(snapshot?.likesCount ?? 0);
+    setFindsCount(snapshot?.findsCount ?? 0);
+    setDataLoaded(!!snapshot);
+    setProfileFailed(false);
+    setCollectionExclusionIds(new Set(snapshot?.collectionExclusionIds ?? []));
+    setHiddenTracks(snapshot?.hiddenTracks ?? []);
+    setHiddenLoaded(snapshot?.hiddenLoaded ?? false);
+  }, [cacheKey]);
+
+  useEffect(() => {
     if (!profile || !user || profileViewLoggedRef.current) return;
     profileViewLoggedRef.current = true;
     logProfileView(user.id, profile.id, tab);
   }, [profile, user]);
+
+  useEffect(() => {
+    if (!profile || !dataLoaded) return;
+    profileSnapshots.set(cacheKey, {
+      profile,
+      likes,
+      savedTracks,
+      followerCount,
+      followingCount,
+      likesCount,
+      findsCount,
+      collectionExclusionIds: Array.from(collectionExclusionIds),
+      hiddenTracks,
+      hiddenLoaded,
+    });
+  }, [
+    cacheKey,
+    profile,
+    likes,
+    savedTracks,
+    followerCount,
+    followingCount,
+    likesCount,
+    findsCount,
+    collectionExclusionIds,
+    hiddenTracks,
+    hiddenLoaded,
+    dataLoaded,
+  ]);
 
   useEffect(() => {
     if (!profile || !user || isOwnProfile) return;
