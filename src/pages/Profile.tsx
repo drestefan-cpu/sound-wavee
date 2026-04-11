@@ -89,6 +89,7 @@ const Profile = () => {
   const [recsLoaded, setRecsLoaded] = useState(false);
   const [tasteMatch, setTasteMatch] = useState<number | null>(null);
   const [followers, setFollowers] = useState<any[]>([]);
+  const [moonsFaded, setMoonsFaded] = useState(false);
   const [activeMoonId, setActiveMoonId] = useState<string | null>(null);
   const [unseenRecCount, setUnseenRecCount] = useState(0);
   const [hiddenTracks, setHiddenTracks] = useState<any[]>(cachedSnapshot?.hiddenTracks ?? []);
@@ -291,6 +292,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (!isOwnProfile || !profile) return;
+    let fadeTimeout: ReturnType<typeof setTimeout> | undefined;
     const loadFollowers = async () => {
       const { data } = await supabase
         .from("follows")
@@ -298,8 +300,13 @@ const Profile = () => {
         .eq("following_id", profile.id)
         .limit(50);
       setFollowers((data || []).map((f: any) => f.profiles).filter(Boolean));
+      setMoonsFaded(false);
+      fadeTimeout = setTimeout(() => setMoonsFaded(true), 2500);
     };
     loadFollowers();
+    return () => {
+      if (fadeTimeout) clearTimeout(fadeTimeout);
+    };
   }, [isOwnProfile, profile]);
 
   useEffect(() => {
@@ -741,7 +748,7 @@ const Profile = () => {
                   />
                   <span
                     className="pointer-events-none absolute top-full mt-0.5 left-1/2 -translate-x-1/2 text-[8px] transition-opacity duration-300 whitespace-nowrap"
-                    style={{ color: "#F0EBE3", opacity: activeMoonId === m.id ? 1 : 0 }}
+                    style={{ color: "#F0EBE3", opacity: !moonsFaded || activeMoonId === m.id ? 1 : 0 }}
                   >
                     @{m.username || "·"}
                   </span>
