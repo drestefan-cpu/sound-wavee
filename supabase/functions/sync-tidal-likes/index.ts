@@ -63,6 +63,13 @@ serve(async (req) => {
     const tidalData = await tidalRes.json()
     let syncedCount = 0
 
+    const { data: exclusionRows } = await supabaseAdmin
+      .from("collection_exclusions")
+      .select("track_id")
+      .eq("user_id", user_id)
+
+    const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
+
     for (const item of tidalData.data || []) {
       const track = item.attributes
       if (!track) continue
@@ -87,6 +94,16 @@ serve(async (req) => {
         }).select("id").single()
         if (!inserted) continue
         trackId = inserted.id
+      }
+
+      if (excludedTrackIds.has(trackId)) {
+        await supabaseAdmin
+          .from("collection_exclusions")
+          .delete()
+          .eq("user_id", user_id)
+          .eq("track_id", trackId)
+
+        excludedTrackIds.delete(trackId)
       }
 
       const { data: existingLike } = await supabaseAdmin

@@ -44,6 +44,13 @@ serve(async (req) => {
     let trackUpsertErrors: string[] = []
     let likeUpsertErrors: string[] = []
 
+    const { data: exclusionRows } = await supabase
+      .from("collection_exclusions")
+      .select("track_id")
+      .eq("user_id", user_id)
+
+    const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
+
     do {
       const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems")
       url.searchParams.set("playlistId", "LL")
@@ -120,6 +127,16 @@ serve(async (req) => {
         }
 
         console.log(`Track upserted with id: ${track.id}`)
+
+        if (excludedTrackIds.has(track.id)) {
+          await supabase
+            .from("collection_exclusions")
+            .delete()
+            .eq("user_id", user_id)
+            .eq("track_id", track.id)
+
+          excludedTrackIds.delete(track.id)
+        }
 
         const { error: likeErr } = await supabase
           .from("likes")

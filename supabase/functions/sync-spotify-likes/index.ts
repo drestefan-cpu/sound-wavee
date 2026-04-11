@@ -87,7 +87,15 @@ serve(async (req) => {
 
       if (!trackData?.id) continue
 
-      if (excludedTrackIds.has(trackData.id)) continue
+      if (excludedTrackIds.has(trackData.id)) {
+        await supabaseAdmin
+          .from("collection_exclusions")
+          .delete()
+          .eq("user_id", user_id)
+          .eq("track_id", trackData.id)
+
+        excludedTrackIds.delete(trackData.id)
+      }
 
       await supabaseAdmin
         .from("likes")
