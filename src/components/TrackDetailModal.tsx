@@ -58,6 +58,25 @@ const TrackDetailModal = ({
     if (!user || !track.trackDbId) return;
     try {
       const { supabase } = await import("@/integrations/supabase/client");
+      const { data: exclusion } = await (supabase
+        .from("collection_exclusions" as any)
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("track_id", track.trackDbId)
+        .maybeSingle() as any);
+
+      if (exclusion) {
+        await (supabase
+          .from("hidden_tracks" as any)
+          .delete()
+          .eq("user_id", user.id)
+          .eq("track_id", track.trackDbId) as any);
+        toast("song is already removed from your collection");
+        onClose();
+        onHide?.();
+        return;
+      }
+
       await (supabase.from("hidden_tracks" as any).insert({
         user_id: user.id,
         track_id: track.trackDbId,

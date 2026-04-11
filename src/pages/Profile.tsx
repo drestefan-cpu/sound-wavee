@@ -516,6 +516,7 @@ const Profile = () => {
     else result = result.filter((l: any) => !profileOwnerHiddenIds.has(l.track_id));
     return result;
   })();
+  const filteredHiddenTracks = hiddenTracks.filter((h: any) => !collectionExclusionIds.has(h.track_id));
 
   const findsLabel = "finds";
   const collectionLabel = "collection";
@@ -939,7 +940,7 @@ const Profile = () => {
                   onClick={() => setCollectionFilter("hidden")}
                   className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "hidden" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
                 >
-                  hidden ({hiddenTracks.length})
+                  hidden ({filteredHiddenTracks.length})
                 </button>
               )}
             </div>
@@ -949,11 +950,11 @@ const Profile = () => {
                 <div className="flex justify-center py-6">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
-              ) : hiddenTracks.length === 0 ? (
+              ) : filteredHiddenTracks.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">no hidden songs</p>
               ) : (
                 <div className="space-y-2">
-                  {hiddenTracks.map((h: any) => (
+                  {filteredHiddenTracks.map((h: any) => (
                     <div key={h.id}>
                       <UnifiedTrackCard
                         compact

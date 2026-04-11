@@ -179,6 +179,7 @@ const Feed = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [liveState, setLiveState] = useState<LiveState>("live");
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [collectionExclusionIds, setCollectionExclusionIds] = useState<Set<string>>(new Set());
 
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<any[]>([]);
@@ -252,11 +253,15 @@ const Feed = () => {
       const ids = await loadFollowing();
       await loadFeed(ids);
       if (user) {
-        const { data: hiddenData } = await supabase
-          .from("hidden_tracks" as any)
-          .select("track_id")
-          .eq("user_id", user.id);
-        setHiddenIds(new Set((hiddenData || []).map((r: any) => r.track_id)));
+        const [hiddenRes, exclusionsRes] = await Promise.all([
+          supabase
+            .from("hidden_tracks" as any)
+            .select("track_id")
+            .eq("user_id", user.id),
+          supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", user.id),
+        ]);
+        setHiddenIds(new Set(((hiddenRes.data || []) as any[]).map((r: any) => r.track_id)));
+        setCollectionExclusionIds(new Set(((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id)));
       }
     };
     init();
@@ -543,7 +548,8 @@ const Feed = () => {
   }
 
   const hasFollowing = followingIds.length > 0;
-  const hasContent = items.length > 0;
+  const visibleFeedItems = items.filter((item) => !hiddenIds.has(item.track_id) && !collectionExclusionIds.has(item.track_id));
+  const hasContent = visibleFeedItems.length > 0;
 
   const tabs = [
     { key: "following", label: "friends" },
@@ -756,9 +762,7 @@ const Feed = () => {
               </div>
             ) : hasContent ? (
               <div className="space-y-3">
-                {items
-                  .filter((item) => !hiddenIds.has(item.track_id))
-                  .map((item) => {
+                {visibleFeedItems.map((item) => {
                     const profile = item.profiles;
                     const track = item.tracks;
                     return (
