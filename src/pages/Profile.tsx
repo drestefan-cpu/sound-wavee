@@ -677,7 +677,7 @@ const Profile = () => {
       <main className="mx-auto max-w-feed px-4 py-4 relative">
         {isOwnProfile && moons.length > 0 && (
           <div
-            className="absolute inset-x-0 top-0 h-40 pointer-events-none overflow-visible flex justify-center"
+            className="absolute inset-x-0 top-0 h-40 overflow-visible flex justify-center"
             style={{
               WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 40%, black 70%, transparent 100%)",
               maskImage: "linear-gradient(to bottom, transparent 0%, black 40%, black 70%, transparent 100%)",
