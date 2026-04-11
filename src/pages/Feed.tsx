@@ -243,7 +243,7 @@ const Feed = () => {
       const followIds = ids || followingIds;
       const userIds = [...followIds, user.id];
       const { data, error } = await supabase
-        .from("feed_likes" as any)
+        .from("likes")
         .select(
           `id, liked_at, user_id, track_id, profiles!likes_user_id_fkey(id, display_name, avatar_url, username), tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)`,
         )
