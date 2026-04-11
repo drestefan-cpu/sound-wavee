@@ -523,6 +523,13 @@ const Feed = () => {
           }
         }
       })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "likes" }, (payload) => {
+        const deletedLike = payload.old as any;
+        if (followingIds.includes(deletedLike.user_id) || deletedLike.user_id === user.id) {
+          setItems((prev) => prev.filter((item) => item.id !== deletedLike.id));
+          setPendingItems((prev) => prev.filter((item) => item.id !== deletedLike.id));
+        }
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
