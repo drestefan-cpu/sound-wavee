@@ -646,7 +646,7 @@ const Feed = () => {
 
   const tabs = [
     { key: "following", label: "friends" },
-    { key: "artists", label: "artists" },
+    { key: "artists", label: "artists", wip: true },
     { key: "people", label: "people" },
   ] as const;
 
@@ -799,7 +799,14 @@ const Feed = () => {
               onClick={() => setTab(t.key)}
               className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 whitespace-nowrap ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}
             >
-              {t.label}
+              <span className="inline-flex items-center gap-1.5">
+                <span>{t.label}</span>
+                {t.wip && (
+                  <span className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                    WIP
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </div>
