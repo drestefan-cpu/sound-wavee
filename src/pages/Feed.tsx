@@ -252,8 +252,26 @@ const Feed = () => {
         .limit(50);
       if (error) console.error("Feed error:", error);
       const nextItems = (data as unknown as FeedItem[]) || [];
-      cachedFeedItems = nextItems;
-      setItems(nextItems);
+      const actorIds = [...new Set(nextItems.map((item) => item.user_id).filter(Boolean))];
+      const trackIds = [...new Set(nextItems.map((item) => item.track_id).filter(Boolean))];
+
+      let visibleItems = nextItems;
+      if (actorIds.length > 0 && trackIds.length > 0) {
+        const { data: hiddenRows } = await (supabase
+          .from("hidden_tracks" as any)
+          .select("user_id, track_id")
+          .in("user_id", actorIds)
+          .in("track_id", trackIds) as any);
+
+        const hiddenLookup = new Set(
+          ((hiddenRows || []) as any[]).map((row: any) => `${row.user_id}:${row.track_id}`),
+        );
+
+        visibleItems = nextItems.filter((item) => !hiddenLookup.has(`${item.user_id}:${item.track_id}`));
+      }
+
+      cachedFeedItems = visibleItems;
+      setItems(visibleItems);
       setFeedLoading(false);
     },
     [user, followingIds],
