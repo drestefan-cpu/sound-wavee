@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
+import NotifyBell from "@/components/NotifyBell";
 import PageHeader from "@/components/PageHeader";
 import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
@@ -887,7 +888,12 @@ const Profile = () => {
               </button>
             )}
           </div>
-          {!isOwnProfile && <FollowButton targetUserId={profile.id} />}
+          {!isOwnProfile && (
+            <div className="flex items-center gap-2">
+              <FollowButton targetUserId={profile.id} />
+              <NotifyBell targetUserId={profile.id} targetUsername={profile.username} />
+            </div>
+          )}
         </div>
 
         <div className="mt-4 flex gap-1.5 mb-3 justify-center flex-wrap">
