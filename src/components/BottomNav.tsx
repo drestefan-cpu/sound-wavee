@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Disc, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRef } from "react";
@@ -24,39 +24,32 @@ const BottomNav = () => {
     navigate("/feed");
   };
 
+  const handleNavTap = (to: string) => {
+    if (location.pathname === to) return;
+    navigate(to);
+  };
+
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="mx-auto flex max-w-feed items-center justify-around py-2">
         {links.map(({ to, icon: Icon, label }) => {
           const active = location.pathname === to || (to !== "/settings" && location.pathname.startsWith(to + "/"));
-          if (to === "/feed") {
-            return (
-              <button
-                key={to}
-                onClick={handleFeedTap}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1 text-xs transition-all duration-150 ${
-                  active ? "text-primary" : "text-muted-dim hover:text-foreground"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                <span>{label}</span>
-              </button>
-            );
-          }
           return (
-            <Link
+            <button
               key={to}
-              to={to}
+              type="button"
+              onClick={to === "/feed" ? handleFeedTap : () => handleNavTap(to)}
+              style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 text-xs transition-all duration-150 ${
                 active ? "text-primary" : "text-muted-dim hover:text-foreground"
               }`}
             >
               <Icon className="h-5 w-5" />
               <span>{label}</span>
-            </Link>
+            </button>
           );
         })}
       </div>
