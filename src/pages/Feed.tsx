@@ -37,6 +37,10 @@ interface FeedItem {
   };
 }
 
+let cachedFeedItems: FeedItem[] | null = null;
+let cachedHiddenTrackIds: string[] | null = null;
+let cachedCollectionExclusionIds: string[] | null = null;
+
 interface ArtistReleaseItem {
   id: string;
   title: string;
@@ -171,16 +175,20 @@ const logSearchQuery = async (userId: string, query: string, resultsCount: numbe
 const Feed = () => {
   const { user, loading } = useAuth();
   const { isSaved, toggleSave } = useSavedTracks();
-  const [items, setItems] = useState<FeedItem[]>([]);
+  const [items, setItems] = useState<FeedItem[]>(() => cachedFeedItems || []);
   const [pendingItems, setPendingItems] = useState<FeedItem[]>([]);
-  const [feedLoading, setFeedLoading] = useState(true);
-  const [filtersReady, setFiltersReady] = useState(false);
+  const [feedLoading, setFeedLoading] = useState(() => cachedFeedItems === null);
+  const [filtersReady, setFiltersReady] = useState(
+    () => cachedHiddenTrackIds !== null && cachedCollectionExclusionIds !== null,
+  );
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [tab, setTab] = useState<"following" | "artists" | "trending" | "people" | "plailists">("following");
   const [showWelcome, setShowWelcome] = useState(false);
   const [liveState, setLiveState] = useState<LiveState>("live");
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
-  const [collectionExclusionIds, setCollectionExclusionIds] = useState<Set<string>>(new Set());
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set(cachedHiddenTrackIds || []));
+  const [collectionExclusionIds, setCollectionExclusionIds] = useState<Set<string>>(
+    () => new Set(cachedCollectionExclusionIds || []),
+  );
 
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<any[]>([]);
@@ -243,7 +251,9 @@ const Feed = () => {
         .order("liked_at", { ascending: false })
         .limit(50);
       if (error) console.error("Feed error:", error);
-      setItems((data as unknown as FeedItem[]) || []);
+      const nextItems = (data as unknown as FeedItem[]) || [];
+      cachedFeedItems = nextItems;
+      setItems(nextItems);
       setFeedLoading(false);
     },
     [user, followingIds],
@@ -251,20 +261,31 @@ const Feed = () => {
 
   useEffect(() => {
     const init = async () => {
-      setFiltersReady(false);
+      const hasCachedFeed = cachedFeedItems !== null;
+      const hasCachedFilters = cachedHiddenTrackIds !== null && cachedCollectionExclusionIds !== null;
+      if (!hasCachedFeed) setFeedLoading(true);
+      if (!hasCachedFilters) setFiltersReady(false);
       try {
         const ids = await loadFollowing();
-        await loadFeed(ids);
+        const feedPromise = loadFeed(ids);
         if (user) {
-          const [hiddenRes, exclusionsRes] = await Promise.all([
+          const filtersPromise = Promise.all([
             supabase
               .from("hidden_tracks" as any)
               .select("track_id")
               .eq("user_id", user.id),
             supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", user.id),
-          ]);
-          setHiddenIds(new Set(((hiddenRes.data || []) as any[]).map((r: any) => r.track_id)));
-          setCollectionExclusionIds(new Set(((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id)));
+          ]).then(([hiddenRes, exclusionsRes]) => {
+            const nextHiddenIds = ((hiddenRes.data || []) as any[]).map((r: any) => r.track_id);
+            const nextExclusionIds = ((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id);
+            cachedHiddenTrackIds = nextHiddenIds;
+            cachedCollectionExclusionIds = nextExclusionIds;
+            setHiddenIds(new Set(nextHiddenIds));
+            setCollectionExclusionIds(new Set(nextExclusionIds));
+          });
+          await Promise.all([feedPromise, filtersPromise]);
+        } else {
+          await feedPromise;
         }
       } finally {
         setFiltersReady(true);
@@ -478,7 +499,11 @@ const Feed = () => {
 
   const flushPending = useCallback(() => {
     if (pendingItems.length > 0) {
-      setItems((prev) => [...pendingItems, ...prev]);
+      setItems((prev) => {
+        const nextItems = [...pendingItems, ...prev];
+        cachedFeedItems = nextItems;
+        return nextItems;
+      });
       setPendingItems([]);
     }
     setLiveState("live");
@@ -532,7 +557,11 @@ const Feed = () => {
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "likes" }, (payload) => {
         const deletedLike = payload.old as any;
         if (followingIds.includes(deletedLike.user_id) || deletedLike.user_id === user.id) {
-          setItems((prev) => prev.filter((item) => item.id !== deletedLike.id));
+          setItems((prev) => {
+            const nextItems = prev.filter((item) => item.id !== deletedLike.id);
+            cachedFeedItems = nextItems;
+            return nextItems;
+          });
           setPendingItems((prev) => prev.filter((item) => item.id !== deletedLike.id));
         }
       })
@@ -564,6 +593,7 @@ const Feed = () => {
   const visibleFeedItems = items.filter((item) => !hiddenIds.has(item.track_id) && !collectionExclusionIds.has(item.track_id));
   const hasContent = visibleFeedItems.length > 0;
   const showFeedLoading = feedLoading || !filtersReady;
+  const showInitialFeedLoading = showFeedLoading && !(items.length > 0 && filtersReady);
 
   const tabs = [
     { key: "following", label: "friends" },
@@ -729,7 +759,7 @@ const Feed = () => {
       <main className="mx-auto max-w-feed px-4 py-4">
         {tab === "following" ? (
           <>
-            {!hasFollowing && !hasContent && !showFeedLoading ? (
+            {!hasFollowing && !hasContent && !showInitialFeedLoading ? (
               <div className="space-y-3">
                 <div className="rounded-xl border border-primary/30 bg-card p-4 text-center">
                   <p className="text-sm text-foreground mb-1">this is what your feed looks like</p>
@@ -794,7 +824,14 @@ const Feed = () => {
                         }}
                         isSaved={isSaved(item.track_id)}
                         onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
-                        onHide={() => setHiddenIds((prev) => new Set(prev).add(item.track_id))}
+                        onHide={() =>
+                          setHiddenIds((prev) => {
+                            const next = new Set(prev);
+                            next.add(item.track_id);
+                            cachedHiddenTrackIds = Array.from(next);
+                            return next;
+                          })
+                        }
                         onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
                         header={
                           <div className="mb-2 flex items-center gap-3">
@@ -837,7 +874,7 @@ const Feed = () => {
                     );
                   })}
               </div>
-            ) : showFeedLoading ? (
+            ) : showInitialFeedLoading ? (
               <div className="flex justify-center py-20">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
