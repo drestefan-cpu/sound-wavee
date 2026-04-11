@@ -71,6 +71,21 @@ const SettingsPage = () => {
         setAvatarUrl((data as any).avatar_url || "");
         setCurrentMood((data as any).current_mood || null);
       }
+      // Load notification settings
+      const { data: ns } = await (supabase
+        .from("user_notification_settings" as any)
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle() as any);
+      if (ns) {
+        setNotifSettings({
+          push_follows: ns.push_follows,
+          push_reactions: ns.push_reactions,
+          push_saves: ns.push_saves,
+          push_recommendations: ns.push_recommendations,
+        });
+      }
+      setNotifLoaded(true);
     };
     load();
   }, [user]);
