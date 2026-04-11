@@ -42,6 +42,12 @@ const profileSnapshots = new Map<string, ProfileSnapshot>();
 
 const getProfileCacheKey = (username?: string) => username || "__self__";
 
+const getTimelineMonthLabel = (value: string) =>
+  new Date(value).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  }).toUpperCase();
+
 const logProfileView = async (viewerId: string, profileId: string, tabViewed: string) => {
   if (viewerId === profileId) return;
   try {
@@ -69,7 +75,7 @@ const Profile = () => {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [tab, setTab] = useState<TabType>("finds");
-  const [collectionFilter, setCollectionFilter] = useState<"30d" | "all" | "hidden">("30d");
+  const [collectionFilter, setCollectionFilter] = useState<"timeline" | "hidden">("timeline");
   const [showFlappy, setShowFlappy] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [usernameEdit, setUsernameEdit] = useState(false);
@@ -541,7 +547,6 @@ const Profile = () => {
 
   const displayName =
     profile.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "musician";
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
   const ownHiddenIds = new Set(hiddenTracks.map((h: any) => h.track_id));
 
   const handleUnhideTrack = async (hiddenId: string) => {
@@ -578,13 +583,26 @@ const Profile = () => {
   };
 
   const filteredLikes = (() => {
-    let result = collectionFilter === "30d" ? likes.filter((l) => l.liked_at >= thirtyDaysAgo) : likes;
+    let result = likes;
     result = result.filter((l: any) => !collectionExclusionIds.has(l.track_id));
     if (isOwnProfile) result = result.filter((l: any) => !ownHiddenIds.has(l.track_id));
     else result = result.filter((l: any) => !profileOwnerHiddenIds.has(l.track_id));
     return result;
   })();
   const filteredHiddenTracks = hiddenTracks.filter((h: any) => !collectionExclusionIds.has(h.track_id));
+  const collectionTimelineGroups = filteredLikes.reduce(
+    (groups: Array<{ label: string; items: any[] }>, like: any) => {
+      const label = getTimelineMonthLabel(like.liked_at);
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup?.label === label) {
+        lastGroup.items.push(like);
+      } else {
+        groups.push({ label, items: [like] });
+      }
+      return groups;
+    },
+    [],
+  );
 
   const findsLabel = "finds";
   const collectionLabel = "collection";
@@ -1012,30 +1030,20 @@ const Profile = () => {
           </div>
         ) : (
           <>
-            {/* Collection tab with hidden filter inside */}
-            <div className="flex gap-2 mb-3 flex-wrap justify-center">
-              <button
-                onClick={() => setCollectionFilter("30d")}
-                className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "30d" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
-              >
-                last 30 days ({likes.filter((l) => l.liked_at >= thirtyDaysAgo && !collectionExclusionIds.has(l.track_id) && !ownHiddenIds.has(l.track_id)).length}
-                )
-              </button>
-              <button
-                onClick={() => setCollectionFilter("all")}
-                className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "all" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
-              >
-                all time ({likes.filter((l) => !collectionExclusionIds.has(l.track_id) && !ownHiddenIds.has(l.track_id)).length})
-              </button>
-              {isOwnProfile && (
+            {isOwnProfile && (
+              <div className="mb-4 flex justify-center">
                 <button
-                  onClick={() => setCollectionFilter("hidden")}
-                  className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${collectionFilter === "hidden" ? "bg-primary/20 text-primary" : "bg-card border border-border text-muted-foreground"}`}
+                  onClick={() => setCollectionFilter((prev) => (prev === "hidden" ? "timeline" : "hidden"))}
+                  className={`rounded-full px-3 py-1 text-[10px] font-medium transition-all duration-150 ${
+                    collectionFilter === "hidden"
+                      ? "bg-primary/20 text-primary"
+                      : "bg-card border border-border text-muted-foreground"
+                  }`}
                 >
                   hidden ({filteredHiddenTracks.length})
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {collectionFilter === "hidden" ? (
               !hiddenLoaded ? (
@@ -1086,29 +1094,38 @@ const Profile = () => {
                   ))}
                 </div>
               )
-            ) : filteredLikes.length > 0 ? (
-              <div className="space-y-2">
-                {filteredLikes.map((like: any) => (
-                  <UnifiedTrackCard
-                    key={like.id}
-                    compact
-                    hideReactions
-                    track={{
-                      id: like.id,
-                      title: like.tracks?.title || "Unknown",
-                      artist: like.tracks?.artist || "Unknown",
-                      album: like.tracks?.album,
-                      albumArtUrl: like.tracks?.album_art_url,
-                      spotifyTrackId: like.tracks?.spotify_track_id,
-                      likeId: like.id,
-                      trackDbId: like.track_id,
-                    }}
-                    isSaved={isSaved(like.track_id)}
-                    onToggleSave={() => toggleSave(like.track_id, profile.id, "collection")}
-                    sourceUserId={!isOwnProfile ? profile.id : undefined}
-                    sourceContext={!isOwnProfile ? "finds" : undefined}
-                    onShare={() => {}}
-                  />
+            ) : collectionTimelineGroups.length > 0 ? (
+              <div className="space-y-6">
+                {collectionTimelineGroups.map((group) => (
+                  <section key={group.label} className="space-y-2">
+                    <p className="px-1 text-[10px] font-medium tracking-[0.18em] text-muted-foreground/70">
+                      {group.label}
+                    </p>
+                    <div className="space-y-2">
+                      {group.items.map((like: any) => (
+                        <UnifiedTrackCard
+                          key={like.id}
+                          compact
+                          hideReactions
+                          track={{
+                            id: like.id,
+                            title: like.tracks?.title || "Unknown",
+                            artist: like.tracks?.artist || "Unknown",
+                            album: like.tracks?.album,
+                            albumArtUrl: like.tracks?.album_art_url,
+                            spotifyTrackId: like.tracks?.spotify_track_id,
+                            likeId: like.id,
+                            trackDbId: like.track_id,
+                          }}
+                          isSaved={isSaved(like.track_id)}
+                          onToggleSave={() => toggleSave(like.track_id, profile.id, "collection")}
+                          sourceUserId={!isOwnProfile ? profile.id : undefined}
+                          sourceContext={!isOwnProfile ? "finds" : undefined}
+                          onShare={() => {}}
+                        />
+                      ))}
+                    </div>
+                  </section>
                 ))}
               </div>
             ) : (
