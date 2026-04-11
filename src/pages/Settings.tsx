@@ -11,6 +11,7 @@ import PageHeader from "@/components/PageHeader";
 import TaglineSpace from "@/components/TaglineSpace";
 import AboutPlai from "@/components/AboutPlai";
 import AdminPanel from "@/components/AdminPanel";
+import { MOODS, getMoodBySlug } from "@/lib/moods";
 
 const platformOptions = [
   { value: "spotify", label: "Spotify" },
@@ -39,6 +40,7 @@ const SettingsPage = () => {
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
+  const [currentMood, setCurrentMood] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -53,6 +55,7 @@ const SettingsPage = () => {
         setTidalConnected(!!(data as any).tidal_access_token);
         setYoutubeConnected(!!(data as any).youtube_access_token);
         setAvatarUrl((data as any).avatar_url || "");
+        setCurrentMood((data as any).current_mood || null);
       }
     };
     load();
@@ -375,6 +378,45 @@ const SettingsPage = () => {
             >
               save
             </button>
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">current mood</h3>
+          <p className="text-[10px] text-muted-foreground mb-3">
+            sets your vibe — subtly tints the glow on your profile moon
+          </p>
+          {currentMood ? (
+            <p className="text-sm text-foreground mb-3">
+              {getMoodBySlug(currentMood)?.emoji} {getMoodBySlug(currentMood)?.label}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground mb-3">not set</p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {MOODS.map((m) => (
+              <button
+                key={m.slug}
+                onClick={async () => {
+                  if (!user) return;
+                  const newMood = currentMood === m.slug ? null : m.slug;
+                  setCurrentMood(newMood);
+                  await supabase
+                    .from("profiles")
+                    .update({ current_mood: newMood, mood_set_at: newMood ? new Date().toISOString() : null } as any)
+                    .eq("id", user.id);
+                  toast.success(newMood ? `mood set to ${m.emoji} ${m.label}` : "mood cleared");
+                }}
+                style={{ touchAction: "manipulation" }}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+                  currentMood === m.slug
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {m.emoji} {m.label}
+              </button>
+            ))}
           </div>
         </div>
 

@@ -13,6 +13,7 @@ import FollowersModal from "@/components/FollowersModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
+import { getMoodBySlug, getMoodGlow } from "@/lib/moods";
 
 function seededRandom(seed: string) {
   let h = 0;
@@ -583,8 +584,8 @@ const Profile = () => {
                 100% { transform: translate(160px, 0px); }
               }
               @keyframes moon-glow {
-                0%, 100% { box-shadow: 0 0 6px 2px var(--moon-color), 0 0 12px 4px var(--moon-color-dim); }
-                50% { box-shadow: 0 0 12px 4px var(--moon-color), 0 0 24px 8px var(--moon-color-dim); }
+                0%, 100% { box-shadow: 0 0 6px 2px var(--moon-glow-color, var(--moon-color)), 0 0 12px 4px var(--moon-glow-dim, var(--moon-color-dim)); }
+                50% { box-shadow: 0 0 12px 4px var(--moon-glow-color, var(--moon-color)), 0 0 24px 8px var(--moon-glow-dim, var(--moon-color-dim)); }
               }
               @media (prefers-reduced-motion: reduce) {
                 .moon-el { animation: none !important; }
@@ -616,6 +617,8 @@ const Profile = () => {
                         opacity: 0.75,
                         "--moon-color": m.color,
                         "--moon-color-dim": `${m.color}66`,
+                        "--moon-glow-color": getMoodGlow(profile?.current_mood)?.color ?? undefined,
+                        "--moon-glow-dim": getMoodGlow(profile?.current_mood)?.dim ?? undefined,
                         animation: `moon-glow 2.5s ease-in-out infinite`,
                       } as React.CSSProperties
                     }
@@ -672,6 +675,11 @@ const Profile = () => {
             )}
             {profile?.status && (
               <p className="text-[11px] text-muted-foreground/70 italic mt-0.5">"{profile.status}"</p>
+            )}
+            {profile?.current_mood && getMoodBySlug(profile.current_mood) && (
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                {getMoodBySlug(profile.current_mood)!.emoji} {getMoodBySlug(profile.current_mood)!.label}
+              </p>
             )}
             {!isOwnProfile && tasteMatch !== null && (
               <span className="inline-block mt-1 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-medium text-primary-foreground">
