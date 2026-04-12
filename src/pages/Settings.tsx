@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { LogOut } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
@@ -55,6 +55,7 @@ const SettingsPage = () => {
     push_recommendations: true,
   });
   const [notifLoaded, setNotifLoaded] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -568,47 +569,60 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">push notifications</h3>
-          <p className="text-[10px] text-muted-foreground mb-4">choose which notifications you'd like to receive</p>
-          <div className="space-y-4">
-            {([
-              { key: "push_follows" as const, label: "new followers", desc: "when someone follows you" },
-              { key: "push_reactions" as const, label: "reactions", desc: "when someone reacts to your song" },
-              { key: "push_saves" as const, label: "saves", desc: "when someone saves your song" },
-              { key: "push_recommendations" as const, label: "recommendations", desc: "when someone recommends you a song" },
-            ]).map((item) => (
-              <label key={item.key} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-foreground">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
-                </div>
-                <button
-                  onClick={async () => {
-                    if (!user) return;
-                    const next = { ...notifSettings, [item.key]: !notifSettings[item.key] };
-                    setNotifSettings(next);
-                    // Upsert settings
-                    const { error } = await (supabase
-                      .from("user_notification_settings" as any)
-                      .upsert({ user_id: user.id, ...next } as any, { onConflict: "user_id" }) as any);
-                    if (error) toast.error("couldn't save — try again");
-                  }}
-                  style={{ touchAction: "manipulation" }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-all duration-200 ${
-                    notifSettings[item.key]
-                      ? "border-primary/30 bg-primary/45"
-                      : "border-border bg-card"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.18)] transition-transform duration-200 ${
-                      notifSettings[item.key] ? "translate-x-6" : "translate-x-1"
+          <button
+            type="button"
+            onClick={() => setNotifOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between text-left"
+            style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+          >
+            <div>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">push notifications</h3>
+              <p className="text-[10px] text-muted-foreground mt-1">choose which notifications you'd like to receive</p>
+            </div>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${notifOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {notifOpen && (
+            <div className="mt-4 space-y-4">
+              {([
+                { key: "push_follows" as const, label: "new followers", desc: "when someone follows you" },
+                { key: "push_reactions" as const, label: "reactions", desc: "when someone reacts to your song" },
+                { key: "push_saves" as const, label: "saves", desc: "when someone saves your song" },
+                { key: "push_recommendations" as const, label: "recommendations", desc: "when someone recommends you a song" },
+              ]).map((item) => (
+                <label key={item.key} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!user) return;
+                      const next = { ...notifSettings, [item.key]: !notifSettings[item.key] };
+                      setNotifSettings(next);
+                      const { error } = await (supabase
+                        .from("user_notification_settings" as any)
+                        .upsert({ user_id: user.id, ...next } as any, { onConflict: "user_id" }) as any);
+                      if (error) toast.error("couldn't save — try again");
+                    }}
+                    style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-all duration-200 ${
+                      notifSettings[item.key]
+                        ? "border-primary/35 bg-primary/55"
+                        : "border-border bg-card/90"
                     }`}
-                  />
-                </button>
-              </label>
-            ))}
-          </div>
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.18)] transition-transform duration-200 ${
+                        notifSettings[item.key] ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-border pt-12 pb-6">
