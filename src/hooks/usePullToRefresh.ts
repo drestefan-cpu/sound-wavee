@@ -11,6 +11,7 @@ export function usePullToRefresh({
   threshold = 70,
   maxPull = 120,
 }: UsePullToRefreshOptions) {
+  const disabled = true;
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [released, setReleased] = useState(false);
@@ -21,6 +22,8 @@ export function usePullToRefresh({
   const isAtTop = useCallback(() => window.scrollY <= 0, []);
 
   useEffect(() => {
+    if (disabled) return;
+
     const onTouchStart = (e: TouchEvent) => {
       if (cooldown.current || refreshing) return;
       if (!isAtTop()) return;
@@ -80,7 +83,7 @@ export function usePullToRefresh({
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);
     };
-  }, [pullDistance, refreshing, onRefresh, threshold, maxPull, isAtTop]);
+  }, [disabled, pullDistance, refreshing, onRefresh, threshold, maxPull, isAtTop]);
 
   const progress = Math.min(pullDistance / threshold, 1);
   const ready = pullDistance >= threshold;
