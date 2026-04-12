@@ -536,7 +536,26 @@ const Profile = () => {
 
   const handlePullRefresh = useCallback(async () => {
     if (!profile) return;
-    // Re-fetch everything in parallel
+
+    // If own profile, also trigger sync so last_synced_at updates
+    const syncPromise = (isOwnProfile && user?.id) ? (async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        await supabase.functions.invoke("sync-spotify-likes", {
+          body: { user_id: user.id },
+          headers: { Authorization: `Bearer ${currentSession?.access_token}` },
+        });
+        const { data: prof } = await supabase.from("profiles").select("tidal_access_token").eq("id", user.id).single();
+        if (prof?.tidal_access_token) {
+          await supabase.functions.invoke("sync-tidal-likes", {
+            body: { user_id: user.id },
+            headers: { Authorization: `Bearer ${currentSession?.access_token}` },
+          });
+        }
+      } catch {}
+    })() : Promise.resolve();
+
+    // Re-fetch everything in parallel (including sync)
     const [profileRes, likesRes, savedRes, fcRes, fgcRes, lcRes, scRes, exclusionsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", profile.id).single(),
       supabase
@@ -557,7 +576,18 @@ const Profile = () => {
       supabase.from("saved_tracks").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
       supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", profile.id),
     ]);
-    if (profileRes.data) setProfile(profileRes.data);
+
+    // Wait for sync to finish before refreshing profile data
+    await syncPromise;
+
+    // Re-fetch profile after sync to get updated last_synced_at
+    const { data: freshProfile } = isOwnProfile
+      ? await supabase.from("profiles").select("*").eq("id", profile.id).single()
+      : { data: profileRes.data };
+
+    if (freshProfile) setProfile(freshProfile);
+    else if (profileRes.data) setProfile(profileRes.data);
+
     setLikes(likesRes.data || []);
     setSavedTracks((savedRes as any).data || []);
     setFollowerCount(fcRes.count || 0);
@@ -574,7 +604,7 @@ const Profile = () => {
         .limit(50);
       setFollowers((followerData || []).map((f: any) => f.profiles).filter(Boolean));
     }
-  }, [profile, isOwnProfile]);
+  }, [profile, isOwnProfile, user]);
 
   const pullToRefresh = usePullToRefresh({ onRefresh: handlePullRefresh });
 
