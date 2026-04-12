@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library } from "lucide-react";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
 import NotifyBell from "@/components/NotifyBell";
