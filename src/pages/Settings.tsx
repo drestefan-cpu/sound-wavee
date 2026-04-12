@@ -11,6 +11,7 @@ import PageHeader from "@/components/PageHeader";
 import TaglineSpace from "@/components/TaglineSpace";
 import AboutPlai from "@/components/AboutPlai";
 import AdminPanel from "@/components/AdminPanel";
+import DeveloperNotes from "@/components/DeveloperNotes";
 import { MOODS, getMoodBySlug } from "@/lib/moods";
 
 interface NotifSettings {
@@ -42,6 +43,7 @@ const SettingsPage = () => {
   const [statusSaved, setStatusSaved] = useState(false);
   const [profileColor, setProfileColor] = useState("#080B12");
   const [showAbout, setShowAbout] = useState(false);
+  const [showDeveloperNotes, setShowDeveloperNotes] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [tidalConnected, setTidalConnected] = useState(false);
   const [youtubeConnected, setYoutubeConnected] = useState(false);
@@ -269,6 +271,7 @@ const SettingsPage = () => {
       <PageHeader title="Settings" />
 
       {showAbout && <AboutPlai onClose={() => setShowAbout(false)} />}
+      {showDeveloperNotes && <DeveloperNotes onClose={() => setShowDeveloperNotes(false)} />}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
@@ -624,6 +627,14 @@ const SettingsPage = () => {
             </div>
           )}
         </div>
+
+        <button
+          onClick={() => setShowDeveloperNotes(true)}
+          className="text-xs text-muted-foreground hover:text-primary transition-colors"
+          style={{ touchAction: "manipulation" }}
+        >
+          developer notes →
+        </button>
 
         <div className="border-t border-border pt-12 pb-6">
           <TaglineSpace />
