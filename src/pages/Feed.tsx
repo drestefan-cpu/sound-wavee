@@ -622,28 +622,9 @@ const Feed = () => {
     };
   }, [user, followingIds]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/" replace />;
-
-  if (showWelcome) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background gap-4">
-        <PlaiLogo className="text-6xl" />
-        <p className="text-lg font-light text-foreground">welcome to PLAI</p>
-      </div>
-    );
-  }
-
   const handlePullRefresh = useCallback(async () => {
     const ids = await loadFollowing();
     await loadFeed(ids);
-    // Clear caches so filters reload
     cachedHiddenTrackIds = null;
     cachedCollectionExclusionIds = null;
     if (user) {
@@ -661,6 +642,24 @@ const Feed = () => {
   }, [user, loadFollowing, loadFeed]);
 
   const pullToRefresh = usePullToRefresh({ onRefresh: handlePullRefresh });
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/" replace />;
+
+  if (showWelcome) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background gap-4">
+        <PlaiLogo className="text-6xl" />
+        <p className="text-lg font-light text-foreground">welcome to PLAI</p>
+      </div>
+    );
+  }
+
 
   const hasFollowing = followingIds.length > 0;
   const visibleFeedItems = items.filter((item) => !hiddenIds.has(item.track_id) && !collectionExclusionIds.has(item.track_id));
