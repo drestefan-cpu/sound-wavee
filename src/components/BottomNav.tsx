@@ -35,7 +35,7 @@ const BottomNav = () => {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="mx-auto flex max-w-feed items-center justify-around py-2">
-        {links.map(({ to, icon: Icon, label, badge }) => {
+        {links.map(({ to, icon: Icon, label }) => {
           const active = location.pathname === to || (to !== "/settings" && location.pathname.startsWith(to + "/"));
           return (
             <button
