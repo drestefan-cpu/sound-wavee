@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library } from "lucide-react";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
 import NotifyBell from "@/components/NotifyBell";
@@ -532,6 +534,50 @@ const Profile = () => {
     }, 5000);
   };
 
+  const handlePullRefresh = useCallback(async () => {
+    if (!profile) return;
+    // Re-fetch everything in parallel
+    const [profileRes, likesRes, savedRes, fcRes, fgcRes, lcRes, scRes, exclusionsRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", profile.id).single(),
+      supabase
+        .from("likes")
+        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)")
+        .eq("user_id", profile.id)
+        .order("liked_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("saved_tracks")
+        .select("*, tracks(*), profiles!saved_tracks_source_user_id_fkey(username, display_name, avatar_url)")
+        .eq("user_id", profile.id)
+        .order("saved_at", { ascending: false })
+        .limit(50),
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id),
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id),
+      supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
+      supabase.from("saved_tracks").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
+      supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", profile.id),
+    ]);
+    if (profileRes.data) setProfile(profileRes.data);
+    setLikes(likesRes.data || []);
+    setSavedTracks((savedRes as any).data || []);
+    setFollowerCount(fcRes.count || 0);
+    setFollowingCount(fgcRes.count || 0);
+    setLikesCount(lcRes.count || 0);
+    setFindsCount(scRes.count || 0);
+    setCollectionExclusionIds(new Set((((exclusionsRes as any).data) || []).map((row: any) => row.track_id)));
+    // Reload followers for moons
+    if (isOwnProfile) {
+      const { data: followerData } = await supabase
+        .from("follows")
+        .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color)")
+        .eq("following_id", profile.id)
+        .limit(50);
+      setFollowers((followerData || []).map((f: any) => f.profiles).filter(Boolean));
+    }
+  }, [profile, isOwnProfile]);
+
+  const pullToRefresh = usePullToRefresh({ onRefresh: handlePullRefresh });
+
   if (loading) return null;
   if (!user && !username) return <Navigate to="/" replace />;
 
@@ -652,6 +698,7 @@ const Profile = () => {
       className="min-h-screen pb-20"
       style={{ background: `linear-gradient(180deg, #080B1240 0%, hsl(218 32% 5%) 300px)` }}
     >
+      <PullToRefreshIndicator {...pullToRefresh} />
       <PageHeader
         title={`@${profile.username || "user"}`}
         rightContent={

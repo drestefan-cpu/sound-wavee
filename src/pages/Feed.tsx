@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
@@ -13,6 +13,8 @@ import UserCard from "@/components/UserCard";
 import RecommendModal from "@/components/RecommendModal";
 import { Input } from "@/components/ui/input";
 import { trendingTracks } from "@/lib/trending";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { demoFeedItems, demoUsers } from "@/lib/demoData";
 
 interface FeedItem {
@@ -620,6 +622,27 @@ const Feed = () => {
     };
   }, [user, followingIds]);
 
+  const handlePullRefresh = useCallback(async () => {
+    const ids = await loadFollowing();
+    await loadFeed(ids);
+    cachedHiddenTrackIds = null;
+    cachedCollectionExclusionIds = null;
+    if (user) {
+      const [hiddenRes, exclusionsRes] = await Promise.all([
+        supabase.from("hidden_tracks" as any).select("track_id").eq("user_id", user.id),
+        supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", user.id),
+      ]);
+      const nextHiddenIds = ((hiddenRes.data || []) as any[]).map((r: any) => r.track_id);
+      const nextExclusionIds = ((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id);
+      cachedHiddenTrackIds = nextHiddenIds;
+      cachedCollectionExclusionIds = nextExclusionIds;
+      setHiddenIds(new Set(nextHiddenIds));
+      setCollectionExclusionIds(new Set(nextExclusionIds));
+    }
+  }, [user, loadFollowing, loadFeed]);
+
+  const pullToRefresh = usePullToRefresh({ onRefresh: handlePullRefresh });
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -637,6 +660,7 @@ const Feed = () => {
       </div>
     );
   }
+
 
   const hasFollowing = followingIds.length > 0;
   const visibleFeedItems = items.filter((item) => !hiddenIds.has(item.track_id) && !collectionExclusionIds.has(item.track_id));
@@ -761,6 +785,7 @@ const Feed = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PullToRefreshIndicator {...pullToRefresh} />
       <header
         className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
