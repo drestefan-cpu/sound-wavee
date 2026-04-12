@@ -13,7 +13,7 @@ const PARTICLE_COLORS = [
   "hsl(280 60% 65%)",    // soft purple
   "hsl(210 80% 70%)",    // cool blue
   "hsl(172, 78%, 51%)",  // teal
-  "hsl(0 0% 90%)",       // pale white
+  "hsl(340 100% 59%)",   // primary pink
   "hsl(320 70% 70%)",    // rose
 ];
 
