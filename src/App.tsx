@@ -26,7 +26,11 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Sonner />
+      <Sonner
+        position="bottom-center"
+        offset={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
+        duration={3500}
+      />
       <BrowserRouter>
         <AuthProvider>
           <PlatformProvider>
