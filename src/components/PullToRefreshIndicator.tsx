@@ -9,12 +9,12 @@ interface Props {
 }
 
 const PARTICLE_COLORS = [
-  "hsl(340 100% 59%)",   // primary pink
-  "hsl(280 60% 65%)",    // soft purple
-  "hsl(210 80% 70%)",    // cool blue
-  "hsl(172, 78%, 51%)",  // teal
-  "hsl(340 100% 59%)",   // primary pink
-  "hsl(320 70% 70%)",    // rose
+  "hsl(260 30% 65%)",
+  "hsl(210 45% 60%)",
+  "hsl(185 35% 56%)",
+  "hsl(45 50% 66%)",
+  "hsl(330 30% 68%)",
+  "hsl(350 40% 64%)",
 ];
 
 const PullToRefreshIndicator = ({ pullDistance, progress, ready, refreshing, released }: Props) => {
