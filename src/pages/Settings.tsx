@@ -580,7 +580,7 @@ const SettingsPage = () => {
               <p className="text-[10px] text-muted-foreground mt-1">choose which notifications you'd like to receive</p>
             </div>
             <ChevronDown
-              className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${notifOpen ? "rotate-180" : ""}`}
+              className={`h-5 w-5 text-foreground transition-transform duration-200 ${notifOpen ? "rotate-180" : ""}`}
             />
           </button>
           {notifOpen && (
@@ -607,14 +607,14 @@ const SettingsPage = () => {
                       if (error) toast.error("couldn't save — try again");
                     }}
                     style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-all duration-200 ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 ${
                       notifSettings[item.key]
-                        ? "border-primary/35 bg-primary/55"
-                        : "border-border bg-card/90"
+                        ? "bg-primary"
+                        : "bg-muted"
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.18)] transition-transform duration-200 ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${
                         notifSettings[item.key] ? "translate-x-6" : "translate-x-1"
                       }`}
                     />

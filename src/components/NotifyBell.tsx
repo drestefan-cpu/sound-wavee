@@ -57,7 +57,7 @@ const NotifyBell = ({ targetUserId, targetUsername }: NotifyBellProps) => {
         e.currentTarget.blur();
         void toggle();
       }}
-      className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 appearance-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${
+      className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 appearance-none outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 active:outline-none active:ring-0 ${
         enabled
           ? "border-primary bg-transparent text-primary"
           : "border-border bg-transparent text-muted-foreground hover:text-foreground"
@@ -66,7 +66,7 @@ const NotifyBell = ({ targetUserId, targetUsername }: NotifyBellProps) => {
       aria-pressed={enabled}
       aria-label={enabled ? "Disable notifications" : "Enable notifications"}
     >
-      <Bell className="h-4 w-4" />
+      <Bell className="h-4 w-4 pointer-events-none" />
     </button>
   );
 };
