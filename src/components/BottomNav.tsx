@@ -49,9 +49,6 @@ const BottomNav = () => {
             >
               <Icon className="h-5 w-5" />
               <span>{label}</span>
-              {badge && (
-                <span className="absolute top-0 right-1.5 h-2 w-2 rounded-full bg-primary" />
-              )}
             </button>
           );
         })}
