@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
@@ -13,6 +13,8 @@ import UserCard from "@/components/UserCard";
 import RecommendModal from "@/components/RecommendModal";
 import { Input } from "@/components/ui/input";
 import { trendingTracks } from "@/lib/trending";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { demoFeedItems, demoUsers } from "@/lib/demoData";
 
 interface FeedItem {
