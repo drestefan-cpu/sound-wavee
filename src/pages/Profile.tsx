@@ -537,8 +537,7 @@ const Profile = () => {
   const handlePullRefresh = useCallback(async () => {
     if (!profile) return;
 
-    // Re-fetch everything in parallel (including sync)
-    const [profileRes, likesRes, savedRes, fcRes, fgcRes, lcRes, scRes, exclusionsRes] = await Promise.all([
+    const [profileRes, likesRes, savedRes, fcRes, fgcRes, lcRes, scRes, exclusionsRes, hiddenRes, followerDataRes, ownerHiddenRes, tasteMatchRes, unseenRecsRes, recsRes, saveActivityRes, reactionActivityRes, recActivityRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", profile.id).single(),
       supabase
         .from("likes")
@@ -557,6 +556,74 @@ const Profile = () => {
       supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
       supabase.from("saved_tracks").select("*", { count: "exact", head: true }).eq("user_id", profile.id),
       supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", profile.id),
+      isOwnProfile && user
+        ? supabase
+            .from("hidden_tracks" as any)
+            .select("*, tracks(*)")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: null } as any),
+      isOwnProfile
+        ? supabase
+            .from("follows")
+            .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color)")
+            .eq("following_id", profile.id)
+            .limit(50)
+        : Promise.resolve({ data: null } as any),
+      !isOwnProfile
+        ? supabase.from("hidden_tracks" as any).select("track_id").eq("user_id", profile.id)
+        : Promise.resolve({ data: null } as any),
+      !isOwnProfile && user
+        ? supabase
+            .from("taste_compatibility" as any)
+            .select("score")
+            .or(`and(user_a.eq.${user.id},user_b.eq.${profile.id}),and(user_a.eq.${profile.id},user_b.eq.${user.id})`)
+            .maybeSingle()
+        : Promise.resolve({ data: null } as any),
+      isOwnProfile && user
+        ? supabase
+            .from("recommendations" as any)
+            .select("*", { count: "exact", head: true })
+            .eq("to_user_id", user.id)
+            .eq("seen", false)
+        : Promise.resolve({ count: null } as any),
+      isOwnProfile && user
+        ? supabase
+            .from("recommendations" as any)
+            .select("*, tracks(*), profiles:from_user_id(display_name, username, avatar_url)")
+            .eq("to_user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: null } as any),
+      isOwnProfile && user
+        ? supabase
+            .from("saved_tracks")
+            .select(
+              "saved_at, source_context, profiles!saved_tracks_user_id_fkey(username, display_name, avatar_url), tracks(title, artist, spotify_track_id, album_art_url)",
+            )
+            .eq("source_user_id", user.id)
+            .order("saved_at", { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: null } as any),
+      isOwnProfile && user
+        ? supabase
+            .from("reactions")
+            .select(
+              "emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey(user_id, tracks(title, artist))",
+            )
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: null } as any),
+      isOwnProfile && user
+        ? supabase
+            .from("recommendations" as any)
+            .select(
+              "created_at, message, tracks(title, artist, album_art_url), profiles:from_user_id(username, display_name, avatar_url)",
+            )
+            .eq("to_user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: null } as any),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
@@ -568,16 +635,54 @@ const Profile = () => {
     setLikesCount(lcRes.count || 0);
     setFindsCount(scRes.count || 0);
     setCollectionExclusionIds(new Set((((exclusionsRes as any).data) || []).map((row: any) => row.track_id)));
-    // Reload followers for moons
     if (isOwnProfile) {
-      const { data: followerData } = await supabase
-        .from("follows")
-        .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color)")
-        .eq("following_id", profile.id)
-        .limit(50);
-      setFollowers((followerData || []).map((f: any) => f.profiles).filter(Boolean));
+      setHiddenTracks(((hiddenRes as any).data) || []);
+      setHiddenLoaded(true);
+      setFollowers((((followerDataRes as any).data) || []).map((f: any) => f.profiles).filter(Boolean));
+      setUnseenRecCount(unseenRecsRes.count || 0);
+      setRecommendations((recsRes as any).data || []);
+      setRecsLoaded(true);
+
+      const saves = (((saveActivityRes as any).data) || []).map((s: any) => ({
+        type: "save" as const,
+        timestamp: s.saved_at,
+        username: s.profiles?.username,
+        displayName: s.profiles?.display_name,
+        avatarUrl: s.profiles?.avatar_url,
+        trackTitle: s.tracks?.title,
+        trackArtist: s.tracks?.artist,
+      }));
+      const reactions = ((((reactionActivityRes as any).data) || []) as any[])
+        .filter((r: any) => r.likes?.user_id === user?.id)
+        .map((r: any) => ({
+          type: "reaction" as const,
+          timestamp: r.created_at,
+          username: r.profiles?.username,
+          displayName: r.profiles?.display_name,
+          avatarUrl: r.profiles?.avatar_url,
+          emoji: r.emoji,
+          trackTitle: r.likes?.tracks?.title,
+        }));
+      const recs = ((((recActivityRes as any).data) || []) as any[]).map((r: any) => ({
+        type: "recommendation" as const,
+        timestamp: r.created_at,
+        username: r.profiles?.username,
+        displayName: r.profiles?.display_name,
+        avatarUrl: r.profiles?.avatar_url,
+        trackTitle: r.tracks?.title,
+        albumArtUrl: r.tracks?.album_art_url,
+      }));
+      setActivity(
+        [...saves, ...reactions, ...recs].sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        ),
+      );
+      setActivityLoaded(true);
+    } else {
+      setProfileOwnerHiddenIds(new Set(((ownerHiddenRes as any).data || []).map((r: any) => r.track_id)));
+      setTasteMatch(tasteMatchRes.data ? (tasteMatchRes.data as any).score : null);
     }
-  }, [profile, isOwnProfile]);
+  }, [profile, isOwnProfile, user]);
 
   const pullToRefresh = usePullToRefresh({ onRefresh: handlePullRefresh });
 
