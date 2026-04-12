@@ -698,6 +698,7 @@ const Profile = () => {
       className="min-h-screen pb-20"
       style={{ background: `linear-gradient(180deg, #080B1240 0%, hsl(218 32% 5%) 300px)` }}
     >
+      <PullToRefreshIndicator {...pullToRefresh} />
       <PageHeader
         title={`@${profile.username || "user"}`}
         rightContent={
