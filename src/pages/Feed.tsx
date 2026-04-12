@@ -785,6 +785,7 @@ const Feed = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PullToRefreshIndicator {...pullToRefresh} />
       <header
         className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
