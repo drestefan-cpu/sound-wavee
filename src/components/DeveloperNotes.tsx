@@ -67,6 +67,18 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
     load();
   }, []);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscroll;
+    };
+  }, []);
+
   const handlePinSubmit = () => {
     if (pin === ADMIN_PIN) {
       sessionStorage.setItem("plai-admin", "1");
@@ -102,7 +114,14 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#080B12" }}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto"
+      style={{
+        backgroundColor: "#080B12",
+        overscrollBehavior: "contain",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
       <MiniStarfield />
 
       <button
@@ -147,7 +166,7 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
           lineHeight: 1.8,
           color: "#F0EBE3",
           paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 64px), 80px)",
-          paddingBottom: 64,
+          paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 112px), 112px)",
         }}
       >
         <div className="mb-3 text-center">
