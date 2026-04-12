@@ -82,19 +82,15 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
     const { data, error } = await supabase.functions.invoke("save-developer-notes", {
       body: { pin: ADMIN_PIN, content: draft, user_id: user.id },
-      headers: { Authorization: `Bearer ${session?.access_token}` },
     });
 
     setSaving(false);
 
     if (error) {
-      toast.error("couldn't save notes — try again");
+      console.error("save-developer-notes failed:", error);
+      toast.error(error.message || "couldn't save notes — try again");
       return;
     }
 
