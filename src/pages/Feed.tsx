@@ -640,6 +640,28 @@ const Feed = () => {
     );
   }
 
+  const handlePullRefresh = useCallback(async () => {
+    const ids = await loadFollowing();
+    await loadFeed(ids);
+    // Clear caches so filters reload
+    cachedHiddenTrackIds = null;
+    cachedCollectionExclusionIds = null;
+    if (user) {
+      const [hiddenRes, exclusionsRes] = await Promise.all([
+        supabase.from("hidden_tracks" as any).select("track_id").eq("user_id", user.id),
+        supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", user.id),
+      ]);
+      const nextHiddenIds = ((hiddenRes.data || []) as any[]).map((r: any) => r.track_id);
+      const nextExclusionIds = ((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id);
+      cachedHiddenTrackIds = nextHiddenIds;
+      cachedCollectionExclusionIds = nextExclusionIds;
+      setHiddenIds(new Set(nextHiddenIds));
+      setCollectionExclusionIds(new Set(nextExclusionIds));
+    }
+  }, [user, loadFollowing, loadFeed]);
+
+  const pullToRefresh = usePullToRefresh({ onRefresh: handlePullRefresh });
+
   const hasFollowing = followingIds.length > 0;
   const visibleFeedItems = items.filter((item) => !hiddenIds.has(item.track_id) && !collectionExclusionIds.has(item.track_id));
   const hasContent = visibleFeedItems.length > 0;
