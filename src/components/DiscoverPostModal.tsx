@@ -228,7 +228,7 @@ const DiscoverPostModal = ({ post, onClose }: DiscoverPostModalProps) => {
       </div>
 
       <div
-        className="relative z-10 mx-auto max-w-md px-6"
+        className="relative z-10 mx-auto w-full max-w-feed px-3 sm:px-4"
         style={{
           fontFamily: "'DM Sans', sans-serif",
           fontWeight: 300,
