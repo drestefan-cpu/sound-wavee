@@ -1203,7 +1203,7 @@ const Feed = () => {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-display text-lg text-foreground"></h3>
-                  <p className="text-xs text-muted-foreground">editorial picks, playlists, and articles from PLAI</p>
+                  <p className="text-xs text-muted-foreground">Editorial picks, playlists, and articles from PLAI</p>
                 </div>
                 {journalLoading ? (
                   <div className="flex justify-center py-12">
