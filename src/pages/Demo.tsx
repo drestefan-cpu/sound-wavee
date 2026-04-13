@@ -14,9 +14,7 @@ const Demo = () => {
   const [savedItemIds, setSavedItemIds] = useState<Set<string>>(new Set());
 
   const toggleFollow = (id: string) => {
-    setFollowedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setFollowedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const toggleSaveDemo = (item: DemoFeedItem) => {
@@ -38,7 +36,7 @@ const Demo = () => {
       <div className="sticky top-0 z-20 bg-card border-b border-border">
         <div className="mx-auto flex max-w-feed items-center justify-between px-4 py-2.5">
           <p className="text-xs text-muted-foreground">
-            you're previewing PLAI — connect Spotify to see your friends' real likes
+            you're previewing PLAI — connect your streaming platform to share what you're loving.
           </p>
           <Link
             to="/"
@@ -98,9 +96,7 @@ const Demo = () => {
 
             {/* Your Finds section */}
             <div className="mt-8">
-              <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                your finds
-              </h3>
+              <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">your finds</h3>
               {savedDemoItems.length > 0 ? (
                 <div className="space-y-2">
                   {savedDemoItems.map((item) => (
@@ -124,9 +120,7 @@ const Demo = () => {
                   ))}
                 </div>
               ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  songs you find on PLAI live here
-                </p>
+                <p className="py-4 text-center text-sm text-muted-foreground">songs you find on PLAI live here</p>
               )}
             </div>
 
@@ -137,7 +131,10 @@ const Demo = () => {
               </h3>
               <div className="space-y-2">
                 {demoUsers.map((u) => (
-                  <div key={u.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 relative">
+                  <div
+                    key={u.id}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 relative"
+                  >
                     <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20">
                       <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
                         {u.display_name[0].toUpperCase()}
@@ -145,7 +142,9 @@ const Demo = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">{u.display_name}</p>
-                      <p className="text-xs text-muted-foreground">@{u.username} · {u.genre} · {u.follower_count} followers</p>
+                      <p className="text-xs text-muted-foreground">
+                        @{u.username} · {u.genre} · {u.follower_count} followers
+                      </p>
                     </div>
                     <button
                       onClick={() => toggleFollow(u.id)}
