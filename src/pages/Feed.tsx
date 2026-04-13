@@ -16,6 +16,8 @@ import { trendingTracks } from "@/lib/trending";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { demoFeedItems, demoUsers } from "@/lib/demoData";
+import DiscoverPostCard, { type DiscoverPost } from "@/components/DiscoverPostCard";
+import DiscoverPostModal from "@/components/DiscoverPostModal";
 
 interface FeedItem {
   id: string;
@@ -61,6 +63,8 @@ interface ArtistReleaseItem {
 }
 
 type LiveState = "live" | "new" | "syncing";
+type FeedTab = "following" | "discover";
+type DiscoverTab = "releases" | "people" | "journal";
 
 const artistReleaseFallbackItems: ArtistReleaseItem[] = [
   {
@@ -186,7 +190,8 @@ const Feed = () => {
     () => cachedHiddenTrackIds !== null && cachedCollectionExclusionIds !== null,
   );
   const [followingIds, setFollowingIds] = useState<string[]>([]);
-  const [tab, setTab] = useState<"following" | "artists" | "trending" | "people" | "plailists">("following");
+  const [tab, setTab] = useState<FeedTab>("following");
+  const [discoverTab, setDiscoverTab] = useState<DiscoverTab>("releases");
   const [showWelcome, setShowWelcome] = useState(false);
   const [liveState, setLiveState] = useState<LiveState>("live");
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set(cachedHiddenTrackIds || []));
@@ -203,8 +208,6 @@ const Feed = () => {
   const [logoFlash, setLogoFlash] = useState(false);
   const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string } | null>(null);
 
-  const [plaiPicks, setPlaiPicks] = useState<any[]>([]);
-  const [picksLoading, setPicksLoading] = useState(false);
   const [artistItems, setArtistItems] = useState<ArtistReleaseItem[]>(artistReleaseFallbackItems);
   const [artistLoading, setArtistLoading] = useState(true);
   const [artistFallback, setArtistFallback] = useState(false);
@@ -216,6 +219,10 @@ const Feed = () => {
   const [artistReleaseDebug, setArtistReleaseDebug] = useState<{ raw: string; normalized: string }[]>([]);
   const [artistHasDestinFollowed, setArtistHasDestinFollowed] = useState(false);
   const [artistHasDestinRelease, setArtistHasDestinRelease] = useState(false);
+  const [journalPosts, setJournalPosts] = useState<DiscoverPost[]>([]);
+  const [journalLoading, setJournalLoading] = useState(false);
+  const [journalLoaded, setJournalLoaded] = useState(false);
+  const [activePost, setActivePost] = useState<DiscoverPost | null>(null);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -345,23 +352,32 @@ const Feed = () => {
   );
 
   useEffect(() => {
-    if (tab === "people" && people.length === 0 && !peopleLoading) loadPeople();
-  }, [tab]);
+    if (tab === "discover" && discoverTab === "people" && people.length === 0 && !peopleLoading) loadPeople();
+  }, [tab, discoverTab, people.length, peopleLoading, loadPeople]);
 
   useEffect(() => {
-    if (tab === "plailists" && plaiPicks.length === 0 && !picksLoading) {
-      setPicksLoading(true);
-      supabase
-        .from("plai_picks" as any)
-        .select("*")
-        .eq("active", true)
-        .order("position")
-        .then(({ data }) => {
-          setPlaiPicks(data || []);
-          setPicksLoading(false);
-        });
+    const loadJournalPosts = async () => {
+      setJournalLoading(true);
+      try {
+        const { data } = await (supabase
+          .from("discover_posts" as any)
+          .select("*")
+          .eq("status", "published")
+          .order("published_at", { ascending: false }) as any);
+
+        setJournalPosts((data || []) as DiscoverPost[]);
+      } catch {
+        setJournalPosts([]);
+      } finally {
+        setJournalLoading(false);
+        setJournalLoaded(true);
+      }
+    };
+
+    if (tab === "discover" && discoverTab === "journal" && !journalLoaded && !journalLoading) {
+      loadJournalPosts();
     }
-  }, [tab]);
+  }, [tab, discoverTab, journalLoaded, journalLoading]);
 
   useEffect(() => {
     const loadArtistReleases = async () => {
@@ -549,6 +565,21 @@ const Feed = () => {
     }, 300);
   };
 
+  const openDiscoverPost = (post: DiscoverPost) => {
+    if (post.post_type === "external" && post.external_url) {
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+      if (isStandalone) {
+        window.location.href = post.external_url;
+      } else {
+        window.open(post.external_url, "_blank", "noopener,noreferrer");
+      }
+      return;
+    }
+
+    setActivePost(post);
+  };
+
   const flushPending = useCallback(() => {
     if (pendingItems.length > 0) {
       setItems((prev) => {
@@ -670,8 +701,13 @@ const Feed = () => {
 
   const tabs = [
     { key: "following", label: "friends" },
-    { key: "artists", label: "artists" },
+    { key: "discover", label: "discover" },
+  ] as const;
+
+  const discoverTabs = [
+    { key: "releases", label: "releases" },
     { key: "people", label: "people" },
+    { key: "journal", label: "journal" },
   ] as const;
 
   const renderArtistBadge = (badge?: ArtistReleaseItem["badge"]) => {
@@ -839,7 +875,10 @@ const Feed = () => {
                   <p className="text-sm text-foreground mb-1">this is what your feed looks like</p>
                   <p className="text-xs text-muted-foreground mb-3">follow friends to see the real thing</p>
                   <button
-                    onClick={() => setTab("people")}
+                    onClick={() => {
+                      setTab("discover");
+                      setDiscoverTab("people");
+                    }}
                     className="inline-block rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
                   >
                     find friends
@@ -959,7 +998,10 @@ const Feed = () => {
                 <h2 className="text-lg font-medium text-foreground">your feed is quiet</h2>
                 <p className="text-sm text-muted-foreground">follow some friends to hear what they're loving</p>
                 <button
-                  onClick={() => setTab("people")}
+                  onClick={() => {
+                    setTab("discover");
+                    setDiscoverTab("people");
+                  }}
                   className="mt-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
                 >
                   find friends
@@ -967,299 +1009,217 @@ const Feed = () => {
               </div>
             )}
           </>
-        ) : tab === "artists" ? (
+        ) : (
           <div className="space-y-6">
-            {!USE_MOCK_ARTIST_TAB && (
-              <>
-                <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
-                  <div>user: {user.id}</div>
-                  <div>followed artists: {artistFollowedCount}</div>
-                  <div>matched releases: {artistMatchedCount}</div>
-                  <div>popular releases: {artistItems.slice(0, 3).length}</div>
-                  <div>has "New Drop (Test)": {artistHasTestRelease ? "yes" : "no"}</div>
-                </div>
-                <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground space-y-2">
-                  <div>
-                    <div className="font-medium text-foreground">followed artists debug</div>
-                    {artistFollowedDebug.length > 0 ? (
-                      artistFollowedDebug.map((item, index) => (
-                        <div key={`followed-${index}`}>
-                          raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
-                        </div>
-                      ))
-                    ) : (
-                      <div>none</div>
-                    )}
-                    <div>has DESTIN CONRAD in followed list: {artistHasDestinFollowed ? "yes" : "no"}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground">release artists debug</div>
-                    {artistReleaseDebug.length > 0 ? (
-                      artistReleaseDebug.map((item, index) => (
-                        <div key={`release-${index}`}>
-                          raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
-                        </div>
-                      ))
-                    ) : (
-                      <div>none</div>
-                    )}
-                    <div>has DESTIN CONRAD in releases list: {artistHasDestinRelease ? "yes" : "no"}</div>
-                  </div>
-                </div>
-              </>
-            )}
-            {artistLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : artistEmptyState === "no-followed-artists" ? (
-              <div className="rounded-xl border border-border bg-card p-5 text-center">
-                <h3 className="text-sm font-medium text-foreground">Follow more artists to build this feed</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Your Artists tab will fill in as you save and share tracks by artists you love.
-                </p>
-              </div>
-            ) : artistEmptyState === "no-releases" ? (
-              <div className="rounded-xl border border-border bg-card p-5 text-center">
-                <h3 className="text-sm font-medium text-foreground">No releases yet</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  We found followed artists, but there are no matching seeded releases yet.
-                </p>
-              </div>
-            ) : (
-              <>
-                {artistFallback && !USE_MOCK_ARTIST_TAB && (
-                  <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
-                    showing fallback releases while real artist data finishes connecting
-                  </div>
-                )}
-                {artistSections.map((section) => (
-              <section key={section.key} className="space-y-3">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <h3 className="font-display text-lg text-foreground">{section.title}</h3>
-                    <p className="text-xs text-muted-foreground">{section.subtitle}</p>
-                  </div>
-                  {section.key === "popular" && (
-                    <span className="text-xs text-muted-foreground">WIP</span>
-                  )}
-                </div>
-                <div className={section.compact ? "space-y-2" : "space-y-3"}>
-                  {section.items.map((track) => (
-                    <UnifiedTrackCard
-                      key={track.id}
-                      compact={section.compact}
-                      hideReactions={section.compact}
-                      track={{
-                        id: track.trackDbId || track.id,
-                        title: track.title,
-                        artist: track.artist,
-                        album: track.album,
-                        spotifyTrackId: track.spotifyTrackId,
-                        albumArtUrl: track.albumArtUrl,
-                        likeId: track.trackDbId || track.id,
-                        trackDbId: track.trackDbId,
-                        localOnly: !track.trackDbId,
-                      }}
-                      isSaved={track.trackDbId ? isSaved(track.trackDbId) : false}
-                      onToggleSave={() => {
-                        if (!track.trackDbId) {
-                          toast("save will unlock once this release is synced");
-                          return;
-                        }
-                        toggleSave(track.trackDbId, undefined, "artists");
-                      }}
-                      onShare={() => {
-                        if (!track.trackDbId) {
-                          toast("sharing will unlock once this release is synced");
-                          return;
-                        }
-                        setRecommendTrack({ id: track.trackDbId, title: track.title });
-                      }}
-                      subtitle={
-                        section.compact ? (
-                          <div>
-                            {renderArtistBadge(track.badge)}
-                            {renderLikedBy(track.likedBy)}
-                          </div>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {discoverTabs.map((subtab) => (
+                <button
+                  key={subtab.key}
+                  onClick={() => setDiscoverTab(subtab.key)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap ${
+                    discoverTab === subtab.key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {subtab.label}
+                </button>
+              ))}
+            </div>
+
+            {discoverTab === "releases" ? (
+              <div className="space-y-6">
+                {!USE_MOCK_ARTIST_TAB && (
+                  <>
+                    <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
+                      <div>user: {user.id}</div>
+                      <div>followed artists: {artistFollowedCount}</div>
+                      <div>matched releases: {artistMatchedCount}</div>
+                      <div>popular releases: {artistItems.slice(0, 3).length}</div>
+                      <div>has "New Drop (Test)": {artistHasTestRelease ? "yes" : "no"}</div>
+                    </div>
+                    <div className="space-y-2 rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
+                      <div>
+                        <div className="font-medium text-foreground">followed artists debug</div>
+                        {artistFollowedDebug.length > 0 ? (
+                          artistFollowedDebug.map((item, index) => (
+                            <div key={`followed-${index}`}>
+                              raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
+                            </div>
+                          ))
                         ) : (
-                          <div>
-                            {renderArtistBadge(track.badge)}
-                            {renderLikedBy(track.likedBy)}
-                          </div>
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-              </>
-            )}
-          </div>
-        ) : tab === "trending" ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <p className="text-xs text-muted-foreground">trending this week</p>
-              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[9px] text-muted-foreground">
-                WIP — some links may be buggy
-              </span>
-            </div>
-            {trendingTracks.map((track) => {
-              const bgColor = track.position % 2 === 1 ? "#FF2D78" : "#1a2535";
-              return (
-                <UnifiedTrackCard
-                  key={track.position}
-                  compact
-                  hideReactions
-                  track={{
-                    id: `trending-${track.position}`,
-                    title: track.title,
-                    artist: track.artist,
-                    spotifyTrackId: track.spotifyTrackId,
-                    albumArtUrl: track.albumArtUrl || undefined,
-                    likeId: `trending-${track.position}`,
-                    localOnly: true,
-                  }}
-                  placeholderColor={bgColor}
-                  placeholderText={String(track.position)}
-                  onShare={() => {
-                    if (navigator.share) {
-                      navigator.share({
-                        title: track.title,
-                        url: `https://open.spotify.com/track/${track.spotifyTrackId}`,
-                      });
-                    } else {
-                      navigator.clipboard.writeText(`https://open.spotify.com/track/${track.spotifyTrackId}`);
-                      toast("link copied");
-                    }
-                  }}
-                  subtitle={<span className="text-[10px] text-muted-foreground">#{track.position}</span>}
-                />
-              );
-            })}
-          </div>
-        ) : tab === "people" ? (
-          <div>
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={peopleQuery}
-                onChange={(e) => handlePeopleSearch(e.target.value)}
-                placeholder="search users..."
-                className="bg-card border-border pl-10"
-              />
-            </div>
-            {peopleLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {people.map((u) => (
-                  <UserCard key={u.id} profile={u} showFollow />
-                ))}
-                {people.length === 0 &&
-                  !peopleQuery &&
-                  demoUsers.map((u) => (
-                    <div
-                      key={u.id}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 relative"
-                    >
-                      <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-primary">
-                        example
-                      </span>
-                      <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20">
-                        <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
-                          {u.display_name[0].toUpperCase()}
-                        </div>
+                          <div>none</div>
+                        )}
+                        <div>has DESTIN CONRAD in followed list: {artistHasDestinFollowed ? "yes" : "no"}</div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{u.display_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          @{u.username} · {u.genre}
-                        </p>
+                      <div>
+                        <div className="font-medium text-foreground">release artists debug</div>
+                        {artistReleaseDebug.length > 0 ? (
+                          artistReleaseDebug.map((item, index) => (
+                            <div key={`release-${index}`}>
+                              raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
+                            </div>
+                          ))
+                        ) : (
+                          <div>none</div>
+                        )}
+                        <div>has DESTIN CONRAD in releases list: {artistHasDestinRelease ? "yes" : "no"}</div>
                       </div>
                     </div>
-                  ))}
-                {people.length === 0 && peopleQuery && (
-                  <p className="py-12 text-center text-sm text-muted-foreground">no users found</p>
+                  </>
+                )}
+                {artistLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : artistEmptyState === "no-followed-artists" ? (
+                  <div className="rounded-xl border border-border bg-card p-5 text-center">
+                    <h3 className="text-sm font-medium text-foreground">Follow more artists to build Discover</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Your release feed fills in as you save and share tracks by artists you love.
+                    </p>
+                  </div>
+                ) : artistEmptyState === "no-releases" ? (
+                  <div className="rounded-xl border border-border bg-card p-5 text-center">
+                    <h3 className="text-sm font-medium text-foreground">No releases yet</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      We found followed artists, but there are no matching seeded releases yet.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {artistFallback && !USE_MOCK_ARTIST_TAB && (
+                      <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
+                        showing fallback releases while real artist data finishes connecting
+                      </div>
+                    )}
+                    {artistSections.map((section) => (
+                      <section key={section.key} className="space-y-3">
+                        <div className="flex items-end justify-between gap-3">
+                          <div>
+                            <h3 className="font-display text-lg text-foreground">{section.title}</h3>
+                            <p className="text-xs text-muted-foreground">{section.subtitle}</p>
+                          </div>
+                          {section.key === "popular" && <span className="text-xs text-muted-foreground">WIP</span>}
+                        </div>
+                        <div className={section.compact ? "space-y-2" : "space-y-3"}>
+                          {section.items.map((track) => (
+                            <UnifiedTrackCard
+                              key={track.id}
+                              compact={section.compact}
+                              hideReactions={section.compact}
+                              track={{
+                                id: track.trackDbId || track.id,
+                                title: track.title,
+                                artist: track.artist,
+                                album: track.album,
+                                spotifyTrackId: track.spotifyTrackId,
+                                albumArtUrl: track.albumArtUrl,
+                                likeId: track.trackDbId || track.id,
+                                trackDbId: track.trackDbId,
+                                localOnly: !track.trackDbId,
+                              }}
+                              isSaved={track.trackDbId ? isSaved(track.trackDbId) : false}
+                              onToggleSave={() => {
+                                if (!track.trackDbId) {
+                                  toast("save will unlock once this release is synced");
+                                  return;
+                                }
+                                toggleSave(track.trackDbId, undefined, "discover_releases");
+                              }}
+                              onShare={() => {
+                                if (!track.trackDbId) {
+                                  toast("sharing will unlock once this release is synced");
+                                  return;
+                                }
+                                setRecommendTrack({ id: track.trackDbId, title: track.title });
+                              }}
+                              subtitle={
+                                <div>
+                                  {renderArtistBadge(track.badge)}
+                                  {renderLikedBy(track.likedBy)}
+                                </div>
+                              }
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </>
+                )}
+              </div>
+            ) : discoverTab === "people" ? (
+              <div>
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={peopleQuery}
+                    onChange={(e) => handlePeopleSearch(e.target.value)}
+                    placeholder="search users..."
+                    className="bg-card border-border pl-10"
+                  />
+                </div>
+                {peopleLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {people.map((u) => (
+                      <UserCard key={u.id} profile={u} showFollow />
+                    ))}
+                    {people.length === 0 &&
+                      !peopleQuery &&
+                      demoUsers.map((u) => (
+                        <div key={u.id} className="relative flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                          <span className="absolute right-2 top-2 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-primary">
+                            example
+                          </span>
+                          <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20">
+                            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
+                              {u.display_name[0].toUpperCase()}
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">{u.display_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              @{u.username} · {u.genre}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    {people.length === 0 && peopleQuery && (
+                      <p className="py-12 text-center text-sm text-muted-foreground">no users found</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-display text-lg text-foreground">Journal</h3>
+                  <p className="text-xs text-muted-foreground">editorial picks, playlists, and links from PLAI</p>
+                </div>
+                {journalLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : journalPosts.length > 0 ? (
+                  <div className="space-y-2">
+                    {journalPosts.map((post) => (
+                      <DiscoverPostCard key={post.id} post={post} onOpen={openDiscoverPost} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card p-5 text-center">
+                    <h3 className="text-sm font-medium text-foreground">Journal is empty for now</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Publish internal stories or external links in `discover_posts` to fill this surface.
+                    </p>
+                  </div>
                 )}
               </div>
             )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div>
-                <h3 className="font-display text-lg text-foreground">PLAI picks</h3>
-                <p className="text-xs text-muted-foreground">curated by @plai</p>
-              </div>
-              <span className="rounded-full bg-card border border-border px-2 py-0.5 text-[9px] text-muted-foreground">
-                WIP — curated picks, more coming soon
-              </span>
-            </div>
-            <div className="space-y-2">
-              {picksLoading ? (
-                <div className="flex justify-center py-12">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                </div>
-              ) : plaiPicks.length > 0 ? (
-                plaiPicks.map((pick: any) => (
-                  <UnifiedTrackCard
-                    key={pick.id}
-                    compact
-                    hideReactions
-                    track={{
-                      id: `plai-${pick.id}`,
-                      title: pick.title,
-                      artist: pick.artist,
-                      spotifyTrackId: pick.spotify_track_id,
-                      albumArtUrl: pick.album_art_url,
-                    }}
-                    onShare={() => {
-                      if (pick.spotify_track_id) {
-                        const url = `https://open.spotify.com/track/${pick.spotify_track_id}`;
-                        if (navigator.share) navigator.share({ title: pick.title, url });
-                        else {
-                          navigator.clipboard.writeText(url);
-                          toast("link copied");
-                        }
-                      }
-                    }}
-                    subtitle={
-                      <span className="text-[10px] text-muted-foreground">
-                        #{pick.position}
-                        {pick.note ? ` · ${pick.note}` : ""}
-                      </span>
-                    }
-                  />
-                ))
-              ) : (
-                trendingTracks.slice(0, 10).map((track, i) => (
-                  <UnifiedTrackCard
-                    key={track.position}
-                    compact
-                    hideReactions
-                    track={{
-                      id: `plai-${track.position}`,
-                      title: track.title,
-                      artist: track.artist,
-                      spotifyTrackId: track.spotifyTrackId,
-                      albumArtUrl: track.albumArtUrl,
-                    }}
-                    subtitle={<span className="text-[10px] text-muted-foreground">#{i + 1}</span>}
-                  />
-                ))
-              )}
-            </div>
-            <div className="rounded-xl border border-border bg-card p-4 text-center">
-              <span className="inline-block rounded-full bg-primary px-3 py-1 text-[10px] font-medium text-primary-foreground mb-2">
-                coming soon
-              </span>
-              <p className="text-sm text-foreground">your plai·lists</p>
-              <p className="text-xs text-muted-foreground mt-1">create and share your own · coming soon</p>
-            </div>
           </div>
         )}
       </main>
@@ -1270,6 +1230,9 @@ const Feed = () => {
           trackTitle={recommendTrack.title}
           onClose={() => setRecommendTrack(null)}
         />
+      )}
+      {activePost && activePost.post_type === "internal" && (
+        <DiscoverPostModal post={activePost} onClose={() => setActivePost(null)} />
       )}
       <BottomNav />
     </div>

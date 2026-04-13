@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      discover_posts: {
+        Row: {
+          author_name: string | null
+          body_markdown: string | null
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string | null
+          external_url: string | null
+          id: string
+          post_type: string
+          published_at: string
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string | null
+          body_markdown?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          external_url?: string | null
+          id?: string
+          post_type: string
+          published_at?: string
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string | null
+          body_markdown?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          external_url?: string | null
+          id?: string
+          post_type?: string
+          published_at?: string
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
