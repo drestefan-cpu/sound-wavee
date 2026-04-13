@@ -152,11 +152,7 @@ const artistReleaseFallbackItems: ArtistReleaseItem[] = [
 const USE_MOCK_ARTIST_TAB = true;
 
 const normalizeArtistName = (value?: string | null) =>
-  value
-    ?.normalize("NFKC")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase() || "";
+  value?.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase() || "";
 
 const getArtistBadge = (releaseDate?: string | null): ArtistReleaseItem["badge"] => {
   if (!releaseDate) return undefined;
@@ -281,9 +277,7 @@ const Feed = () => {
             .in("track_id", trackIds) as any,
         ]);
 
-        const hiddenLookup = new Set(
-          ((hiddenRows || []) as any[]).map((row: any) => `${row.user_id}:${row.track_id}`),
-        );
+        const hiddenLookup = new Set(((hiddenRows || []) as any[]).map((row: any) => `${row.user_id}:${row.track_id}`));
         const exclusionLookup = new Set(
           ((exclusionRows || []) as any[]).map((row: any) => `${row.user_id}:${row.track_id}`),
         );
@@ -317,7 +311,10 @@ const Feed = () => {
               .from("hidden_tracks" as any)
               .select("track_id")
               .eq("user_id", user.id),
-            supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", user.id),
+            supabase
+              .from("collection_exclusions" as any)
+              .select("track_id")
+              .eq("user_id", user.id),
           ]).then(([hiddenRes, exclusionsRes]) => {
             const nextHiddenIds = ((hiddenRes.data || []) as any[]).map((r: any) => r.track_id);
             const nextExclusionIds = ((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id);
@@ -427,7 +424,9 @@ const Feed = () => {
           })),
         );
 
-        const followedNames = [...new Set(followedRawNames.map((name: string) => normalizeArtistName(name)).filter(Boolean))];
+        const followedNames = [
+          ...new Set(followedRawNames.map((name: string) => normalizeArtistName(name)).filter(Boolean)),
+        ];
         setArtistFollowedCount(followedNames.length);
         setArtistHasDestinFollowed(followedNames.includes(normalizeArtistName("DESTIN CONRAD")));
 
@@ -458,9 +457,9 @@ const Feed = () => {
           releaseArtistNames.some((name: string) => normalizeArtistName(name) === normalizeArtistName("DESTIN CONRAD")),
         );
 
-        const releaseSpotifyIds = [...new Set(((releaseRows || []) as any[])
-          .map((row: any) => row.spotify_track_id)
-          .filter(Boolean))];
+        const releaseSpotifyIds = [
+          ...new Set(((releaseRows || []) as any[]).map((row: any) => row.spotify_track_id).filter(Boolean)),
+        ];
 
         const trackIdBySpotifyId = new Map<string, string>();
         if (releaseSpotifyIds.length > 0) {
@@ -491,9 +490,7 @@ const Feed = () => {
           if (matchedTrackIds.length > 0) {
             const { data: likeRows } = await (supabase
               .from("likes" as any)
-              .select(
-                "track_id, user_id, profiles!likes_user_id_fkey(id, username, display_name, avatar_url)",
-              )
+              .select("track_id, user_id, profiles!likes_user_id_fkey(id, username, display_name, avatar_url)")
               .in("user_id", followingIds)
               .in("track_id", matchedTrackIds) as any);
 
@@ -660,8 +657,14 @@ const Feed = () => {
     cachedCollectionExclusionIds = null;
     if (user) {
       const [hiddenRes, exclusionsRes] = await Promise.all([
-        supabase.from("hidden_tracks" as any).select("track_id").eq("user_id", user.id),
-        supabase.from("collection_exclusions" as any).select("track_id").eq("user_id", user.id),
+        supabase
+          .from("hidden_tracks" as any)
+          .select("track_id")
+          .eq("user_id", user.id),
+        supabase
+          .from("collection_exclusions" as any)
+          .select("track_id")
+          .eq("user_id", user.id),
       ]);
       const nextHiddenIds = ((hiddenRes.data || []) as any[]).map((r: any) => r.track_id);
       const nextExclusionIds = ((exclusionsRes.data || []) as any[]).map((r: any) => r.track_id);
@@ -692,9 +695,10 @@ const Feed = () => {
     );
   }
 
-
   const hasFollowing = followingIds.length > 0;
-  const visibleFeedItems = items.filter((item) => !hiddenIds.has(item.track_id) && !collectionExclusionIds.has(item.track_id));
+  const visibleFeedItems = items.filter(
+    (item) => !hiddenIds.has(item.track_id) && !collectionExclusionIds.has(item.track_id),
+  );
   const hasContent = visibleFeedItems.length > 0;
   const showFeedLoading = feedLoading || !filtersReady;
   const showInitialFeedLoading = showFeedLoading && !(items.length > 0 && filtersReady);
@@ -715,9 +719,7 @@ const Feed = () => {
     return (
       <span
         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] ${
-          badge === "today"
-            ? "bg-primary text-primary-foreground"
-            : "bg-secondary text-muted-foreground"
+          badge === "today" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
         }`}
       >
         {badge}
@@ -768,14 +770,14 @@ const Feed = () => {
   const artistSections = [
     {
       key: "popular",
-      title: "Popular releases",
+      title: "popular releases",
       subtitle: "music your friends are loving",
       items: artistHighlights,
       compact: false,
     },
     {
       key: "all",
-      title: "All releases",
+      title: "all releases",
       subtitle: "Latest drops from the artists you follow",
       items: artistReleases,
       compact: true,
@@ -920,73 +922,73 @@ const Feed = () => {
             ) : hasContent ? (
               <div className="space-y-3">
                 {visibleFeedItems.map((item) => {
-                    const profile = item.profiles;
-                    const track = item.tracks;
-                    return (
-                      <UnifiedTrackCard
-                        key={item.id}
-                        track={{
-                          id: track?.id,
-                          title: track?.title,
-                          artist: track?.artist,
-                          album: track?.album,
-                          albumArtUrl: track?.album_art_url,
-                          spotifyTrackId: track?.spotify_track_id,
-                          likeId: item.id,
-                          trackDbId: item.track_id,
-                        }}
-                        isSaved={isSaved(item.track_id)}
-                        onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
-                        sourceUserId={item.user_id}
-                        onHide={() =>
-                          setHiddenIds((prev) => {
-                            const next = new Set(prev);
-                            next.add(item.track_id);
-                            cachedHiddenTrackIds = Array.from(next);
-                            return next;
-                          })
-                        }
-                        onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
-                        header={
-                          <div className="mb-2 flex items-center gap-3">
-                            <Link to={`/profile/${profile?.username || profile?.id}`}>
-                              <div className="h-9 w-9 overflow-hidden rounded-full bg-primary/20">
-                                {profile?.avatar_url ? (
-                                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
-                                    {(profile?.display_name || "U")[0].toUpperCase()}
-                                  </div>
-                                )}
-                              </div>
+                  const profile = item.profiles;
+                  const track = item.tracks;
+                  return (
+                    <UnifiedTrackCard
+                      key={item.id}
+                      track={{
+                        id: track?.id,
+                        title: track?.title,
+                        artist: track?.artist,
+                        album: track?.album,
+                        albumArtUrl: track?.album_art_url,
+                        spotifyTrackId: track?.spotify_track_id,
+                        likeId: item.id,
+                        trackDbId: item.track_id,
+                      }}
+                      isSaved={isSaved(item.track_id)}
+                      onToggleSave={() => toggleSave(item.track_id, profile?.id, "feed")}
+                      sourceUserId={item.user_id}
+                      onHide={() =>
+                        setHiddenIds((prev) => {
+                          const next = new Set(prev);
+                          next.add(item.track_id);
+                          cachedHiddenTrackIds = Array.from(next);
+                          return next;
+                        })
+                      }
+                      onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
+                      header={
+                        <div className="mb-2 flex items-center gap-3">
+                          <Link to={`/profile/${profile?.username || profile?.id}`}>
+                            <div className="h-9 w-9 overflow-hidden rounded-full bg-primary/20">
+                              {profile?.avatar_url ? (
+                                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
+                                  {(profile?.display_name || "U")[0].toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                          </Link>
+                          <div className="flex-1 min-w-0">
+                            <Link
+                              to={`/profile/${profile?.username || profile?.id}`}
+                              className="text-sm font-medium text-foreground hover:text-primary transition-colors duration-150"
+                            >
+                              {profile?.display_name || "User"}
                             </Link>
-                            <div className="flex-1 min-w-0">
-                              <Link
-                                to={`/profile/${profile?.username || profile?.id}`}
-                                className="text-sm font-medium text-foreground hover:text-primary transition-colors duration-150"
-                              >
-                                {profile?.display_name || "User"}
-                              </Link>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">
-                                  {(() => {
-                                    const seconds = Math.floor((Date.now() - new Date(item.liked_at).getTime()) / 1000);
-                                    if (seconds < 60) return "just now";
-                                    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-                                    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-                                    return `${Math.floor(seconds / 86400)}d ago`;
-                                  })()}
-                                </span>
-                                <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                  {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : "Spotify"}
-                                </span>
-                              </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {(() => {
+                                  const seconds = Math.floor((Date.now() - new Date(item.liked_at).getTime()) / 1000);
+                                  if (seconds < 60) return "just now";
+                                  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+                                  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+                                  return `${Math.floor(seconds / 86400)}d ago`;
+                                })()}
+                              </span>
+                              <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : "Spotify"}
+                              </span>
                             </div>
                           </div>
-                        }
-                      />
-                    );
-                  })}
+                        </div>
+                      }
+                    />
+                  );
+                })}
               </div>
             ) : showInitialFeedLoading ? (
               <div className="flex justify-center py-20">
@@ -1171,7 +1173,10 @@ const Feed = () => {
                     {people.length === 0 &&
                       !peopleQuery &&
                       demoUsers.map((u) => (
-                        <div key={u.id} className="relative flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                        <div
+                          key={u.id}
+                          className="relative flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                        >
                           <span className="absolute right-2 top-2 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-primary">
                             example
                           </span>
@@ -1197,8 +1202,8 @@ const Feed = () => {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-display text-lg text-foreground">Journal</h3>
-                  <p className="text-xs text-muted-foreground">editorial picks, playlists, and links from PLAI</p>
+                  <h3 className="font-display text-lg text-foreground"></h3>
+                  <p className="text-xs text-muted-foreground">editorial picks, playlists, and articles from PLAI</p>
                 </div>
                 {journalLoading ? (
                   <div className="flex justify-center py-12">
