@@ -47,7 +47,7 @@ INSERT INTO public.discover_posts (
     'three-soft-launch-signals',
     '3 signals a release is landing before the timeline catches up',
     'A quick editorial note on the quiet clues that make a new release feel inevitable.',
-    'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1629753863735-4c9ba15bc10b?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGhpcCUyMGhvcHxlbnwwfHwwfHx8MA%3D%3D',
     '# Listen before the discourse arrives
 
 Some releases show up in the culture before they show up in the charts.
@@ -72,11 +72,23 @@ The best discovery products should notice momentum before it becomes obvious.',
   (
     'april-discovery-loop',
     'April discovery loop',
-    'A playlist-sized exit ramp from the feed: warm synths, late-night R&B, and soft-focus pop.',
-    'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?auto=format&fit=crop&w=1200&q=80',
+    'A playlist-sized exit ramp from the feed: warm synths, late-night R&B, and focused pop.',
+    'https://i.ytimg.com/vi/le9m07Q6XAQ/maxresdefault.jpg',
     null,
     'external',
-    'https://open.spotify.com/',
+    'https://open.spotify.com/playlist/2k4Eb037DBzGqoPx3xIA2g',
+    'PLAI',
+    now() - interval '1 day',
+    'published'
+  )
+  (
+    'The Big Three — An Audio Archive',
+    'The Big Three — An Audio Archive',
+    'A 5-hour chronological record of songs, interviews, and cultural fallout',
+    'https://cdn.theatlantic.com/thumbor/vYcT210oLj3VbqsRebXW4BiaTYU=/0x0:2000x1125/960x540/media/img/mt/2024/05/RapBeef-1/original.png',
+    null,
+    'external',
+    'https://untitled.stream/library/project/YbiaP2Nj9lO8Zyi5E3fdq',
     'PLAI',
     now() - interval '1 day',
     'published'
