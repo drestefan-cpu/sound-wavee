@@ -1,17 +1,15 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Disc, Settings } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 import { useRef } from "react";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const lastTapRef = useRef<number>(0);
 
   const links = [
     { to: "/feed", icon: Home, label: "Feed" },
-    { to: `/profile/${user?.id || ""}`, icon: Disc, label: "Library" },
+    { to: "/profile", icon: Disc, label: "Library" },
     { to: "/settings", icon: Settings, label: "Settings" },
   ];
 
