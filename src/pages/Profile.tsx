@@ -731,10 +731,14 @@ const Profile = () => {
   const ownHiddenIds = new Set(hiddenTracks.map((h: any) => h.track_id));
 
   const handleUnhideTrack = async (hiddenId: string) => {
-    await (supabase
+    const { error } = await (supabase
       .from("hidden_tracks" as any)
       .delete()
       .eq("id", hiddenId) as any);
+    if (error) {
+      toast.error("couldn't unhide — try again");
+      return;
+    }
     setHiddenTracks((prev) => prev.filter((t) => t.id !== hiddenId));
     toast.success("song back in your collection");
   };
