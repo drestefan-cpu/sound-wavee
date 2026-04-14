@@ -257,7 +257,12 @@ const Feed = () => {
         .in("user_id", userIds)
         .order("liked_at", { ascending: false })
         .limit(50);
-      if (error) console.error("Feed error:", error);
+      if (error) {
+        console.error("Feed error:", error);
+        toast.error("couldn't load feed — pull down to retry");
+        setFeedLoading(false);
+        return;
+      }
       const nextItems = (data as unknown as FeedItem[]) || [];
       const actorIds = [...new Set(nextItems.map((item) => item.user_id).filter(Boolean))];
       const trackIds = [...new Set(nextItems.map((item) => item.track_id).filter(Boolean))];
@@ -980,7 +985,7 @@ const Feed = () => {
                                 })()}
                               </span>
                               <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : "Spotify"}
+                                {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : track?.spotify_track_id?.startsWith("tidal_") ? "Tidal" : "Spotify"}
                               </span>
                             </div>
                           </div>
