@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import EmojiReactions from "@/components/EmojiReactions";
 import { getSpotifyUrl } from "@/lib/songlink";
 import { toast } from "sonner";
+import { formatTimestamp } from "@/lib/formatTimestamp";
 
 interface FeedItem {
   id: string;
@@ -29,13 +30,6 @@ interface FeedItem {
   };
 }
 
-function timeAgo(date: string) {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86400)}d ago`;
-}
 
 const TrackCard = ({
   item,
@@ -113,7 +107,7 @@ const TrackCard = ({
             {profile?.display_name || "User"}
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{timeAgo(item.liked_at)}</span>
+            <span className="text-xs text-muted-foreground">{formatTimestamp(item.liked_at)}</span>
             <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
               Spotify
             </span>

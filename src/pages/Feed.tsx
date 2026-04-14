@@ -18,6 +18,7 @@ import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { demoFeedItems, demoUsers } from "@/lib/demoData";
 import DiscoverPostCard, { type DiscoverPost } from "@/components/DiscoverPostCard";
 import DiscoverPostModal from "@/components/DiscoverPostModal";
+import { formatTimestamp } from "@/lib/formatTimestamp";
 
 interface FeedItem {
   id: string;
@@ -976,13 +977,7 @@ const Feed = () => {
                             </Link>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const seconds = Math.floor((Date.now() - new Date(item.liked_at).getTime()) / 1000);
-                                  if (seconds < 60) return "just now";
-                                  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-                                  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-                                  return `${Math.floor(seconds / 86400)}d ago`;
-                                })()}
+                                {formatTimestamp(item.liked_at)}
                               </span>
                               <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                                 {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : track?.spotify_track_id?.startsWith("tidal_") ? "Tidal" : "Spotify"}
