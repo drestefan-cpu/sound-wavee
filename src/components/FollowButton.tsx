@@ -23,21 +23,28 @@ const FollowButton = ({ targetUserId }: { targetUserId: string }) => {
     check();
   }, [user, targetUserId]);
 
-  const toggle = async () => {
-    if (!user) return;
-    setFollowing((prev) => !prev);
+  const [toggling, setToggling] = useState(false);
 
-    if (following) {
-      await supabase
+  const toggle = async () => {
+    if (!user || toggling) return;
+    setToggling(true);
+    const prev = following;
+    setFollowing(!prev);
+
+    if (prev) {
+      const { error } = await supabase
         .from("follows")
         .delete()
         .eq("follower_id", user.id)
         .eq("following_id", targetUserId);
+      if (error) setFollowing(prev);
     } else {
-      await supabase
+      const { error } = await supabase
         .from("follows")
         .insert({ follower_id: user.id, following_id: targetUserId });
+      if (error) setFollowing(prev);
     }
+    setToggling(false);
   };
 
   if (loading || !user || user.id === targetUserId) return null;
@@ -47,6 +54,7 @@ const FollowButton = ({ targetUserId }: { targetUserId: string }) => {
       variant={following ? "outline" : "default"}
       size="sm"
       onClick={toggle}
+      disabled={toggling}
     >
       {following ? "Following" : "Follow"}
     </Button>
