@@ -299,7 +299,7 @@ const Profile = () => {
     const loadFollowers = async () => {
       const { data } = await supabase
         .from("follows")
-        .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color)")
+        .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color, current_mood)")
         .eq("following_id", profile.id)
         .limit(50);
       setFollowers((data || []).map((f: any) => f.profiles).filter(Boolean));
@@ -517,6 +517,7 @@ const Profile = () => {
       id: f.id,
       username: f.username,
       color: f.profile_color || "#FF2D78",
+      mood: getMoodBySlug(f.current_mood)?.emoji ?? null,
       size: 8 + seededRandom(f.id + "s") * 8,
       orbitDelay: -((idx / arr.length) * 160),
       orbitDuration: 120 + seededRandom(f.id + "t") * 80,
@@ -566,7 +567,7 @@ const Profile = () => {
       isOwnProfile
         ? supabase
             .from("follows")
-            .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color)")
+            .select("follower_id, profiles!follows_follower_id_fkey(id, username, profile_color, current_mood)")
             .eq("following_id", profile.id)
             .limit(50)
         : Promise.resolve({ data: null } as any),
@@ -911,13 +912,13 @@ const Profile = () => {
                     <div
                       className="pointer-events-none absolute inset-0"
                     >
-                      {activeMoodEmoji && (
+                      {m.mood && (
                         <span
                           aria-hidden="true"
                           className="absolute -top-4 left-1/2 -translate-x-1/2 text-[12px] transition-opacity duration-300"
                           style={{ opacity: 1 }}
                         >
-                          {activeMoodEmoji}
+                          {m.mood}
                         </span>
                       )}
                       <span
