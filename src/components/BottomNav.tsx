@@ -23,7 +23,8 @@ const BottomNav = () => {
   };
 
   const handleNavTap = (to: string) => {
-    if (location.pathname === to) return;
+    const alreadyActive = location.pathname === to || (to !== "/settings" && location.pathname.startsWith(to + "/"));
+    if (alreadyActive) return;
     navigate(to);
   };
 
