@@ -38,14 +38,6 @@ export function SavedTracksProvider({ children }: { children: ReactNode }) {
       if (error) {
         setSavedTrackIds(prev => new Set(prev).add(trackId));
         toast.error("couldn't remove — try again");
-      } else {
-        // Also hide the track so it doesn't reappear in feed
-        try {
-          await (supabase.from("hidden_tracks" as any).insert({
-            user_id: user.id,
-            track_id: trackId,
-          }) as any);
-        } catch {}
       }
     } else {
       const { error } = await supabase.from("saved_tracks").insert({
