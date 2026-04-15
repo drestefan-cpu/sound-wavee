@@ -979,14 +979,9 @@ const Feed = () => {
                         </div>
                       }
                       subtitle={
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground flex-shrink-0">
-                            {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : track?.spotify_track_id?.startsWith("tidal_") ? "Tidal" : "Spotify"}
-                          </span>
-                          <span className="truncate text-[11px]" style={{ color: "#2a3a4a" }}>
-                            {formatTimestamp(item.liked_at)}
-                          </span>
-                        </div>
+                        <p className="truncate text-[11px] text-muted-foreground mt-0.5">
+                          {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : track?.spotify_track_id?.startsWith("tidal_") ? "Tidal" : "Spotify"} · {formatTimestamp(item.liked_at)}
+                        </p>
                       }
                     />
                   );
