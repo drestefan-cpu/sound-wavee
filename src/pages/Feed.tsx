@@ -55,6 +55,7 @@ interface ArtistReleaseItem {
   albumArtUrl: string | null;
   trackDbId?: string;
   badge?: "today" | "new";
+  activityScore?: number;
   likedBy?: {
     id: string;
     username: string;
@@ -150,7 +151,7 @@ const artistReleaseFallbackItems: ArtistReleaseItem[] = [
   },
 ];
 
-const USE_MOCK_ARTIST_TAB = true;
+const USE_MOCK_ARTIST_TAB = false;
 
 const normalizeArtistName = (value?: string | null) =>
   value?.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase() || "";
@@ -443,9 +444,14 @@ const Feed = () => {
           return;
         }
 
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - 60);
+        const cutoffIso = cutoffDate.toISOString().slice(0, 10);
+
         const { data: releaseRows, error: releaseError } = await (supabase
           .from("artist_releases" as any)
           .select("*")
+          .gte("release_date", cutoffIso)
           .order("release_date", { ascending: false }) as any);
 
         if (releaseError) throw releaseError;
@@ -490,16 +496,21 @@ const Feed = () => {
             avatarUrl: string | null;
           }[]
         >();
+        // save count per trackId (from following users)
+        const saveCountByTrackId = new Map<string, number>();
+        // reaction count per trackId (from following users), weighted 1/3
+        const reactionCountByTrackId = new Map<string, number>();
 
         if (followingIds.length > 0) {
           const matchedTrackIds = [...new Set(Array.from(trackIdBySpotifyId.values()).filter(Boolean))];
           if (matchedTrackIds.length > 0) {
             const { data: likeRows } = await (supabase
               .from("likes" as any)
-              .select("track_id, user_id, profiles!likes_user_id_fkey(id, username, display_name, avatar_url)")
+              .select("id, track_id, user_id, profiles!likes_user_id_fkey(id, username, display_name, avatar_url)")
               .in("user_id", followingIds)
               .in("track_id", matchedTrackIds) as any);
 
+            const likeIdsByTrackId = new Map<string, string[]>();
             ((likeRows || []) as any[]).forEach((row) => {
               const profile = row.profiles;
               if (!row.track_id || !profile?.id) return;
@@ -514,23 +525,53 @@ const Feed = () => {
                   avatarUrl: profile.avatar_url || null,
                 },
               ]);
+              saveCountByTrackId.set(row.track_id, (saveCountByTrackId.get(row.track_id) || 0) + 1);
+              if (row.id) {
+                likeIdsByTrackId.set(row.track_id, [...(likeIdsByTrackId.get(row.track_id) || []), row.id]);
+              }
             });
+
+            // Fetch reactions for these likes and tally weighted scores
+            const allLikeIds = Array.from(likeIdsByTrackId.values()).flat();
+            if (allLikeIds.length > 0) {
+              const { data: reactionRows } = await (supabase
+                .from("reactions" as any)
+                .select("like_id")
+                .in("like_id", allLikeIds) as any);
+
+              const likeIdToTrackId = new Map<string, string>();
+              likeIdsByTrackId.forEach((likeIds, trackId) => {
+                likeIds.forEach((lid) => likeIdToTrackId.set(lid, trackId));
+              });
+
+              ((reactionRows || []) as any[]).forEach((row) => {
+                const trackId = likeIdToTrackId.get(row.like_id);
+                if (!trackId) return;
+                reactionCountByTrackId.set(trackId, (reactionCountByTrackId.get(trackId) || 0) + 1);
+              });
+            }
           }
         }
 
         const matched = ((releaseRows || []) as any[])
           .filter((row) => followedNames.includes(normalizeArtistName(row.artist_name)))
-          .map((row) => ({
-            id: row.id,
-            title: row.title,
-            artist: row.artist_name,
-            album: row.album,
-            spotifyTrackId: row.spotify_track_id,
-            albumArtUrl: row.album_art_url,
-            trackDbId: trackIdBySpotifyId.get(row.spotify_track_id),
-            badge: getArtistBadge(row.release_date),
-            likedBy: likedByTrackId.get(trackIdBySpotifyId.get(row.spotify_track_id) || "") || undefined,
-          })) as ArtistReleaseItem[];
+          .map((row) => {
+            const trackDbId = trackIdBySpotifyId.get(row.spotify_track_id);
+            const saves = trackDbId ? (saveCountByTrackId.get(trackDbId) || 0) : 0;
+            const reactions = trackDbId ? (reactionCountByTrackId.get(trackDbId) || 0) : 0;
+            return {
+              id: row.id,
+              title: row.title,
+              artist: row.artist_name,
+              album: row.album,
+              spotifyTrackId: row.spotify_track_id,
+              albumArtUrl: row.album_art_url,
+              trackDbId,
+              badge: getArtistBadge(row.release_date),
+              activityScore: saves + reactions / 3,
+              likedBy: likedByTrackId.get(trackDbId || "") || undefined,
+            };
+          }) as ArtistReleaseItem[];
         setArtistMatchedCount(matched.length);
         setArtistHasTestRelease(matched.some((row) => row.title === "New Drop (Test)"));
 
@@ -770,7 +811,9 @@ const Feed = () => {
     );
   };
 
-  const artistHighlights = artistItems.slice(0, 3);
+  const artistHighlights = [...artistItems]
+    .sort((a, b) => (b.activityScore ?? 0) - (a.activityScore ?? 0))
+    .slice(0, 3);
   const artistReleases = artistItems;
 
   const artistSections = [
@@ -1129,7 +1172,7 @@ const Feed = () => {
                                   toast("save will unlock once this release is synced");
                                   return;
                                 }
-                                toggleSave(track.trackDbId, undefined, "discover_releases");
+                                toggleSave(track.trackDbId, undefined, "plai");
                               }}
                               onShare={() => {
                                 if (!track.trackDbId) {
