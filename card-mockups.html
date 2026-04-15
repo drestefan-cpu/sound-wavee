@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLAI — Card Design Mockups</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080c13;
+      --card:      #0e1520;
+      --border:    #1a2535;
+      --primary:   #FF2D78;
+      --fg:        #F0EBE3;
+      --muted:     #4a6070;
+      --dim:       #2a3a4a;
+      --secondary: #141e2e;
+      --accent2:   #1a3050;
+    }
+
+    body {
+      background: #04070d;
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--fg);
+      min-height: 100vh;
+      padding: 40px 20px 80px;
+    }
+
+    h1 {
+      font-family: "Unbounded", sans-serif;
+      font-size: 18px;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 48px;
+    }
+
+    /* ── Phone wrapper ── */
+    .phone-row {
+      display: flex;
+      gap: 28px;
+      justify-content: center;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .phone {
+      background: var(--bg);
+      border-radius: 36px;
+      border: 1.5px solid #1e2d40;
+      width: 340px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      flex-shrink: 0;
+    }
+    .phone-header {
+      padding: 16px 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .phone-label {
+      font-family: "Unbounded", sans-serif;
+      font-size: 9px;
+      color: var(--primary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .option-tag {
+      font-size: 9px;
+      color: var(--muted);
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .feed-area {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ── Shared atoms ── */
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FF2D78 0%, #a01040 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; color: #fff;
+      flex-shrink: 0;
+    }
+    .avatar.sm { width: 24px; height: 24px; font-size: 9px; }
+    .avatar.xs { width: 18px; height: 18px; font-size: 7px; border: 1.5px solid var(--bg); }
+    .avatar.b  { background: linear-gradient(135deg, #4a6a8a 0%, #2a3a5a 100%); }
+    .avatar.c  { background: linear-gradient(135deg, #1a9e75 0%, #0a5e45 100%); }
+
+    .art {
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1a3050 0%, #0a1525 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .art img { width: 100%; height: 100%; object-fit: cover; }
+
+    .pill {
+      display: inline-flex; align-items: center;
+      border-radius: 999px;
+      border: 1px solid var(--dim);
+      background: var(--card);
+      color: var(--dim);
+      font-size: 9px; font-weight: 500;
+      padding: 1px 7px;
+      flex-shrink: 0;
+    }
+
+    .heart-btn {
+      width: 30px; height: 30px;
+      border-radius: 50%; border: none; cursor: pointer;
+      background: var(--secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .heart-btn.saved { background: rgba(255,45,120,0.12); }
+    .play-btn {
+      width: 26px; height: 26px;
+      border-radius: 50%; border: none; cursor: pointer;
+      background: #1a2535;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; flex-shrink: 0;
+      color: #4a6a8a;
+    }
+
+    /* ══════════════════════════════════════════
+       OPTION A — Current (for reference)
+    ══════════════════════════════════════════ */
+    .card-current {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .card-current .card-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 10px;
+    }
+    .card-current .card-header .name {
+      font-size: 12px; font-weight: 500; color: var(--fg);
+    }
+    .card-current .card-header .meta {
+      font-size: 10px; color: var(--muted);
+    }
+    .card-current .card-body {
+      display: flex; gap: 10px; align-items: center;
+    }
+    .card-current .track-info { flex: 1; min-width: 0; }
+    .card-current .track-title { font-size: 13px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-current .track-artist { font-size: 11px; color: var(--muted); }
+    .card-current .track-sub {
+      display: flex; align-items: center; gap: 5px; margin-top: 3px;
+    }
+    .card-current .track-sub .ts { font-size: 10px; color: var(--dim); }
+
+    /* ══════════════════════════════════════════
+       OPTION B — Artwork-forward gradient bleed
+    ══════════════════════════════════════════ */
+    .card-b {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .card-b .art-strip {
+      position: relative;
+      height: 88px;
+      display: flex;
+      align-items: stretch;
+    }
+    .card-b .art-large {
+      width: 88px;
+      height: 88px;
+      border-radius: 0;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #1a3a5a 0%, #0a1a2a 50%, #1a0a20 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .card-b .bleed {
+      flex: 1;
+      background: linear-gradient(90deg, #0a1520 0%, var(--card) 60%);
+      padding: 10px 12px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .card-b .top-row { display: flex; align-items: center; justify-content: space-between; }
+    .card-b .friend-inline { display: flex; align-items: center; gap: 6px; }
+    .card-b .friend-name { font-size: 10px; color: var(--muted); }
+    .card-b .track-title { font-size: 13px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-b .track-artist { font-size: 11px; color: var(--muted); }
+    .card-b .bottom-row { display: flex; align-items: center; justify-content: space-between; }
+    .card-b .actions { display: flex; gap: 6px; }
+
+    /* ══════════════════════════════════════════
+       OPTION C — Borderless list rows
+    ══════════════════════════════════════════ */
+    .list-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 4px;
+      border-bottom: 1px solid #0e1720;
+      position: relative;
+    }
+    .list-row:last-child { border-bottom: none; }
+    .list-row .art { width: 42px; height: 42px; border-radius: 6px; font-size: 16px; }
+    .list-row .info { flex: 1; min-width: 0; }
+    .list-row .title { font-size: 13px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-row .artist { font-size: 11px; color: var(--muted); }
+    .list-row .meta-row { display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+    .list-row .friend-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); opacity: 0.7; }
+    .list-row .friend-text { font-size: 10px; color: var(--dim); }
+    .list-row .right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .list-row .ts { font-size: 10px; color: var(--dim); }
+
+    /* ══════════════════════════════════════════
+       OPTION D — Social-proof first
+    ══════════════════════════════════════════ */
+    .card-d {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .card-d .social-header {
+      display: flex; align-items: center; gap: 7px;
+      margin-bottom: 10px;
+    }
+    .card-d .avatar-stack { display: flex; }
+    .card-d .avatar-stack .xs { margin-left: -5px; }
+    .card-d .avatar-stack .xs:first-child { margin-left: 0; }
+    .card-d .social-text { font-size: 11px; color: var(--fg); line-height: 1.4; }
+    .card-d .social-text .names { font-weight: 500; }
+    .card-d .social-text .verb { color: var(--muted); }
+    .card-d .track-row { display: flex; gap: 10px; align-items: center; }
+    .card-d .track-info { flex: 1; min-width: 0; }
+    .card-d .track-title { font-size: 13px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-d .track-artist { font-size: 11px; color: var(--muted); }
+    .card-d .divider { height: 1px; background: var(--border); margin: 10px 0; }
+    .card-d .bottom { display: flex; align-items: center; justify-content: space-between; }
+    .card-d .ts { font-size: 10px; color: var(--dim); }
+    .card-d .actions { display: flex; gap: 6px; }
+
+    /* ══════════════════════════════════════════
+       OPTION E — Full-bleed art card
+    ══════════════════════════════════════════ */
+    .card-e {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .card-e .art-full {
+      width: 100%;
+      height: 160px;
+      background: linear-gradient(135deg, #1a3a5a 0%, #0f1a2a 40%, #200a20 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px;
+      position: relative;
+    }
+    .card-e .art-full::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 70%;
+      background: linear-gradient(to bottom, transparent, #0e1520);
+    }
+    .card-e .title-overlay {
+      position: absolute; bottom: 12px; left: 12px; right: 48px;
+      z-index: 2;
+    }
+    .card-e .title-overlay .track-title { font-size: 14px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-e .title-overlay .track-artist { font-size: 11px; color: rgba(240,235,227,0.6); }
+    .card-e .save-float {
+      position: absolute; top: 10px; right: 10px;
+      z-index: 3; font-size: 18px;
+    }
+    .card-e .card-footer {
+      background: var(--card);
+      padding: 8px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-e .friend-row { display: flex; align-items: center; gap: 6px; }
+    .card-e .friend-text { font-size: 10px; color: var(--muted); }
+    .card-e .actions { display: flex; gap: 6px; }
+
+    /* ══════════════════════════════════════════
+       OPTION F — Left accent line
+    ══════════════════════════════════════════ */
+    .card-f {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--primary);
+      position: relative;
+    }
+    .card-f-inactive {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      border-left: 3px solid transparent;
+      opacity: 0.6;
+    }
+    .card-f .card-header, .card-f-inactive .card-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 10px;
+    }
+    .card-f .name, .card-f-inactive .name { font-size: 12px; font-weight: 500; color: var(--fg); }
+    .card-f .meta, .card-f-inactive .meta { font-size: 10px; color: var(--muted); }
+    .card-f .card-body, .card-f-inactive .card-body { display: flex; gap: 10px; align-items: center; }
+    .card-f .track-info, .card-f-inactive .track-info { flex: 1; min-width: 0; }
+    .card-f .track-title, .card-f-inactive .track-title { font-size: 13px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-f .track-artist, .card-f-inactive .track-artist { font-size: 11px; color: var(--muted); }
+    .card-f .badge { font-size: 9px; color: var(--primary); margin-top: 2px; }
+
+    /* ── Section labels ── */
+    .section-label {
+      font-size: 11px; color: var(--muted);
+      text-align: center; padding: 6px 0 12px;
+      letter-spacing: 0.04em;
+    }
+    .current-badge {
+      display: inline-block;
+      font-size: 8px; font-weight: 600;
+      background: var(--secondary); color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px; padding: 1px 7px;
+      margin-left: 6px; vertical-align: middle;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .new-badge {
+      display: inline-block;
+      font-size: 8px; font-weight: 600;
+      background: rgba(255,45,120,0.1); color: var(--primary);
+      border: 1px solid rgba(255,45,120,0.3);
+      border-radius: 999px; padding: 1px 7px;
+      margin-left: 6px; vertical-align: middle;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    .page-section {
+      max-width: 760px;
+      margin: 0 auto 60px;
+    }
+    .page-section h2 {
+      font-size: 13px; font-weight: 500; color: var(--muted);
+      text-align: center; margin-bottom: 4px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .page-section .desc {
+      font-size: 11px; color: #2a3a50;
+      text-align: center; margin-bottom: 20px;
+      max-width: 400px; margin-left: auto; margin-right: auto;
+      line-height: 1.5;
+    }
+    .note {
+      font-size: 10px; color: var(--dim); text-align: center; margin-top: 10px; line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>PLAI</h1>
+  <p class="subtitle">Track Card Design Options — visual reference</p>
+
+  <!-- ══ CURRENT ══ -->
+  <div class="page-section">
+    <h2>Current <span class="current-badge">live</span></h2>
+    <p class="desc">Existing layout — avatar header, 72px art, inline subtitle row with pill + timestamp</p>
+    <div class="phone-row">
+      <div class="phone">
+        <div class="phone-header">
+          <span class="phone-label">PLAI</span>
+          <span class="option-tag">current</span>
+        </div>
+        <div class="feed-area">
+          <div class="card-current">
+            <div class="card-header">
+              <div class="avatar">A</div>
+              <div>
+                <div class="name">André</div>
+                <div class="meta">this afternoon</div>
+              </div>
+              <div style="margin-left:auto">
+                <div class="heart-btn saved">🩷</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="art" style="width:72px;height:72px">🎵</div>
+              <div class="track-info">
+                <div class="track-title">Good Days</div>
+                <div class="track-artist">SZA</div>
+                <div class="track-artist" style="font-size:10px;color:var(--dim)">Ctrl</div>
+                <div class="track-sub">
+                  <span class="pill">Spotify</span>
+                  <span class="ts">· this afternoon</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-current">
+            <div class="card-header">
+              <div class="avatar b">J</div>
+              <div>
+                <div class="name">Jordan</div>
+                <div class="meta">Mon morning</div>
+              </div>
+              <div style="margin-left:auto">
+                <div class="heart-btn">🤍</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="art" style="width:72px;height:72px;background:linear-gradient(135deg,#2a1a3a,#1a0a25)">🎸</div>
+              <div class="track-info">
+                <div class="track-title">Pink + White</div>
+                <div class="track-artist">Frank Ocean</div>
+                <div class="track-artist" style="font-size:10px;color:var(--dim)">Blonde</div>
+                <div class="track-sub">
+                  <span class="pill">Spotify</span>
+                  <span class="ts">· Mon morning</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ OPTION B — Artwork-forward ══ -->
+  <div class="page-section">
+    <h2>Option B <span class="new-badge">suggested</span></h2>
+    <p class="desc">Art expands to fill full card height. Gradient bleeds right. Friend avatar moves inline. Most visually distinctive.</p>
+    <div class="phone-row">
+      <div class="phone">
+        <div class="phone-header">
+          <span class="phone-label">PLAI</span>
+          <span class="option-tag">artwork-forward</span>
+        </div>
+        <div class="feed-area">
+          <div class="card-b">
+            <div class="art-strip">
+              <div class="art-large">🎵</div>
+              <div class="bleed">
+                <div class="top-row">
+                  <div class="friend-inline">
+                    <div class="avatar sm">A</div>
+                    <span class="friend-name">André · this afternoon</span>
+                  </div>
+                  <div class="heart-btn saved" style="width:26px;height:26px;font-size:12px">🩷</div>
+                </div>
+                <div>
+                  <div class="track-title">Good Days</div>
+                  <div class="track-artist">SZA</div>
+                </div>
+                <div class="bottom-row">
+                  <span class="pill">Spotify</span>
+                  <div class="actions">
+                    <div class="play-btn">▶</div>
+                    <div class="play-btn">↗</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-b">
+            <div class="art-strip">
+              <div class="art-large" style="background:linear-gradient(135deg,#2a1a3a,#1a0a25)">🎸</div>
+              <div class="bleed">
+                <div class="top-row">
+                  <div class="friend-inline">
+                    <div class="avatar sm b">J</div>
+                    <span class="friend-name">Jordan · Mon morning</span>
+                  </div>
+                  <div class="heart-btn" style="width:26px;height:26px;font-size:12px">🤍</div>
+                </div>
+                <div>
+                  <div class="track-title">Pink + White</div>
+                  <div class="track-artist">Frank Ocean</div>
+                </div>
+                <div class="bottom-row">
+                  <span class="pill">Spotify</span>
+                  <div class="actions">
+                    <div class="play-btn">▶</div>
+                    <div class="play-btn">↗</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Art renders at 88×88px — same data, no new assets needed</p>
+  </div>
+
+  <!-- ══ OPTION C — Borderless list ══ -->
+  <div class="page-section">
+    <h2>Option C <span class="new-badge">suggested</span></h2>
+    <p class="desc">No card borders or backgrounds. High-density feed. Separator lines only. Editorial and clean.</p>
+    <div class="phone-row">
+      <div class="phone">
+        <div class="phone-header">
+          <span class="phone-label">PLAI</span>
+          <span class="option-tag">borderless list</span>
+        </div>
+        <div class="feed-area" style="gap:0;padding:8px 14px">
+          <div class="list-row">
+            <div class="avatar sm">A</div>
+            <div class="art">🎵</div>
+            <div class="info">
+              <div class="title">Good Days</div>
+              <div class="artist">SZA</div>
+              <div class="meta-row">
+                <div class="friend-dot"></div>
+                <span class="friend-text">André loved this</span>
+              </div>
+            </div>
+            <div class="right">
+              <span style="font-size:14px">🩷</span>
+              <span class="ts">now</span>
+            </div>
+          </div>
+          <div class="list-row">
+            <div class="avatar sm b">J</div>
+            <div class="art" style="background:linear-gradient(135deg,#2a1a3a,#1a0a25)">🎸</div>
+            <div class="info">
+              <div class="title">Pink + White</div>
+              <div class="artist">Frank Ocean</div>
+              <div class="meta-row">
+                <div class="friend-dot"></div>
+                <span class="friend-text">Jordan loved this</span>
+              </div>
+            </div>
+            <div class="right">
+              <span style="font-size:14px;opacity:0.3">🤍</span>
+              <span class="ts">Mon</span>
+            </div>
+          </div>
+          <div class="list-row">
+            <div class="avatar sm c">M</div>
+            <div class="art" style="background:linear-gradient(135deg,#1a3a2a,#0a1a15)">🎤</div>
+            <div class="info">
+              <div class="title">Superstar</div>
+              <div class="artist">Usher</div>
+              <div class="meta-row">
+                <div class="friend-dot"></div>
+                <span class="friend-text">Maya loved this</span>
+              </div>
+            </div>
+            <div class="right">
+              <span style="font-size:14px">🩷</span>
+              <span class="ts">Sun</span>
+            </div>
+          </div>
+          <div class="list-row">
+            <div class="avatar sm" style="background:linear-gradient(135deg,#8a4a6a,#4a1a3a)">K</div>
+            <div class="art" style="background:linear-gradient(135deg,#3a2a1a,#1a0a05)">🎹</div>
+            <div class="info">
+              <div class="title">Redbone</div>
+              <div class="artist">Childish Gambino</div>
+              <div class="meta-row">
+                <div class="friend-dot" style="opacity:0.3"></div>
+                <span class="friend-text" style="color:#1e2e3e">Kayla loved this</span>
+              </div>
+            </div>
+            <div class="right">
+              <span style="font-size:14px;opacity:0.3">🤍</span>
+              <span class="ts">Sat</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Shows 4 items in the same space as 2 current cards — higher information density</p>
+  </div>
+
+  <!-- ══ OPTION D — Social-proof first ══ -->
+  <div class="page-section">
+    <h2>Option D <span class="new-badge">suggested</span></h2>
+    <p class="desc">Friend activity is the headline. Track info is secondary. Makes discovery feel trust-driven.</p>
+    <div class="phone-row">
+      <div class="phone">
+        <div class="phone-header">
+          <span class="phone-label">PLAI</span>
+          <span class="option-tag">social-proof first</span>
+        </div>
+        <div class="feed-area">
+          <div class="card-d">
+            <div class="social-header">
+              <div class="avatar-stack">
+                <div class="avatar xs">A</div>
+                <div class="avatar xs b">J</div>
+                <div class="avatar xs c">M</div>
+              </div>
+              <div class="social-text">
+                <span class="names">André, Jordan</span>
+                <span class="verb"> + 1 more loved this</span>
+              </div>
+            </div>
+            <div class="track-row">
+              <div class="art" style="width:56px;height:56px;font-size:20px">🎵</div>
+              <div class="track-info">
+                <div class="track-title">Good Days</div>
+                <div class="track-artist">SZA · Ctrl</div>
+              </div>
+              <div class="heart-btn saved">🩷</div>
+            </div>
+            <div class="divider"></div>
+            <div class="bottom">
+              <div style="display:flex;align-items:center;gap:5px">
+                <span class="pill">Spotify</span>
+                <span class="ts">this afternoon</span>
+              </div>
+              <div class="actions">
+                <div class="play-btn">▶</div>
+                <div class="play-btn">↗</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-d">
+            <div class="social-header">
+              <div class="avatar-stack">
+                <div class="avatar xs b">J</div>
+              </div>
+              <div class="social-text">
+                <span class="names">Jordan</span>
+                <span class="verb"> loved this</span>
+              </div>
+            </div>
+            <div class="track-row">
+              <div class="art" style="width:56px;height:56px;font-size:20px;background:linear-gradient(135deg,#2a1a3a,#1a0a25)">🎸</div>
+              <div class="track-info">
+                <div class="track-title">Pink + White</div>
+                <div class="track-artist">Frank Ocean · Blonde</div>
+              </div>
+              <div class="heart-btn">🤍</div>
+            </div>
+            <div class="divider"></div>
+            <div class="bottom">
+              <div style="display:flex;align-items:center;gap:5px">
+                <span class="pill">Spotify</span>
+                <span class="ts">Mon morning</span>
+              </div>
+              <div class="actions">
+                <div class="play-btn">▶</div>
+                <div class="play-btn">↗</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">When multiple friends like the same track, the avatar stack collapses them — always one card per track</p>
+  </div>
+
+  <!-- ══ OPTION E — Full-bleed art ══ -->
+  <div class="page-section">
+    <h2>Option E <span class="new-badge">suggested</span></h2>
+    <p class="desc">Album art fills the top of the card. Title overlays the gradient. Most editorial, highest visual variance.</p>
+    <div class="phone-row">
+      <div class="phone">
+        <div class="phone-header">
+          <span class="phone-label">PLAI</span>
+          <span class="option-tag">full-bleed art</span>
+        </div>
+        <div class="feed-area">
+          <div class="card-e">
+            <div class="art-full">
+              🎵
+              <div class="save-float">🩷</div>
+              <div class="title-overlay">
+                <div class="track-title">Good Days</div>
+                <div class="track-artist">SZA</div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="friend-row">
+                <div class="avatar xs">A</div>
+                <div class="avatar xs b" style="margin-left:-5px">J</div>
+                <span class="friend-text" style="margin-left:5px">André + 1 loved this</span>
+              </div>
+              <div class="actions">
+                <div class="play-btn">▶</div>
+                <div class="play-btn">↗</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-e">
+            <div class="art-full" style="background:linear-gradient(135deg,#2a1a3a,#1a0a25,#0a0a1a)">
+              🎸
+              <div class="save-float">🤍</div>
+              <div class="title-overlay">
+                <div class="track-title">Pink + White</div>
+                <div class="track-artist">Frank Ocean</div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="friend-row">
+                <div class="avatar xs b">J</div>
+                <span class="friend-text" style="margin-left:5px">Jordan loved this</span>
+              </div>
+              <div class="actions">
+                <div class="play-btn">▶</div>
+                <div class="play-btn">↗</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Requires real album art to look best — emoji placeholders above don't represent true impact</p>
+  </div>
+
+  <!-- ══ OPTION F — Left accent ══ -->
+  <div class="page-section">
+    <h2>Option F <span class="new-badge">suggested</span></h2>
+    <p class="desc">Current layout preserved. A 3px pink left border marks tracks your friends saved. Zero-effort personality.</p>
+    <div class="phone-row">
+      <div class="phone">
+        <div class="phone-header">
+          <span class="phone-label">PLAI</span>
+          <span class="option-tag">accent line</span>
+        </div>
+        <div class="feed-area">
+          <!-- Friend saved — accent on -->
+          <div class="card-f">
+            <div class="card-header">
+              <div class="avatar">A</div>
+              <div>
+                <div class="name">André</div>
+                <div class="meta">this afternoon</div>
+              </div>
+              <div style="margin-left:auto">
+                <div class="heart-btn saved">🩷</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="art" style="width:66px;height:66px">🎵</div>
+              <div class="track-info">
+                <div class="track-title">Good Days</div>
+                <div class="track-artist">SZA</div>
+                <div class="badge">♥ 3 friends</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Friend saved — accent on -->
+          <div class="card-f">
+            <div class="card-header">
+              <div class="avatar b">J</div>
+              <div>
+                <div class="name">Jordan</div>
+                <div class="meta">Mon morning</div>
+              </div>
+              <div style="margin-left:auto">
+                <div class="heart-btn">🤍</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="art" style="width:66px;height:66px;background:linear-gradient(135deg,#2a1a3a,#1a0a25)">🎸</div>
+              <div class="track-info">
+                <div class="track-title">Pink + White</div>
+                <div class="track-artist">Frank Ocean</div>
+                <div class="badge">♥ 1 friend</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- No friend activity — no accent -->
+          <div class="card-f-inactive">
+            <div class="card-header">
+              <div class="avatar c">M</div>
+              <div>
+                <div class="name">Maya</div>
+                <div class="meta">Sun night</div>
+              </div>
+              <div style="margin-left:auto">
+                <div class="heart-btn">🤍</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="art" style="width:66px;height:66px;background:linear-gradient(135deg,#1a3a2a,#0a1a15)">🎤</div>
+              <div class="track-info">
+                <div class="track-title">Superstar</div>
+                <div class="track-artist">Usher</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Top two cards have friends activity (pink border). Bottom card does not — same card, muted.</p>
+  </div>
+
+</body>
+</html>
