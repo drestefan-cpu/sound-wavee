@@ -121,6 +121,10 @@ serve(async (req) => {
         !searchedNorm.includes(returnedNorm)
       ) continue
 
+      // Reject non-music entities (podcast studios, labels, etc.) — music artists
+      // always have genre tags; production companies and podcast shows never do
+      if (!artist.genres || artist.genres.length === 0) continue
+
       // Get artist's recent releases (albums + singles)
       const albumsData = await spotifyFetch(
         `https://api.spotify.com/v1/artists/${artist.id}/albums?include_groups=album,single&limit=10&market=US`
