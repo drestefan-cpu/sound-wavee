@@ -402,6 +402,9 @@ const Feed = () => {
         return;
       }
 
+      // Fire-and-forget sync — populates artist_releases before we query below
+      supabase.functions.invoke("sync-artist-releases", { body: { user_id: user.id } }).catch(() => {});
+
       setArtistLoading(true);
       setArtistEmptyState(null);
       setArtistFallback(false);
