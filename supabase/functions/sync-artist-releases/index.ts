@@ -111,6 +111,16 @@ serve(async (req) => {
       const artist = searchData?.artists?.items?.[0]
       if (!artist?.id) continue
 
+      // Reject fuzzy mismatches — Spotify returns popularity-ranked results, not exact matches
+      const normalize = (s: string) => s.toLowerCase().trim()
+      const searchedNorm = normalize(artistName)
+      const returnedNorm = normalize(artist.name)
+      if (
+        returnedNorm !== searchedNorm &&
+        !returnedNorm.includes(searchedNorm) &&
+        !searchedNorm.includes(returnedNorm)
+      ) continue
+
       // Get artist's recent releases (albums + singles)
       const albumsData = await spotifyFetch(
         `https://api.spotify.com/v1/artists/${artist.id}/albums?include_groups=album,single&limit=10&market=US`
