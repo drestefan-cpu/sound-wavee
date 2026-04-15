@@ -98,8 +98,14 @@ const Admin = () => {
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}>
-        <div className="bg-card border border-border rounded-2xl p-8 max-w-xs w-full mx-4 text-center">
+      <div
+        className="min-h-screen bg-background overflow-y-auto flex flex-col items-center px-4"
+        style={{
+          paddingTop: "max(15vh, env(safe-area-inset-top, 0px) + 48px)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)",
+        }}
+      >
+        <div className="bg-card border border-border rounded-2xl p-8 max-w-xs w-full text-center">
           <h1 className="text-lg font-medium text-foreground mb-4">PLAI Admin</h1>
           <Input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="PIN" className="bg-background border-border text-center tracking-[0.3em] mb-4" />
           <button onClick={handlePinSubmit} disabled={pin.length !== 4} className="w-full rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">enter</button>
