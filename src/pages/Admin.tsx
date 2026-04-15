@@ -165,7 +165,7 @@ const Admin = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : activeTab === "picks" ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm text-muted-foreground">{picks.length} picks</p>
