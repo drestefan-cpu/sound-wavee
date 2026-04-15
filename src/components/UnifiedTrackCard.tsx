@@ -206,7 +206,7 @@ const UnifiedTrackCard = ({
         onClick={() => setShowDetail(true)}
       >
         {header}
-        <div className="flex gap-3 items-start">
+        <div className="flex gap-3 items-center">
           <div
             className="flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
             style={{ width: 72, height: 72 }}
@@ -224,7 +224,7 @@ const UnifiedTrackCard = ({
               <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">♪</div>
             )}
           </div>
-          <div className="min-w-0 flex-1 pt-0.5">
+          <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-foreground text-sm">{track.title}</p>
             <p className="truncate text-muted-foreground text-xs">{track.artist}</p>
             {track.album && (
