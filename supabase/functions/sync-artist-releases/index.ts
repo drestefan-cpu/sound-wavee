@@ -115,11 +115,7 @@ serve(async (req) => {
       const normalize = (s: string) => s.toLowerCase().trim()
       const searchedNorm = normalize(artistName)
       const returnedNorm = normalize(artist.name)
-      if (
-        returnedNorm !== searchedNorm &&
-        !returnedNorm.includes(searchedNorm) &&
-        !searchedNorm.includes(returnedNorm)
-      ) continue
+      if (returnedNorm !== searchedNorm && !returnedNorm.includes(searchedNorm)) continue
 
       // Reject non-music entities (podcast studios, labels, etc.) — music artists
       // always have genre tags; production companies and podcast shows never do
