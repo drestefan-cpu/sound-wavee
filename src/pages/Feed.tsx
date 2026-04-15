@@ -1172,7 +1172,7 @@ const Feed = () => {
                                   toast("save will unlock once this release is synced");
                                   return;
                                 }
-                                toggleSave(track.trackDbId, undefined, "plai");
+                                toggleSave(track.trackDbId, undefined, "discover_releases");
                               }}
                               onShare={() => {
                                 if (!track.trackDbId) {

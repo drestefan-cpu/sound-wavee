@@ -1101,13 +1101,11 @@ const Profile = () => {
                     <p className="text-[10px] text-muted-foreground">
                       {s.source_context === "trending"
                         ? "from trending"
-                        : s.source_context === "plai"
-                          ? "from @PLAI"
-                          : s.profiles?.username
-                            ? `from @${s.profiles.username}`
-                            : s.profiles?.display_name
-                              ? `from ${s.profiles.display_name}`
-                              : "from feed"}
+                        : s.profiles?.username
+                          ? `from @${s.profiles.username}`
+                          : s.profiles?.display_name
+                            ? `from ${s.profiles.display_name}`
+                            : "from feed"}
                     </p>
                   }
                 />
