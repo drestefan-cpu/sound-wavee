@@ -10,9 +10,12 @@
   --sab: env(safe-area-inset-bottom, 0px);
 }
 
-/* Keep Sonner toasts above the bottom nav on all devices */
-[data-sonner-toaster][data-position='bottom-center'] {
-  bottom: calc(var(--sab) + 4.5rem) !important;
+/* Keep Sonner toasts above the bottom nav on all devices.
+   Sonner uses data-y-position (not data-position) and positions via
+   --offset-bottom / --mobile-offset-bottom CSS variables, not bottom directly. */
+[data-sonner-toaster][data-y-position='bottom'] {
+  --offset-bottom: calc(var(--sab) + 4.5rem) !important;
+  --mobile-offset-bottom: calc(var(--sab) + 4.5rem) !important;
 }
 
 @layer base {
