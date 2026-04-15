@@ -80,10 +80,14 @@ serve(async (req) => {
       .select("artist_name")
       .eq("user_id", user_id)
 
+    // Split comma-separated entries (handles legacy multi-artist rows pre-fix)
     const artistNames: string[] = [...new Set(
       ((followedRows || []) as any[])
-        .map((r: any) => r.artist_name?.trim())
-        .filter(Boolean)
+        .flatMap((r: any) =>
+          typeof r.artist_name === "string"
+            ? r.artist_name.split(/\s*,\s*/).map((n: string) => n.trim()).filter(Boolean)
+            : []
+        )
     )]
 
     if (artistNames.length === 0) {
