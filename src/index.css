@@ -10,6 +10,11 @@
   --sab: env(safe-area-inset-bottom, 0px);
 }
 
+/* Keep Sonner toasts above the bottom nav on all devices */
+[data-sonner-toaster][data-position='bottom-center'] {
+  bottom: calc(var(--sab) + 4.5rem) !important;
+}
+
 @layer base {
   :root {
     --background: 218 32% 5%;

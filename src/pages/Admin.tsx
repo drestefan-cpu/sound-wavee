@@ -98,7 +98,7 @@ const Admin = () => {
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center pb-20">
+      <div className="min-h-screen bg-background flex items-center justify-center" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}>
         <div className="bg-card border border-border rounded-2xl p-8 max-w-xs w-full mx-4 text-center">
           <h1 className="text-lg font-medium text-foreground mb-4">PLAI Admin</h1>
           <Input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="PIN" className="bg-background border-border text-center tracking-[0.3em] mb-4" />
@@ -117,7 +117,7 @@ const Admin = () => {
         </div>
       </header>
 
-      <div className="mx-auto max-w-3xl px-4 py-4">
+      <div className="mx-auto max-w-3xl px-4 py-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}>
         <div className="flex gap-2 mb-6">
           {(["taglines", "picks", "releases"] as const).map(t => (
             <button key={t} onClick={() => setActiveTab(t)} className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${activeTab === t ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}>

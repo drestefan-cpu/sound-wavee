@@ -28,7 +28,6 @@ const App = () => (
     <TooltipProvider>
       <Sonner
         position="bottom-center"
-        offset={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 112px)" }}
         duration={3500}
       />
       <BrowserRouter>
