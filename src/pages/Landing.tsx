@@ -7,12 +7,17 @@ import Starfield from "@/components/Starfield";
 import { getRandomTagline } from "@/lib/taglines";
 import { supabase } from "@/integrations/supabase/client";
 
+const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
+const APIKEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+
 const Landing = () => {
   const { user, loading, signInWithSpotify } = useAuth();
   const navigate = useNavigate();
   const [tagline, setTagline] = useState("i love your taste");
   const [fade, setFade] = useState(true);
   const [showInstallOverlay, setShowInstallOverlay] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -50,6 +55,84 @@ const Landing = () => {
       },
     });
     if (error) toast.error("Could not connect to Google");
+  };
+
+  const connectAppleMusic = async () => {
+    setAppleLoading(true);
+    try {
+      // 1. Fetch developer token from our edge function
+      const devTokenRes = await fetch(`${SUPABASE_URL}/functions/v1/apple-music-developer-token`, {
+        method: "POST",
+        headers: { apikey: APIKEY, "Content-Type": "application/json" },
+      });
+      const { token: developerToken, error: tokenError } = await devTokenRes.json();
+      if (!developerToken) throw new Error(tokenError || "Could not get developer token");
+
+      // 2. Load MusicKit JS v3 if not already present
+      await new Promise<void>((resolve, reject) => {
+        if ((window as any).MusicKit) { resolve(); return; }
+        const script = document.createElement("script");
+        script.src = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load MusicKit JS"));
+        document.head.appendChild(script);
+      });
+
+      // 3. Configure MusicKit
+      await (window as any).MusicKit.configure({
+        developerToken,
+        app: { name: "PLAI", build: "1.0" },
+      });
+      const music = (window as any).MusicKit.getInstance();
+
+      // 4. Authorize — opens Apple Music sign-in
+      const userToken = await music.authorize();
+      if (!userToken) throw new Error("Authorization cancelled");
+
+      // 5. Get existing session or create anon account
+      let { data: { session } } = await supabase.auth.getSession();
+      let userId = session?.user?.id;
+
+      if (!userId) {
+        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+        if (anonError || !anonData.user) throw new Error("Could not create account — please try again");
+        userId = anonData.user.id;
+        const { data: refreshed } = await supabase.auth.getSession();
+        session = refreshed.session;
+      }
+
+      const authToken = session?.access_token || APIKEY;
+
+      // 6. Store user token in profiles
+      const { error: upsertError } = await supabase
+        .from("profiles")
+        .upsert({ id: userId, apple_music_user_token: userToken } as any, { onConflict: "id" });
+      if (upsertError) throw new Error("Could not save Apple Music token");
+
+      // 7. Trigger sync — fire and forget
+      fetch(`${SUPABASE_URL}/functions/v1/sync-apple-music-likes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: APIKEY,
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ user_id: userId }),
+      }).catch(() => {});
+
+      toast.success("Apple Music connected!");
+      navigate("/feed");
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.toLowerCase().includes("cancel") || msg.toLowerCase().includes("abort")) {
+        toast.error("Apple Music sign in cancelled");
+      } else {
+        toast.error("Could not connect Apple Music — please try again");
+        console.error("Apple Music auth error:", err);
+      }
+    } finally {
+      setAppleLoading(false);
+    }
   };
 
   const connectTidal = async () => {
@@ -288,14 +371,19 @@ const Landing = () => {
           </button>
 
           <button
-            onClick={() => toast("Apple Music coming soon")}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
+            onClick={connectAppleMusic}
+            disabled={appleLoading}
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40 disabled:opacity-60"
             style={{ touchAction: "manipulation" }}
           >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-              <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
-            </svg>
-            continue with Apple Music
+            {appleLoading ? (
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+              </svg>
+            )}
+            {appleLoading ? "connecting…" : "continue with Apple Music"}
           </button>
         </div>
 
