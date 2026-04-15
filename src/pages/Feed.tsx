@@ -151,7 +151,7 @@ const artistReleaseFallbackItems: ArtistReleaseItem[] = [
   },
 ];
 
-const USE_MOCK_ARTIST_TAB = false;
+const RELEASES_MOCK_KEY = "plai-releases-mock";
 
 const normalizeArtistName = (value?: string | null) =>
   value?.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase() || "";
@@ -206,6 +206,7 @@ const Feed = () => {
   const [logoFlash, setLogoFlash] = useState(false);
   const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string } | null>(null);
 
+  const [useMockReleases, setUseMockReleases] = useState(() => localStorage.getItem(RELEASES_MOCK_KEY) === "1");
   const [artistItems, setArtistItems] = useState<ArtistReleaseItem[]>(artistReleaseFallbackItems);
   const [artistLoading, setArtistLoading] = useState(true);
   const [artistFallback, setArtistFallback] = useState(false);
@@ -387,7 +388,7 @@ const Feed = () => {
     const loadArtistReleases = async () => {
       if (!user) return;
 
-      if (USE_MOCK_ARTIST_TAB) {
+      if (useMockReleases) {
         setArtistItems(artistReleaseFallbackItems);
         setArtistLoading(false);
         setArtistFallback(false);
@@ -1114,7 +1115,7 @@ const Feed = () => {
 
             {discoverTab === "releases" ? (
               <div className="space-y-6">
-                {!USE_MOCK_ARTIST_TAB && (
+                {!useMockReleases && (
                   <>
                     <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
                       <div>user: {user.id}</div>
@@ -1173,7 +1174,7 @@ const Feed = () => {
                   </div>
                 ) : (
                   <>
-                    {artistFallback && !USE_MOCK_ARTIST_TAB && (
+                    {artistFallback && !useMockReleases && (
                       <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
                         showing fallback releases while real artist data finishes connecting
                       </div>

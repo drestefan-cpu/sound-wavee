@@ -22,7 +22,8 @@ const Admin = () => {
   const [newPick, setNewPick] = useState({ spotify_track_id: "", title: "", artist: "", album: "", note: "" });
   const [showAddPick, setShowAddPick] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"taglines" | "picks">("taglines");
+  const [activeTab, setActiveTab] = useState<"taglines" | "picks" | "releases">("taglines");
+  const [releasesMock, setReleasesMock] = useState(() => localStorage.getItem("plai-releases-mock") === "1");
 
   useEffect(() => {
     if (authed) { loadTaglines(); loadPicks(); }
@@ -118,9 +119,9 @@ const Admin = () => {
 
       <div className="mx-auto max-w-3xl px-4 py-4">
         <div className="flex gap-2 mb-6">
-          {(["taglines", "picks"] as const).map(t => (
+          {(["taglines", "picks", "releases"] as const).map(t => (
             <button key={t} onClick={() => setActiveTab(t)} className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${activeTab === t ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}>
-              {t === "taglines" ? "Taglines" : "PLAI Picks"}
+              {t === "taglines" ? "Taglines" : t === "picks" ? "PLAI Picks" : "Releases"}
             </button>
           ))}
         </div>
@@ -182,7 +183,7 @@ const Admin = () => {
               </div>
             )}
 
-            {picks.map(p => (
+            {picks.map((p) => (
               <div key={p.id} className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2">
                 <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                 <span className="text-xs font-medium text-primary w-6">#{p.position}</span>
@@ -202,6 +203,27 @@ const Admin = () => {
                 <button onClick={() => deletePick(p.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Controls how the Releases tab renders. Use mock mode when demoing the app.</p>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Mock mode</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{releasesMock ? "showing demo tracks" : "showing real data"}</p>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !releasesMock;
+                  localStorage.setItem("plai-releases-mock", next ? "1" : "0");
+                  setReleasesMock(next);
+                  toast.success(next ? "mock mode on — reload releases to see demo tracks" : "mock mode off — reload releases to see real data");
+                }}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${releasesMock ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
+              >
+                {releasesMock ? "on" : "off"}
+              </button>
+            </div>
           </div>
         )}
       </div>
