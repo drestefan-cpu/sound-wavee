@@ -64,8 +64,17 @@ export function SavedTracksProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const savedTracksFallback: SavedTracksContextType = {
+  savedTrackIds: new Set(),
+  toggleSave: async () => {},
+  isSaved: () => false,
+};
+
 export function useSavedTracks() {
   const context = useContext(SavedTracksContext);
-  if (!context) throw new Error("useSavedTracks must be used within SavedTracksProvider");
+  if (!context) {
+    console.warn("useSavedTracks called outside SavedTracksProvider — using fallback");
+    return savedTracksFallback;
+  }
   return context;
 }
