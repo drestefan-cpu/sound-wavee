@@ -98,7 +98,7 @@ const Admin = () => {
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center pb-20">
         <div className="bg-card border border-border rounded-2xl p-8 max-w-xs w-full mx-4 text-center">
           <h1 className="text-lg font-medium text-foreground mb-4">PLAI Admin</h1>
           <Input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="PIN" className="bg-background border-border text-center tracking-[0.3em] mb-4" />

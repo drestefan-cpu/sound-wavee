@@ -425,9 +425,13 @@ const Feed = () => {
 
         if (followedError) throw followedError;
 
+        // Split comma-separated entries (handles legacy multi-artist rows pre-fix)
         const followedRawNames = ((followedRows || []) as any[])
-          .map((row: any) => row.artist_name)
-          .filter((value: any) => typeof value === "string" && value.trim().length > 0);
+          .flatMap((row: any) =>
+            typeof row.artist_name === "string"
+              ? row.artist_name.split(/\s*,\s*/).map((n: string) => n.trim()).filter(Boolean)
+              : [],
+          );
         setArtistFollowedDebug(
           followedRawNames.slice(0, 5).map((name: string) => ({
             raw: name,
