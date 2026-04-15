@@ -513,44 +513,79 @@ const Feed = () => {
               .in("user_id", followingIds)
               .in("track_id", matchedTrackIds) as any);
 
+            // Build a profile lookup from savers for use when merging reactors below
+            const profileById = new Map<string, { id: string; username: string; displayName: string; avatarUrl: string | null }>();
             const likeIdsByTrackId = new Map<string, string[]>();
             ((likeRows || []) as any[]).forEach((row) => {
               const profile = row.profiles;
               if (!row.track_id || !profile?.id) return;
+              const entry = {
+                id: profile.id,
+                username: profile.username || "user",
+                displayName: profile.display_name || profile.username || "User",
+                avatarUrl: profile.avatar_url || null,
+              };
+              profileById.set(profile.id, entry);
               const existing = likedByTrackId.get(row.track_id) || [];
-              if (existing.some((friend) => friend.id === profile.id)) return;
-              likedByTrackId.set(row.track_id, [
-                ...existing,
-                {
-                  id: profile.id,
-                  username: profile.username || "user",
-                  displayName: profile.display_name || profile.username || "User",
-                  avatarUrl: profile.avatar_url || null,
-                },
-              ]);
+              if (!existing.some((friend) => friend.id === profile.id)) {
+                likedByTrackId.set(row.track_id, [...existing, entry]);
+              }
               saveCountByTrackId.set(row.track_id, (saveCountByTrackId.get(row.track_id) || 0) + 1);
               if (row.id) {
                 likeIdsByTrackId.set(row.track_id, [...(likeIdsByTrackId.get(row.track_id) || []), row.id]);
               }
             });
 
-            // Fetch reactions for these likes and tally weighted scores
+            // Fetch reactions from following users, tally weighted scores + merge reactors into likedBy
             const allLikeIds = Array.from(likeIdsByTrackId.values()).flat();
             if (allLikeIds.length > 0) {
               const { data: reactionRows } = await (supabase
                 .from("reactions" as any)
-                .select("like_id")
-                .in("like_id", allLikeIds) as any);
+                .select("like_id, user_id")
+                .in("like_id", allLikeIds)
+                .in("user_id", followingIds) as any);
 
               const likeIdToTrackId = new Map<string, string>();
               likeIdsByTrackId.forEach((likeIds, trackId) => {
                 likeIds.forEach((lid) => likeIdToTrackId.set(lid, trackId));
               });
 
+              // Fetch profiles for reactors not already in profileById
+              const newReactorIds = [
+                ...new Set(
+                  ((reactionRows || []) as any[])
+                    .map((r: any) => r.user_id)
+                    .filter((id: string) => id && !profileById.has(id)),
+                ),
+              ];
+              if (newReactorIds.length > 0) {
+                const { data: reactorProfiles } = await (supabase
+                  .from("profiles")
+                  .select("id, username, display_name, avatar_url")
+                  .in("id", newReactorIds) as any);
+                ((reactorProfiles || []) as any[]).forEach((p: any) => {
+                  if (p?.id) {
+                    profileById.set(p.id, {
+                      id: p.id,
+                      username: p.username || "user",
+                      displayName: p.display_name || p.username || "User",
+                      avatarUrl: p.avatar_url || null,
+                    });
+                  }
+                });
+              }
+
               ((reactionRows || []) as any[]).forEach((row) => {
                 const trackId = likeIdToTrackId.get(row.like_id);
                 if (!trackId) return;
                 reactionCountByTrackId.set(trackId, (reactionCountByTrackId.get(trackId) || 0) + 1);
+                // Merge reactor into likedBy (deduplicated)
+                if (row.user_id && profileById.has(row.user_id)) {
+                  const existing = likedByTrackId.get(trackId) || [];
+                  if (!existing.some((f) => f.id === row.user_id)) {
+                    likedByTrackId.set(trackId, [...existing, profileById.get(row.user_id)!]);
+                  }
+                }
               });
             }
           }
