@@ -1066,7 +1066,7 @@ const Feed = () => {
                       }
                       subtitle={
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium flex-shrink-0" style={{ color: "#2a3a4a" }}>
+                          <span className="inline-flex items-center rounded-full bg-background border px-2 py-0.5 text-[10px] font-medium flex-shrink-0" style={{ color: "#2a3a4a", borderColor: "#2a3a4a" }}>
                             {track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : track?.spotify_track_id?.startsWith("tidal_") ? "Tidal" : "Spotify"}
                           </span>
                           <span className="truncate text-[11px]" style={{ color: "#2a3a4a" }}>
