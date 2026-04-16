@@ -577,7 +577,7 @@ const Landing = () => {
 
             <p className="text-xs text-muted-foreground/40">Come have a good time</p>
             <button
-              onClick={() => setShowPinLogin(true)}
+              onClick={() => { setPinUsername(""); setPinValue(""); setShowPinLogin(true); }}
               className="text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors mt-1"
               style={{ touchAction: "manipulation" }}
             >
