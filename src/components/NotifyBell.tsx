@@ -30,20 +30,23 @@ const NotifyBell = ({ targetUserId, targetUsername }: NotifyBellProps) => {
 
   const toggle = async () => {
     if (!user) return;
-    const next = !enabled;
+    const prev = enabled;
+    const next = !prev;
     setEnabled(next);
 
     if (next) {
-      await (supabase.from("user_notify_follows" as any).insert({
+      const { error } = await (supabase.from("user_notify_follows" as any).insert({
         follower_id: user.id,
         target_user_id: targetUserId,
       }) as any);
+      if (error) { setEnabled(prev); return; }
       toast(`Notifying you when @${targetUsername || "user"} adds music`, { duration: 2300 });
     } else {
-      await (supabase.from("user_notify_follows" as any)
+      const { error } = await (supabase.from("user_notify_follows" as any)
         .delete()
         .eq("follower_id", user.id)
         .eq("target_user_id", targetUserId) as any);
+      if (error) { setEnabled(prev); return; }
       toast(`Stopped notifications for @${targetUsername || "user"}`, { duration: 2300 });
     }
   };
