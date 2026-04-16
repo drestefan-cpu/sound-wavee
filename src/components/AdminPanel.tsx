@@ -13,7 +13,8 @@ interface AdminPanelProps {
 const AdminPanel = ({ onClose }: AdminPanelProps) => {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem("plai-admin") === "1");
   const [pin, setPin] = useState("");
-  const [activeTab, setActiveTab] = useState<"taglines" | "picks">("taglines");
+  const [activeTab, setActiveTab] = useState<"taglines" | "picks" | "debug">("taglines");
+  const [releasesDebug, setReleasesDebug] = useState(() => localStorage.getItem("plai-releases-debug") === "1");
 
   const [taglines, setTaglines] = useState<any[]>([]);
   const [taglinesError, setTaglinesError] = useState(false);
@@ -189,18 +190,41 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
         ) : (
           <div className="p-4">
             <div className="flex gap-2 mb-4">
-              {(["taglines", "picks"] as const).map((t) => (
+              {(["taglines", "picks", "debug"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setActiveTab(t)}
                   className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${activeTab === t ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground"}`}
                 >
-                  {t === "taglines" ? "Taglines" : "PLAI Picks"}
+                  {t === "taglines" ? "Taglines" : t === "picks" ? "PLAI Picks" : "Debug"}
                 </button>
               ))}
             </div>
 
-            {activeTab === "taglines" ? (
+            {activeTab === "debug" ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-foreground">Releases debug panel</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">shows raw debug info on the Releases tab</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const next = !releasesDebug;
+                      setReleasesDebug(next);
+                      localStorage.setItem("plai-releases-debug", next ? "1" : "0");
+                    }}
+                    className="rounded-full w-10 h-5 relative flex-shrink-0"
+                    style={{ background: releasesDebug ? "#FF2D78" : "#2a3a4a" }}
+                  >
+                    <div
+                      className="absolute top-0.5 rounded-full w-4 h-4 bg-white transition-all"
+                      style={{ left: releasesDebug ? 20 : 2 }}
+                    />
+                  </button>
+                </div>
+              </div>
+            ) : activeTab === "taglines" ? (
               <div>
                 {taglinesError ? (
                   <p className="text-xs text-muted-foreground text-center py-8">
