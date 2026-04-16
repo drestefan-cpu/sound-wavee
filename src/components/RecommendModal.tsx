@@ -65,12 +65,19 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
             <X className="h-5 w-5" />
           </button>
         </div>
-        <input
-          value={message}
-          onChange={(e) => setMessage(e.target.value.slice(0, 100))}
-          placeholder="add a note (optional)"
-          className="w-full rounded-lg bg-background border border-border px-3 py-2 text-sm text-foreground mb-3"
-        />
+        <div className="mb-3">
+          <input
+            value={message}
+            onChange={(e) => setMessage(e.target.value.slice(0, 75))}
+            placeholder="add a message (optional)"
+            className="w-full rounded-lg bg-background border border-border px-3 py-2 text-sm text-foreground"
+          />
+          {message.length > 0 && (
+            <p className={`text-right text-[10px] mt-1 ${message.length >= 70 ? "text-primary" : "text-muted-foreground"}`}>
+              {message.length}/75
+            </p>
+          )}
+        </div>
         {loading ? (
           <div className="flex justify-center py-6">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
