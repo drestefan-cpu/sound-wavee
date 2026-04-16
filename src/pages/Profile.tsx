@@ -3,7 +3,7 @@ import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
-import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library } from "lucide-react";
+import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library, Users } from "lucide-react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import BottomNav from "@/components/BottomNav";
@@ -26,7 +26,8 @@ function seededRandom(seed: string) {
   return Math.abs(h % 1000) / 1000;
 }
 
-type TabType = "finds" | "collection" | "activity" | "foryou";
+type TabType = "finds" | "collection" | "activity" | "foryou" | "friends";
+type ActivityFilterType = "all" | "follows" | "reactions" | "saves" | "recommendations";
 
 type ProfileSnapshot = {
   profile: any;
@@ -88,6 +89,9 @@ const Profile = () => {
   const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
   const [activity, setActivity] = useState<any[]>([]);
   const [activityLoaded, setActivityLoaded] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<ActivityFilterType>("all");
+  const [friends, setFriends] = useState<any[]>([]);
+  const [friendsLoaded, setFriendsLoaded] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [recsLoaded, setRecsLoaded] = useState(false);
   const [tasteMatch, setTasteMatch] = useState<number | null>(null);
@@ -446,6 +450,19 @@ const Profile = () => {
     loadRecs();
   }, [isOwnProfile, user, tab]);
 
+  useEffect(() => {
+    if (!profile || tab !== "friends") return;
+    const loadFriends = async () => {
+      const { data } = await supabase
+        .from("follows")
+        .select("following_id, profiles!follows_following_id_fkey(id, display_name, username, avatar_url)")
+        .eq("follower_id", profile.id);
+      setFriends(data || []);
+      setFriendsLoaded(true);
+    };
+    loadFriends();
+  }, [profile, tab]);
+
   const handleSync = async () => {
     if (!user?.id) return;
     setSyncing(true);
@@ -791,6 +808,15 @@ const Profile = () => {
   );
   const visibleCollectionCount = filteredLikes.length;
 
+  const filteredActivity = activity.filter((item) => {
+    if (activityFilter === "all") return true;
+    if (activityFilter === "follows") return item.type === "follow";
+    if (activityFilter === "reactions") return item.type === "reaction";
+    if (activityFilter === "saves") return item.type === "save";
+    if (activityFilter === "recommendations") return item.type === "recommendation";
+    return true;
+  });
+
   const findsLabel = "finds";
   const collectionLabel = "collection";
 
@@ -799,10 +825,12 @@ const Profile = () => {
     { key: "foryou" as TabType, label: "for you", icon: <Sparkle className="h-3 w-3" /> },
     { key: "collection" as TabType, label: collectionLabel, icon: <Library className="h-3 w-3" /> },
     { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
+    { key: "friends" as TabType, label: "friends", icon: <Users className="h-3 w-3" /> },
   ];
   const otherTabs = [
     { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
     { key: "collection" as TabType, label: collectionLabel, icon: <Library className="h-3 w-3" /> },
+    { key: "friends" as TabType, label: "friends", icon: <Users className="h-3 w-3" /> },
   ];
   const tabList = isOwnProfile ? ownTabs : otherTabs;
 
@@ -1118,6 +1146,23 @@ const Profile = () => {
           )
         ) : tab === "activity" ? (
           <div className="space-y-1.5">
+            {activityLoaded && activity.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                {(["all", "saves", "reactions", "recommendations"] as ActivityFilterType[]).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setActivityFilter(f)}
+                    className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap ${
+                      activityFilter === f
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
             {activityLoaded && activity.length === 0 ? (
               <div className="space-y-2">
                 <p className="py-3 text-center text-sm text-muted-foreground">
@@ -1144,8 +1189,10 @@ const Profile = () => {
               <div className="flex justify-center py-6">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
+            ) : filteredActivity.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">nothing here yet</p>
             ) : (
-              activity.map((item, i) => (
+              filteredActivity.map((item, i) => (
                 <div
                   key={i}
                   className={`rounded-xl border border-border bg-card p-2.5 ${item.type === "save" ? "border-l-4 border-l-primary" : ""}`}
@@ -1232,6 +1279,47 @@ const Profile = () => {
                   }
                 />
               ))
+            )}
+          </div>
+        ) : tab === "friends" ? (
+          <div className="space-y-2">
+            {!friendsLoaded ? (
+              <div className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : friends.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                {isOwnProfile ? "you're not following anyone yet" : "not following anyone yet"}
+              </p>
+            ) : (
+              friends.map((f) => {
+                const p = f.profiles;
+                if (!p) return null;
+                return (
+                  <Link
+                    key={p.id}
+                    to={`/profile/${p.username || p.id}`}
+                    className="flex items-center gap-3 rounded-xl bg-card border border-border p-3 hover:bg-secondary/50 transition-colors"
+                  >
+                    <div
+                      className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0"
+                      style={{ backgroundColor: "#FF2D78" }}
+                    >
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                          {(p.display_name || "U")[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{p.display_name || "User"}</p>
+                      <p className="text-xs text-muted-foreground">@{p.username || "user"}</p>
+                    </div>
+                  </Link>
+                );
+              })
             )}
           </div>
         ) : (
