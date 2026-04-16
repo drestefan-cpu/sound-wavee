@@ -61,12 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (upsertError) console.error("Profile upsert failed:", upsertError.message, upsertError);
 
-    const {
-      data: { session: currentSession },
-    } = await supabase.auth.getSession();
     const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
       body: { user_id: userId },
-      headers: { Authorization: `Bearer ${currentSession?.access_token}` },
     });
     if (error) console.error("Sync failed:", error.message, error);
     else console.log("Sync success:", data?.count, "tracks");
@@ -74,6 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const triggerAutoSync = async (userId: string) => {
     try {
+      // Don't sync for anonymous users
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser || currentUser.is_anonymous) return;
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("last_synced_at, tidal_access_token")
@@ -84,17 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const timeSinceSync = now - lastSynced;
       if (!lastSynced || (timeSinceSync > AUTO_SYNC_INTERVAL && timeSinceSync > 60000)) {
         console.log("Auto-sync: triggering background sync");
-        const {
-          data: { session: currentSession },
-        } = await supabase.auth.getSession();
         await supabase.functions.invoke("sync-spotify-likes", {
           body: { user_id: userId },
-          headers: { Authorization: `Bearer ${currentSession?.access_token}` },
         });
         if (profile?.tidal_access_token) {
           await supabase.functions.invoke("sync-tidal-likes", {
             body: { user_id: userId },
-            headers: { Authorization: `Bearer ${currentSession?.access_token}` },
           });
         }
       }

@@ -403,8 +403,12 @@ const Feed = () => {
         return;
       }
 
-      // Fire-and-forget sync — populates artist_releases before we query below
-      supabase.functions.invoke("sync-artist-releases", { body: { user_id: user.id } }).catch(() => {});
+      // Fire-and-forget sync — only when session is confirmed valid
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.access_token) {
+          supabase.functions.invoke("sync-artist-releases", { body: { user_id: user.id } }).catch(() => {});
+        }
+      });
 
       setArtistLoading(true);
       setArtistEmptyState(null);
