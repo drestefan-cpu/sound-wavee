@@ -109,9 +109,7 @@ const TrackDetailModal = ({
     const q = encodeURIComponent(`${track.title} ${track.artist}`);
     switch (preferredPlatform) {
       case "apple_music":
-        return track.spotifyTrackId
-          ? `https://music.apple.com/search?term=${q}`
-          : `https://music.apple.com/search?term=${q}`;
+        return `https://music.apple.com/search?term=${q}`;
       case "youtube_music":
         return `https://music.youtube.com/search?q=${q}`;
       case "tidal":
