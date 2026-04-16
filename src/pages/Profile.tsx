@@ -824,8 +824,8 @@ const Profile = () => {
     { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
     { key: "foryou" as TabType, label: "for you", icon: <Sparkle className="h-3 w-3" /> },
     { key: "collection" as TabType, label: collectionLabel, icon: <Library className="h-3 w-3" /> },
-    { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
     { key: "friends" as TabType, label: "friends", icon: <Users className="h-3 w-3" /> },
+    { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
   ];
   const otherTabs = [
     { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
@@ -1084,7 +1084,7 @@ const Profile = () => {
           )}
         </div>
 
-        <div className="mt-4 flex gap-1.5 mb-3 justify-center flex-wrap">
+        <div className="mt-4 flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
           {tabList.map((t) => (
             <button
               key={t.key}
