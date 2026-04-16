@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Heart, Play, Send } from "lucide-react";
-import { getTrackUrl } from "@/lib/trackLinks";
+import { getTrackUrl, isYouTubeSentinel } from "@/lib/trackLinks";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -91,7 +91,7 @@ const UnifiedTrackCard = ({
     e.stopPropagation();
     e.preventDefault();
 
-    if (track.spotifyTrackId && preferredPlatform === "spotify") {
+    if (track.spotifyTrackId && !isYouTubeSentinel(track.spotifyTrackId) && preferredPlatform === "spotify") {
       openUrl(`https://open.spotify.com/track/${track.spotifyTrackId}`);
       return;
     }
