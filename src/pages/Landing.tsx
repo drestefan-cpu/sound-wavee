@@ -134,6 +134,8 @@ const Landing = () => {
       if (isAnonymousFlow) {
         // Prompt user to set username + PIN before entering the app
         setAnonUserId(userId);
+        setOnboardingUsername("");
+        setOnboardingPin("");
         setShowAppleOnboarding(true);
       } else {
         toast.success("Apple Music connected!");
