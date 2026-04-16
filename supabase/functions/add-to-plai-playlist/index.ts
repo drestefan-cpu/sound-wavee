@@ -29,8 +29,8 @@ serve(async (req) => {
     ])
 
     const spotifyTrackId = trackRes.data?.spotify_track_id
-    if (!spotifyTrackId) {
-      // Track has no Spotify ID (Apple Music sourced etc.) — skip silently
+    if (!spotifyTrackId || spotifyTrackId.startsWith("yt:")) {
+      // No real Spotify ID — YouTube-sourced tracks use "yt:{videoId}" sentinel, skip silently
       return new Response(JSON.stringify({ skipped: true, reason: "no_spotify_track_id" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
