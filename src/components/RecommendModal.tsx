@@ -72,11 +72,9 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
             placeholder="add a message (optional)"
             className="w-full rounded-lg bg-background border border-border px-3 py-2 text-sm text-foreground"
           />
-          {message.length > 0 && (
-            <p className={`text-right text-[10px] mt-1 ${message.length >= 70 ? "text-primary" : "text-muted-foreground"}`}>
-              {message.length}/75
-            </p>
-          )}
+          <p className={`text-right text-[10px] mt-1 ${message.length >= 70 ? "text-primary" : "text-muted-foreground"}`}>
+            {message.length}/75
+          </p>
         </div>
         {loading ? (
           <div className="flex justify-center py-6">
@@ -86,6 +84,9 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
           <p className="text-sm text-muted-foreground text-center py-6">follow someone first to recommend tracks</p>
         ) : (
           <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground mb-2">
+              {followers.length} {followers.length === 1 ? "person" : "people"}
+            </p>
             {followers.map((f) => {
               const p = f.profiles;
               if (!p) return null;
