@@ -15,6 +15,12 @@ const FollowersModal = ({ profileId, mode, onClose }: FollowersModalProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  useEffect(() => {
     const load = async () => {
       if (mode === "followers") {
         const { data } = await supabase
