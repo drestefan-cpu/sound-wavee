@@ -26,7 +26,10 @@ serve(async (req) => {
     const data = `${header}.${payload}`
 
     function pemToBuffer(pem: string) {
-      const base64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '')
+      const base64 = pem
+        .replace(/\\n/g, '\n')
+        .replace(/-----[^-]+-----/g, '')
+        .replace(/\s/g, '')
       const binary = atob(base64)
       const buffer = new Uint8Array(binary.length)
       for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i)
