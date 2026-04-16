@@ -155,7 +155,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
         body: { user_id: session.user.id },
-        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       console.log("Sync result:", data?.count, "tracks, error:", error?.message);
@@ -240,8 +239,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     await supabase.auth.signOut();
-    localStorage.clear();
-    sessionStorage.clear();
+    // Only clear app-specific keys — supabase.auth.signOut() handles its own cleanup.
+    // Calling localStorage.clear() wipes Supabase's session reconciliation state and
+    // prevents it from re-linking the existing Spotify/YouTube identity on next login.
+    localStorage.removeItem("tidal_code_verifier");
+    localStorage.removeItem("tidal_user_id");
     window.location.href = "/";
   };
 

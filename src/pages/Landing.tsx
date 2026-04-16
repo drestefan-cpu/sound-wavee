@@ -89,16 +89,14 @@ const Landing = () => {
       const userToken = await music.authorize();
       if (!userToken) throw new Error("Authorization cancelled");
 
-      // 5. Get existing session or create anon account
-      let { data: { session } } = await supabase.auth.getSession();
-      let userId = session?.user?.id;
+      // 5. Require an existing session — Apple Music is an add-on, not a primary identity
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
 
       if (!userId) {
-        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-        if (anonError || !anonData.user) throw new Error("Could not create account — please try again");
-        userId = anonData.user.id;
-        const { data: refreshed } = await supabase.auth.getSession();
-        session = refreshed.session;
+        toast.error("Sign in with Spotify or YouTube Music first, then add Apple Music from Settings");
+        setAppleLoading(false);
+        return;
       }
 
       const authToken = session?.access_token || APIKEY;
