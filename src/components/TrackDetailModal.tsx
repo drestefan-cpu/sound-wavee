@@ -4,6 +4,7 @@ import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
+import { isYouTubeSentinel, extractYouTubeVideoId } from "@/lib/trackLinks";
 import { toast } from "sonner";
 
 interface TrackDetailModalProps {
@@ -105,19 +106,27 @@ const TrackDetailModal = ({
     tidal: "tidal",
   };
 
+  const ytVideoId = extractYouTubeVideoId(track.spotifyTrackId);
+  const showYouTubeButton = !!ytVideoId && preferredPlatform !== "youtube_music";
+
   const getPlatformUrl = () => {
     const q = encodeURIComponent(`${track.title} ${track.artist}`);
+    const realSpotifyId = track.spotifyTrackId && !isYouTubeSentinel(track.spotifyTrackId)
+      ? track.spotifyTrackId
+      : undefined;
     switch (preferredPlatform) {
       case "apple_music":
         return `https://music.apple.com/search?term=${q}`;
       case "youtube_music":
-        return `https://music.youtube.com/search?q=${q}`;
+        return ytVideoId
+          ? `https://music.youtube.com/watch?v=${ytVideoId}`
+          : `https://music.youtube.com/search?q=${q}`;
       case "tidal":
         return `https://listen.tidal.com/search?q=${q}`;
       default:
-        return track.spotifyTrackId
-          ? `https://open.spotify.com/track/${track.spotifyTrackId}`
-          : spotifyUrl;
+        return realSpotifyId
+          ? `https://open.spotify.com/track/${realSpotifyId}`
+          : `https://open.spotify.com/search/${q}`;
     }
   };
 
@@ -191,6 +200,23 @@ const TrackDetailModal = ({
                 <ExternalLink className="h-4 w-4" style={{ color: "#4a6a8a" }} />
               </div>
               <span className="text-[10px] text-muted-foreground">{platformLabel[preferredPlatform] ?? "spotify"}</span>
+            </button>
+          )}
+
+          {showYouTubeButton && (
+            <button
+              onClick={() => openUrl(`https://www.youtube.com/watch?v=${ytVideoId}`)}
+              className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
+            >
+              <div
+                className="h-8 w-8 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "#1a2535" }}
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" style={{ color: "#4a6a8a" }}>
+                  <path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z" />
+                </svg>
+              </div>
+              <span className="text-[10px] text-muted-foreground">youtube</span>
             </button>
           )}
 
