@@ -360,17 +360,6 @@ const Landing = () => {
           </button>
 
           <button
-            onClick={connectTidal}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
-            style={{ touchAction: "manipulation" }}
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-              <path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996l4.004 4.004L8.008 8l4.004 4-4.004 4.004 4.004 4.004 4.004-4.004-4.004-4.004 4.004-4L20.02 3.992l4.004 4.004-4.004 4.004-4.004-4.004-4.004 4.004z" />
-            </svg>
-            continue with Tidal
-          </button>
-
-          <button
             onClick={connectAppleMusic}
             disabled={appleLoading}
             className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
@@ -384,6 +373,17 @@ const Landing = () => {
               </svg>
             )}
             {appleLoading ? "connecting…" : "continue with Apple Music"}
+          </button>
+
+          <button
+            onClick={connectTidal}
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
+            style={{ touchAction: "manipulation" }}
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+              <path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996l4.004 4.004L8.008 8l4.004 4-4.004 4.004 4.004 4.004 4.004-4.004-4.004-4.004 4.004-4L20.02 3.992l4.004 4.004-4.004 4.004-4.004-4.004-4.004 4.004z" />
+            </svg>
+            continue with Tidal
           </button>
         </div>
 
