@@ -377,7 +377,7 @@ const SettingsPage = () => {
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
               style={{ touchAction: "manipulation" }}
             >
-              {displayNameSaving ? "..." : "save"}
+              {displayNameSaving ? "saving..." : "save"}
             </button>
           </div>
         </div>
@@ -398,7 +398,7 @@ const SettingsPage = () => {
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
               style={{ touchAction: "manipulation" }}
             >
-              {usernameSaving ? "..." : "save"}
+              {usernameSaving ? "saving..." : "save"}
             </button>
           </div>
           <span className="text-[10px] text-muted-foreground mt-1 block">letters, numbers, . _ - only</span>
@@ -412,7 +412,7 @@ const SettingsPage = () => {
                 <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setAvatarUrl("")} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
-                  {displayName?.[0]?.toUpperCase() || "?"}
+                  {(displayName || username || "U")[0].toUpperCase()}
                 </div>
               )}
             </div>
@@ -439,7 +439,7 @@ const SettingsPage = () => {
             className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
             style={{ touchAction: "manipulation" }}
           >
-            {avatarSaving ? "..." : "save"}
+            {avatarSaving ? "saving..." : "save"}
           </button>
         </div>
 
@@ -460,7 +460,7 @@ const SettingsPage = () => {
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
               style={{ touchAction: "manipulation" }}
             >
-              {saving ? "..." : statusSaved ? "saved ✓" : "save"}
+              {saving ? "saving..." : statusSaved ? "saved ✓" : "save"}
             </button>
           </div>
           <span className="text-[10px] text-muted-foreground mt-1 block">
