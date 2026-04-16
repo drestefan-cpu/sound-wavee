@@ -152,6 +152,7 @@ const artistReleaseFallbackItems: ArtistReleaseItem[] = [
 ];
 
 const RELEASES_MOCK_KEY = "plai-releases-mock";
+const RELEASES_DEBUG_KEY = "plai-releases-debug";
 
 const normalizeArtistName = (value?: string | null) =>
   value?.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase() || "";
@@ -207,6 +208,7 @@ const Feed = () => {
   const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string } | null>(null);
 
   const [useMockReleases, setUseMockReleases] = useState(() => localStorage.getItem(RELEASES_MOCK_KEY) === "1");
+  const [showReleasesDebug, setShowReleasesDebug] = useState(() => localStorage.getItem(RELEASES_DEBUG_KEY) === "1");
   const [artistItems, setArtistItems] = useState<ArtistReleaseItem[]>(artistReleaseFallbackItems);
   const [artistLoading, setArtistLoading] = useState(true);
   const [artistFallback, setArtistFallback] = useState(false);
@@ -1123,7 +1125,7 @@ const Feed = () => {
 
             {discoverTab === "releases" ? (
               <div className="space-y-6">
-                {!useMockReleases && (
+                {showReleasesDebug && (
                   <>
                     <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
                       <div>user: {user.id}</div>
