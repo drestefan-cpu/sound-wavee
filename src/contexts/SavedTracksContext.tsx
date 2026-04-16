@@ -51,6 +51,7 @@ export function SavedTracksProvider({ children }: { children: ReactNode }) {
         try {
           await followArtistForTrack(user.id, trackId, "saved_track");
         } catch {}
+
         // Fire-and-forget: add to PLAI playlist in Spotify (non-blocking)
         supabase.functions.invoke("add-to-plai-playlist", {
           body: { user_id: user.id, track_id: trackId },
@@ -59,6 +60,22 @@ export function SavedTracksProvider({ children }: { children: ReactNode }) {
             toast("reconnect Spotify in settings to sync saves to your playlist", { duration: 5000 });
           }
         }).catch(() => {});
+
+        // Fire-and-forget: add to Apple Music library (non-blocking, only runs if authorized)
+        supabase
+          .from("tracks")
+          .select("title, artist")
+          .eq("id", trackId)
+          .maybeSingle()
+          .then(({ data: track }) => {
+            if (track?.title && track?.artist) {
+              import("@/lib/appleMusicLibrary")
+                .then(({ addToAppleMusicLibrary }) =>
+                  addToAppleMusicLibrary(track.title, track.artist)
+                )
+                .catch(() => {});
+            }
+          });
       }
     }
   }, [user, savedTrackIds]);
