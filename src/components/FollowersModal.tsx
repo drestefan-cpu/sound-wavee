@@ -64,8 +64,12 @@ const FollowersModal = ({ profileId, mode, onClose }: FollowersModalProps) => {
           <div className="space-y-2">
             {users.map((u: any) => (
               <div key={u.id} className="flex items-center gap-3 rounded-xl p-2">
-                <Link to={`/profile/${u.username || u.id}`} onClick={onClose}>
-                  <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20">
+                <Link
+                  to={`/profile/${u.username || u.id}`}
+                  onClick={onClose}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                >
+                  <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
                     {u.avatar_url ? (
                       <img src={u.avatar_url} alt="" className="h-full w-full object-cover" />
                     ) : (
@@ -74,13 +78,13 @@ const FollowersModal = ({ profileId, mode, onClose }: FollowersModalProps) => {
                       </div>
                     )}
                   </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate">
+                      {u.display_name || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">@{u.username || "user"}</p>
+                  </div>
                 </Link>
-                <div className="flex-1 min-w-0">
-                  <Link to={`/profile/${u.username || u.id}`} onClick={onClose} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                    {u.display_name || "User"}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">@{u.username || "user"}</p>
-                </div>
                 <FollowButton targetUserId={u.id} />
               </div>
             ))}
