@@ -68,6 +68,7 @@ const UnifiedTrackCard = ({
   const { user } = useAuth();
   const [bouncing, setBouncing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [artError, setArtError] = useState(false);
 
   const trackDbId = track.trackDbId || track.id;
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
@@ -134,8 +135,8 @@ const UnifiedTrackCard = ({
               className="flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
               style={{ width: 56, height: 56 }}
             >
-              {track.albumArtUrl ? (
-                <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" />
+              {track.albumArtUrl && !artError ? (
+                <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" onError={() => setArtError(true)} />
               ) : placeholderColor ? (
                 <div
                   className="flex h-full w-full items-center justify-center"
@@ -152,10 +153,10 @@ const UnifiedTrackCard = ({
               <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
               {subtitle}
             </div>
-            <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+            <div className="flex flex-col items-center gap-0 flex-shrink-0">
               <button
                 onClick={handleSave}
-                className={`transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
+                className={`flex items-center justify-center w-[44px] h-[30px] transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
               >
                 <Heart
                   className={`h-[22px] w-[22px] ${saved ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-primary"}`}
@@ -165,17 +166,25 @@ const UnifiedTrackCard = ({
               </button>
               <button
                 onClick={handlePlay}
-                className="h-[22px] w-[22px] rounded-full flex items-center justify-center hover:opacity-80"
-                style={{ backgroundColor: "#1a2535" }}
+                className="flex items-center justify-center w-[44px] h-[30px] hover:opacity-80"
               >
-                <PlayIcon />
+                <div
+                  className="h-[22px] w-[22px] rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: "#1a2535" }}
+                >
+                  <PlayIcon />
+                </div>
               </button>
               <button
                 onClick={handleShare}
-                className="h-[22px] w-[22px] rounded-full flex items-center justify-center hover:opacity-80"
-                style={{ backgroundColor: "#1a2535" }}
+                className="flex items-center justify-center w-[44px] h-[30px] hover:opacity-80"
               >
-                <Send className="h-3 w-3" style={{ color: "#4a6a8a" }} />
+                <div
+                  className="h-[22px] w-[22px] rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: "#1a2535" }}
+                >
+                  <Send className="h-3 w-3" style={{ color: "#4a6a8a" }} />
+                </div>
               </button>
             </div>
           </div>
@@ -211,8 +220,8 @@ const UnifiedTrackCard = ({
             className="flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
             style={{ width: 72, height: 72 }}
           >
-            {track.albumArtUrl ? (
-              <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" />
+            {track.albumArtUrl && !artError ? (
+              <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" onError={() => setArtError(true)} />
             ) : placeholderColor ? (
               <div
                 className="flex h-full w-full items-center justify-center"
