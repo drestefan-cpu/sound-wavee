@@ -51,6 +51,14 @@ export function SavedTracksProvider({ children }: { children: ReactNode }) {
         try {
           await followArtistForTrack(user.id, trackId, "saved_track");
         } catch {}
+        // Fire-and-forget: add to PLAI playlist in Spotify (non-blocking)
+        supabase.functions.invoke("add-to-plai-playlist", {
+          body: { user_id: user.id, track_id: trackId },
+        }).then(({ data, error }) => {
+          if (error || (data as any)?.error === "scope_missing") {
+            toast("reconnect Spotify in settings to sync saves to your playlist", { duration: 5000 });
+          }
+        }).catch(() => {});
       }
     }
   }, [user, savedTrackIds]);
