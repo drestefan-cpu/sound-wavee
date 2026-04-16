@@ -19,7 +19,7 @@ const PageHeader = ({ title, showBack = true, rightContent }: PageHeaderProps) =
         <div className="flex items-center gap-3">
           {showBack && (
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/feed", { replace: true })}
               className="text-muted-foreground hover:text-foreground transition-colors duration-150"
             >
               <ArrowLeft className="h-5 w-5" />
