@@ -31,7 +31,7 @@ const BottomNav = () => {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)", minHeight: "3.5rem" }}
     >
       <div className="mx-auto flex max-w-feed items-center justify-around py-2">
         {links.map(({ to, icon: Icon, label }) => {
