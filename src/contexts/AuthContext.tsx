@@ -225,7 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: {
         redirectTo: `${window.location.origin}/feed`,
         scopes:
-          "user-library-read user-read-email user-read-private streaming user-read-playback-state user-modify-playback-state user-read-recently-played",
+          "user-library-read user-read-email user-read-private streaming user-read-playback-state user-modify-playback-state user-read-recently-played playlist-modify-private",
       },
     });
   };
