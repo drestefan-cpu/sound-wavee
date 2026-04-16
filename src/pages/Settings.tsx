@@ -28,6 +28,10 @@ const platformOptions = [
   { value: "tidal", label: "Tidal" },
 ];
 
+const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
+const APIKEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+
 const SettingsPage = () => {
   const { user, loading, signOut } = useAuth();
   const { preferredPlatform, setPreferredPlatform } = usePlatform();
@@ -48,6 +52,7 @@ const SettingsPage = () => {
   const [tidalConnected, setTidalConnected] = useState(false);
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const [appleConnected, setAppleConnected] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [currentMood, setCurrentMood] = useState<string | null>(null);
@@ -178,6 +183,64 @@ const SettingsPage = () => {
       setPinSaving(false);
       toast.success("PIN saved");
       setPin("");
+    }
+  };
+
+  const connectAppleMusic = async () => {
+    if (!user) return;
+    setAppleLoading(true);
+    try {
+      const devTokenRes = await fetch(`${SUPABASE_URL}/functions/v1/apple-music-developer-token`, {
+        method: "POST",
+        headers: { apikey: APIKEY, "Content-Type": "application/json" },
+      });
+      const { token: developerToken, error: tokenError } = await devTokenRes.json();
+      if (!developerToken) throw new Error(tokenError || "Could not get developer token");
+
+      await new Promise<void>((resolve, reject) => {
+        if ((window as any).MusicKit) { resolve(); return; }
+        const script = document.createElement("script");
+        script.src = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load MusicKit JS"));
+        document.head.appendChild(script);
+      });
+
+      await (window as any).MusicKit.configure({
+        developerToken,
+        app: { name: "PLAI", build: "1.0" },
+      });
+      const music = (window as any).MusicKit.getInstance();
+      const userToken = await music.authorize();
+      if (!userToken) throw new Error("Authorization cancelled");
+
+      // User is already signed in — store token against existing profile
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token || APIKEY;
+
+      const { error: upsertError } = await supabase
+        .from("profiles")
+        .upsert({ id: user.id, apple_music_user_token: userToken } as any, { onConflict: "id" });
+      if (upsertError) throw new Error("Could not save Apple Music token");
+
+      fetch(`${SUPABASE_URL}/functions/v1/sync-apple-music-likes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: APIKEY, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ user_id: user.id }),
+      }).catch(() => {});
+
+      setAppleConnected(true);
+      toast.success("Apple Music connected!");
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.toLowerCase().includes("cancel") || msg.toLowerCase().includes("abort")) {
+        toast.error("Apple Music sign in cancelled");
+      } else {
+        toast.error("Could not connect Apple Music — please try again");
+        console.error("Apple Music auth error:", err);
+      }
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -523,9 +586,13 @@ const SettingsPage = () => {
                   </button>
                 </div>
               ) : (
-                <a href="/" className="ml-auto text-xs text-primary hover:underline">
-                  connect →
-                </a>
+                <button
+                  onClick={connectAppleMusic}
+                  disabled={appleLoading}
+                  className="ml-auto text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  {appleLoading ? "connecting…" : "connect →"}
+                </button>
               )}
             </div>
             <div className="flex items-center gap-3">
