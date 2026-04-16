@@ -18,6 +18,15 @@ const Landing = () => {
   const [fade, setFade] = useState(true);
   const [showInstallOverlay, setShowInstallOverlay] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [showAppleOnboarding, setShowAppleOnboarding] = useState(false);
+  const [anonUserId, setAnonUserId] = useState<string | null>(null);
+  const [onboardingUsername, setOnboardingUsername] = useState("");
+  const [onboardingPin, setOnboardingPin] = useState("");
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [showPinLogin, setShowPinLogin] = useState(false);
+  const [pinUsername, setPinUsername] = useState("");
+  const [pinValue, setPinValue] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -89,14 +98,18 @@ const Landing = () => {
       const userToken = await music.authorize();
       if (!userToken) throw new Error("Authorization cancelled");
 
-      // 5. Require an existing session — Apple Music is an add-on, not a primary identity
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
+      // 5. Get existing session or create anonymous account for standalone Apple Music users
+      let isAnonymousFlow = false;
+      let { data: { session } } = await supabase.auth.getSession();
+      let userId = session?.user?.id;
 
       if (!userId) {
-        toast.error("Sign in with Spotify or YouTube Music first, then add Apple Music from Settings");
-        setAppleLoading(false);
-        return;
+        isAnonymousFlow = true;
+        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+        if (anonError || !anonData.user) throw new Error("Could not create account — please try again");
+        userId = anonData.user.id;
+        const { data: refreshed } = await supabase.auth.getSession();
+        session = refreshed.session;
       }
 
       const authToken = session?.access_token || APIKEY;
@@ -118,8 +131,14 @@ const Landing = () => {
         body: JSON.stringify({ user_id: userId }),
       }).catch(() => {});
 
-      toast.success("Apple Music connected!");
-      navigate("/feed");
+      if (isAnonymousFlow) {
+        // Prompt user to set username + PIN before entering the app
+        setAnonUserId(userId);
+        setShowAppleOnboarding(true);
+      } else {
+        toast.success("Apple Music connected!");
+        navigate("/feed");
+      }
     } catch (err: any) {
       const msg = err?.message || "";
       if (msg.toLowerCase().includes("cancel") || msg.toLowerCase().includes("abort")) {
@@ -130,6 +149,82 @@ const Landing = () => {
       }
     } finally {
       setAppleLoading(false);
+    }
+  };
+
+  const handleAppleOnboarding = async () => {
+    const cleanUsername = onboardingUsername.toLowerCase().replace(/[^a-z0-9._-]/g, "");
+    if (!cleanUsername || cleanUsername.length < 2) {
+      toast.error("username must be at least 2 characters");
+      return;
+    }
+    if (!/^\d{4}$/.test(onboardingPin)) {
+      toast.error("PIN must be exactly 4 digits");
+      return;
+    }
+    if (!anonUserId) return;
+
+    setOnboardingLoading(true);
+    try {
+      const { error: usernameError } = await supabase
+        .from("profiles")
+        .update({ username: cleanUsername, display_name: cleanUsername } as any)
+        .eq("id", anonUserId);
+      if (usernameError) {
+        if (usernameError.code === "23505") {
+          toast.error("that username is taken — try another");
+          return;
+        }
+        throw usernameError;
+      }
+
+      const { error: pinError } = await supabase.functions.invoke("setup-apple-pin", {
+        body: { pin: onboardingPin },
+      });
+      if (pinError) throw pinError;
+
+      toast.success("Welcome to PLAI!");
+      navigate("/feed");
+    } catch (err: any) {
+      console.error("Onboarding error:", err);
+      toast.error("Couldn't set up your account — please try again");
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
+  const handlePinLogin = async () => {
+    const cleanUsername = pinUsername.toLowerCase().trim();
+    if (!cleanUsername || !/^\d{4}$/.test(pinValue)) return;
+
+    setPinLoading(true);
+    try {
+      const { data: profile, error: lookupError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", cleanUsername)
+        .single();
+
+      if (lookupError || !profile) {
+        toast.error("username not found");
+        return;
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: `${profile.id}@plai.device`,
+        password: pinValue,
+      });
+
+      if (signInError) {
+        toast.error("wrong PIN — try again");
+        return;
+      }
+
+      navigate("/feed");
+    } catch {
+      toast.error("sign in failed — try again");
+    } finally {
+      setPinLoading(false);
     }
   };
 
@@ -334,58 +429,160 @@ const Landing = () => {
           {tagline}
         </p>
 
-        <div className="flex w-full flex-col gap-3">
-          <button
-            onClick={signInWithSpotify}
-            className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
-            style={{ touchAction: "manipulation" }}
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-              <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-            </svg>
-            continue with Spotify
-          </button>
+        {showAppleOnboarding ? (
+          /* ── Apple Music onboarding ── */
+          <div className="flex w-full flex-col gap-4">
+            <p className="text-sm text-muted-foreground text-center leading-relaxed">
+              set a username and PIN<br />so you can sign back in next time
+            </p>
+            <input
+              value={onboardingUsername}
+              onChange={(e) => setOnboardingUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+              placeholder="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="w-full rounded-2xl bg-card border border-border px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors"
+              style={{ touchAction: "manipulation" }}
+            />
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={onboardingPin}
+              onChange={(e) => setOnboardingPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="4-digit PIN"
+              className="w-full rounded-2xl bg-card border border-border px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors text-center tracking-[0.5em]"
+              style={{ touchAction: "manipulation" }}
+            />
+            <button
+              onClick={handleAppleOnboarding}
+              disabled={onboardingLoading || onboardingUsername.length < 2 || onboardingPin.length !== 4}
+              className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
+              style={{ touchAction: "manipulation" }}
+            >
+              {onboardingLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              ) : "create my PLAI →"}
+            </button>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                setShowAppleOnboarding(false);
+                setAnonUserId(null);
+                setOnboardingUsername("");
+                setOnboardingPin("");
+              }}
+              className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              style={{ touchAction: "manipulation" }}
+            >
+              ← use Spotify or YouTube instead
+            </button>
+          </div>
+        ) : showPinLogin ? (
+          /* ── PIN login ── */
+          <div className="flex w-full flex-col gap-4">
+            <p className="text-sm text-muted-foreground text-center">sign in with your PIN</p>
+            <input
+              value={pinUsername}
+              onChange={(e) => setPinUsername(e.target.value.toLowerCase())}
+              placeholder="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="w-full rounded-2xl bg-card border border-border px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors"
+              style={{ touchAction: "manipulation" }}
+            />
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pinValue}
+              onChange={(e) => setPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="PIN"
+              className="w-full rounded-2xl bg-card border border-border px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors text-center tracking-[0.5em]"
+              style={{ touchAction: "manipulation" }}
+            />
+            <button
+              onClick={handlePinLogin}
+              disabled={pinLoading || !pinUsername.trim() || pinValue.length !== 4}
+              className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
+              style={{ touchAction: "manipulation" }}
+            >
+              {pinLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              ) : "sign in →"}
+            </button>
+            <button
+              onClick={() => { setShowPinLogin(false); setPinUsername(""); setPinValue(""); }}
+              className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              style={{ touchAction: "manipulation" }}
+            >
+              ← back
+            </button>
+          </div>
+        ) : (
+          /* ── Default: platform buttons ── */
+          <>
+            <div className="flex w-full flex-col gap-3">
+              <button
+                onClick={signInWithSpotify}
+                className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
+                style={{ touchAction: "manipulation" }}
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                </svg>
+                continue with Spotify
+              </button>
 
-          <button
-            onClick={connectYouTube}
-            className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
-            style={{ touchAction: "manipulation" }}
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-              <path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z" />
-            </svg>
-            continue with YouTube Music
-          </button>
+              <button
+                onClick={connectYouTube}
+                className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
+                style={{ touchAction: "manipulation" }}
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                  <path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z" />
+                </svg>
+                continue with YouTube Music
+              </button>
 
-          <button
-            onClick={connectAppleMusic}
-            disabled={appleLoading}
-            className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
-            style={{ touchAction: "manipulation" }}
-          >
-            {appleLoading ? (
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-                <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
-              </svg>
-            )}
-            {appleLoading ? "connecting…" : "continue with Apple Music"}
-          </button>
+              <button
+                onClick={connectAppleMusic}
+                disabled={appleLoading}
+                className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
+                style={{ touchAction: "manipulation" }}
+              >
+                {appleLoading ? (
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                ) : (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+                  </svg>
+                )}
+                {appleLoading ? "connecting…" : "continue with Apple Music"}
+              </button>
 
-          <button
-            onClick={connectTidal}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
-            style={{ touchAction: "manipulation" }}
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-              <path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996l4.004 4.004L8.008 8l4.004 4-4.004 4.004 4.004 4.004 4.004-4.004-4.004-4.004 4.004-4L20.02 3.992l4.004 4.004-4.004 4.004-4.004-4.004-4.004 4.004z" />
-            </svg>
-            continue with Tidal
-          </button>
-        </div>
+              <button
+                onClick={connectTidal}
+                className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
+                style={{ touchAction: "manipulation" }}
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                  <path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996l4.004 4.004L8.008 8l4.004 4-4.004 4.004 4.004 4.004 4.004-4.004-4.004-4.004 4.004-4L20.02 3.992l4.004 4.004-4.004 4.004-4.004-4.004-4.004 4.004z" />
+                </svg>
+                continue with Tidal
+              </button>
+            </div>
 
-        <p className="text-xs text-muted-foreground/40">Come have a good time </p>
+            <p className="text-xs text-muted-foreground/40">Come have a good time</p>
+            <button
+              onClick={() => setShowPinLogin(true)}
+              className="text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors mt-1"
+              style={{ touchAction: "manipulation" }}
+            >
+              returning with Apple Music? sign in with PIN →
+            </button>
+          </>
+        )}
       </div>
 
       <AndroidInstallPrompt />
