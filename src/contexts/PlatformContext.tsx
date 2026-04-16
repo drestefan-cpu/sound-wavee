@@ -9,18 +9,29 @@ interface PlatformContextType {
 
 const PlatformContext = createContext<PlatformContextType>({ preferredPlatform: "spotify", setPreferredPlatform: () => {} });
 
+const STORAGE_KEY = "plai-platform";
+
 export function PlatformProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [preferredPlatform, setPlatform] = useState("spotify");
+  const [preferredPlatform, setPlatform] = useState(
+    () => localStorage.getItem(STORAGE_KEY) || "spotify"
+  );
 
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("preferred_platform").eq("id", user.id).single()
-      .then(({ data }) => { if ((data as any)?.preferred_platform) setPlatform((data as any).preferred_platform); });
+      .then(({ data }) => {
+        const saved = (data as any)?.preferred_platform;
+        if (saved) {
+          setPlatform(saved);
+          localStorage.setItem(STORAGE_KEY, saved);
+        }
+      });
   }, [user]);
 
   const setPreferredPlatform = (p: string) => {
     setPlatform(p);
+    localStorage.setItem(STORAGE_KEY, p);
     if (user) {
       supabase.from("profiles").update({ preferred_platform: p } as any).eq("id", user.id);
     }
