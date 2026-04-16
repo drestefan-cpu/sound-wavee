@@ -3,6 +3,7 @@ import { Heart, ExternalLink, Send, X } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlatform } from "@/contexts/PlatformContext";
 import { toast } from "sonner";
 
 interface TrackDetailModalProps {
@@ -51,6 +52,7 @@ const TrackDetailModal = ({
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
   const { user } = useAuth();
+  const { preferredPlatform } = usePlatform();
 
   const canHide = !!user && !!track.likeId && !!track.trackDbId && isOwnTrack !== false;
 
@@ -95,13 +97,32 @@ const TrackDetailModal = ({
     }
   }, []);
 
-  const handleOpenSpotify = () => {
-    if (track.spotifyTrackId) {
-      openUrl(`https://open.spotify.com/track/${track.spotifyTrackId}`);
-    } else {
-      openUrl(spotifyUrl);
+  const platformLabel: Record<string, string> = {
+    spotify: "spotify",
+    apple_music: "apple music",
+    youtube_music: "youtube",
+    tidal: "tidal",
+  };
+
+  const getPlatformUrl = () => {
+    const q = encodeURIComponent(`${track.title} ${track.artist}`);
+    switch (preferredPlatform) {
+      case "apple_music":
+        return track.spotifyTrackId
+          ? `https://music.apple.com/search?term=${q}`
+          : `https://music.apple.com/search?term=${q}`;
+      case "youtube_music":
+        return `https://music.youtube.com/search?q=${q}`;
+      case "tidal":
+        return `https://listen.tidal.com/search?q=${q}`;
+      default:
+        return track.spotifyTrackId
+          ? `https://open.spotify.com/track/${track.spotifyTrackId}`
+          : spotifyUrl;
     }
   };
+
+  const handleOpenPlatform = () => openUrl(getPlatformUrl());
 
   // If recommend modal is open, show it instead of the detail modal
   if (showRecommend) {
@@ -144,20 +165,27 @@ const TrackDetailModal = ({
         )}
 
         <div className="flex items-center justify-center gap-8 mt-6">
-          <button
-            onClick={onToggleSave}
-            className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
-          >
-            <Heart
-              className={`h-8 w-8 ${isSaved ? "fill-primary text-primary" : "text-muted-foreground hover:text-primary"}`}
-              strokeWidth={isSaved ? 0 : 1.5}
-            />
-            <span className="text-[10px] text-muted-foreground">{isSaved ? "saved" : "save"}</span>
-          </button>
+          {isOwnTrack ? (
+            <div className="flex flex-col items-center gap-1 opacity-40 cursor-not-allowed" title="you already have this">
+              <Heart className="h-8 w-8 fill-primary text-primary" strokeWidth={0} />
+              <span className="text-[10px] text-muted-foreground">yours</span>
+            </div>
+          ) : (
+            <button
+              onClick={onToggleSave}
+              className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
+            >
+              <Heart
+                className={`h-8 w-8 ${isSaved ? "fill-primary text-primary" : "text-muted-foreground hover:text-primary"}`}
+                strokeWidth={isSaved ? 0 : 1.5}
+              />
+              <span className="text-[10px] text-muted-foreground">{isSaved ? "saved" : "save"}</span>
+            </button>
+          )}
 
           {!hidePlay && (
             <button
-              onClick={handleOpenSpotify}
+              onClick={handleOpenPlatform}
               className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
             >
               <div
@@ -166,7 +194,7 @@ const TrackDetailModal = ({
               >
                 <ExternalLink className="h-4 w-4" style={{ color: "#4a6a8a" }} />
               </div>
-              <span className="text-[10px] text-muted-foreground">spotify</span>
+              <span className="text-[10px] text-muted-foreground">{platformLabel[preferredPlatform] ?? "spotify"}</span>
             </button>
           )}
 
