@@ -344,17 +344,17 @@ const SettingsPage = () => {
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-1.5">
           <button
             onClick={() => setShowAbout(true)}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors text-left"
             style={{ touchAction: "manipulation" }}
           >
             about plai →
           </button>
           <button
             onClick={() => setShowDeveloperNotes(true)}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors text-left"
             style={{ touchAction: "manipulation" }}
           >
             developer notes →
