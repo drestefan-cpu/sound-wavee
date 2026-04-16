@@ -73,7 +73,7 @@ const UnifiedTrackCard = ({
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
   const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist);
   const isCurrentlyPlaying = false;
-  const isOwnTrack = sourceUserId ? sourceUserId === user?.id : true;
+  const isOwnTrack = !!sourceUserId && sourceUserId === user?.id;
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
