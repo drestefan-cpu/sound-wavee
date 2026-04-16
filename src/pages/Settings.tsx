@@ -340,13 +340,22 @@ const SettingsPage = () => {
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
-        <button
-          onClick={() => setShowAbout(true)}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors"
-          style={{ touchAction: "manipulation" }}
-        >
-          about plai →
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowAbout(true)}
+            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            style={{ touchAction: "manipulation" }}
+          >
+            about plai →
+          </button>
+          <button
+            onClick={() => setShowDeveloperNotes(true)}
+            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            style={{ touchAction: "manipulation" }}
+          >
+            developer notes →
+          </button>
+        </div>
 
         {/* Display name — separate save handler */}
         <div>
@@ -716,14 +725,6 @@ const SettingsPage = () => {
           )}
         </div>
 
-        <button
-          onClick={() => setShowDeveloperNotes(true)}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors"
-          style={{ touchAction: "manipulation" }}
-        >
-          developer notes →
-        </button>
-
         <div className="border-t border-border pt-12 pb-6">
           <TaglineSpace />
           <p className="text-center text-[10px] text-muted-foreground/40 mt-6">
@@ -742,8 +743,7 @@ const SettingsPage = () => {
           </button>
         </div>
 
-        {/* Extra padding so admin button is never hidden by mini player */}
-        <div className="pt-2 pb-24 text-center">
+        <div className="pt-2 pb-6 text-center">
           <button
             onClick={() => setShowAdmin(true)}
             style={{ touchAction: "manipulation" }}
