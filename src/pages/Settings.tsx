@@ -47,6 +47,7 @@ const SettingsPage = () => {
   const [showAdmin, setShowAdmin] = useState(false);
   const [tidalConnected, setTidalConnected] = useState(false);
   const [youtubeConnected, setYoutubeConnected] = useState(false);
+  const [appleConnected, setAppleConnected] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [currentMood, setCurrentMood] = useState<string | null>(null);
@@ -71,6 +72,7 @@ const SettingsPage = () => {
         setProfileColor((data as any).profile_color || "#080B12");
         setTidalConnected(!!(data as any).tidal_access_token);
         setYoutubeConnected(!!(data as any).youtube_access_token);
+        setAppleConnected(!!(data as any).apple_music_user_token);
         setAvatarUrl((data as any).avatar_url || "");
         setCurrentMood((data as any).current_mood || null);
       }
@@ -503,9 +505,28 @@ const SettingsPage = () => {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-muted" />
+              <span className={`h-2 w-2 rounded-full ${appleConnected ? "bg-green-500" : "bg-muted"}`} />
               <span className="text-sm text-foreground">Apple Music</span>
-              <span className="text-xs text-muted-foreground italic ml-auto">coming soon</span>
+              {appleConnected ? (
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">connected</span>
+                  <button
+                    onClick={async () => {
+                      if (!user) return;
+                      await supabase.from("profiles").update({ apple_music_user_token: null } as any).eq("id", user.id);
+                      setAppleConnected(false);
+                      toast.success("Apple Music disconnected");
+                    }}
+                    className="text-[10px] text-destructive hover:underline"
+                  >
+                    disconnect
+                  </button>
+                </div>
+              ) : (
+                <a href="/" className="ml-auto text-xs text-primary hover:underline">
+                  connect →
+                </a>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <span className={`h-2 w-2 rounded-full ${youtubeConnected ? "bg-green-500" : "bg-muted"}`} />
