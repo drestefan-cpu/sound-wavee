@@ -51,6 +51,7 @@ const TrackDetailModal = ({
   isOwnTrack,
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
+  const [artError, setArtError] = useState(false);
   const { user } = useAuth();
   const { preferredPlatform } = usePlatform();
 
@@ -124,18 +125,15 @@ const TrackDetailModal = ({
 
   const handleOpenPlatform = () => openUrl(getPlatformUrl());
 
-  // If recommend modal is open, show it instead of the detail modal
-  if (showRecommend) {
-    return (
+  return (
+    <>
+    {showRecommend && (
       <RecommendModal
         trackId={track.trackDbId || track.id}
         trackTitle={track.title}
         onClose={() => setShowRecommend(false)}
       />
-    );
-  }
-
-  return (
+    )}
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div
         className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full mx-4 relative animate-scale-in"
@@ -149,8 +147,8 @@ const TrackDetailModal = ({
         </button>
 
         <div className="w-full aspect-square rounded-xl overflow-hidden bg-secondary mb-4">
-          {track.albumArtUrl ? (
-            <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" />
+          {track.albumArtUrl && !artError ? (
+            <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" onError={() => setArtError(true)} />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-4xl text-muted-foreground">🎵</div>
           )}
@@ -222,6 +220,7 @@ const TrackDetailModal = ({
         )}
       </div>
     </div>
+    </>
   );
 };
 
