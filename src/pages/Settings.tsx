@@ -52,6 +52,10 @@ const SettingsPage = () => {
   const [tidalConnected, setTidalConnected] = useState(false);
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const [appleConnected, setAppleConnected] = useState(false);
+  const [syncSpotify, setSyncSpotify] = useState(true);
+  const [syncYoutube, setSyncYoutube] = useState(true);
+  const [syncTidal, setSyncTidal] = useState(true);
+  const [syncApple, setSyncApple] = useState(true);
   const [appleLoading, setAppleLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
@@ -78,6 +82,10 @@ const SettingsPage = () => {
         setTidalConnected(!!(data as any).tidal_access_token);
         setYoutubeConnected(!!(data as any).youtube_access_token);
         setAppleConnected(!!(data as any).apple_music_user_token);
+        setSyncSpotify((data as any).sync_spotify !== false);
+        setSyncYoutube((data as any).sync_youtube !== false);
+        setSyncTidal((data as any).sync_tidal !== false);
+        setSyncApple((data as any).sync_apple_music !== false);
         setAvatarUrl((data as any).avatar_url || "");
         setCurrentMood((data as any).current_mood || null);
       }
@@ -328,6 +336,11 @@ const SettingsPage = () => {
     toast.success("YouTube Music disconnected");
   };
 
+  const handleSyncToggle = async (field: string, value: boolean) => {
+    if (!user) return;
+    await supabase.from("profiles").update({ [field]: value } as any).eq("id", user.id);
+  };
+
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -558,72 +571,135 @@ const SettingsPage = () => {
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
             connected platforms
           </h3>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-green-500" />
-              <span className="text-sm text-foreground">Spotify</span>
-              <span className="text-xs text-muted-foreground ml-auto">connected</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`h-2 w-2 rounded-full ${tidalConnected ? "bg-green-500" : "bg-muted"}`} />
-              <span className="text-sm text-foreground">Tidal</span>
-              {tidalConnected ? (
-                <div className="ml-auto flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">connected</span>
-                  <button onClick={disconnectTidal} className="text-[10px] text-destructive hover:underline">
-                    disconnect
-                  </button>
-                </div>
-              ) : (
-                <button onClick={connectTidal} className="ml-auto text-xs text-primary hover:underline">
-                  connect →
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`h-2 w-2 rounded-full ${appleConnected ? "bg-green-500" : "bg-muted"}`} />
-              <span className="text-sm text-foreground">Apple Music</span>
-              {appleConnected ? (
-                <div className="ml-auto flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">connected</span>
-                  <button
-                    onClick={async () => {
-                      if (!user) return;
-                      await supabase.from("profiles").update({ apple_music_user_token: null } as any).eq("id", user.id);
-                      setAppleConnected(false);
-                      toast.success("Apple Music disconnected");
-                    }}
-                    className="text-[10px] text-destructive hover:underline"
-                  >
-                    disconnect
-                  </button>
-                </div>
-              ) : (
+          <div className="space-y-4">
+
+            {/* Spotify */}
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-sm text-foreground">Spotify</span>
+                <span className="text-xs text-muted-foreground ml-auto">connected</span>
+              </div>
+              <div className="ml-5 mt-1.5 flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">sync collection</span>
                 <button
-                  onClick={connectAppleMusic}
-                  disabled={appleLoading}
-                  className="ml-auto text-xs text-primary hover:underline disabled:opacity-50"
+                  onClick={() => { setSyncSpotify(!syncSpotify); handleSyncToggle("sync_spotify", !syncSpotify); }}
+                  style={{ touchAction: "manipulation" }}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ${syncSpotify ? "bg-primary" : "bg-muted"}`}
                 >
-                  {appleLoading ? "connecting…" : "connect →"}
+                  <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-150 ${syncSpotify ? "translate-x-5" : "translate-x-1"}`} />
                 </button>
-              )}
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className={`h-2 w-2 rounded-full ${youtubeConnected ? "bg-green-500" : "bg-muted"}`} />
-              <span className="text-sm text-foreground">YouTube Music</span>
-              {youtubeConnected ? (
-                <div className="ml-auto flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">connected</span>
-                  <button onClick={disconnectYouTube} className="text-[10px] text-destructive hover:underline">
-                    disconnect
+
+            {/* Tidal */}
+            <div>
+              <div className="flex items-center gap-3">
+                <span className={`h-2 w-2 rounded-full ${tidalConnected ? "bg-green-500" : "bg-muted"}`} />
+                <span className="text-sm text-foreground">Tidal</span>
+                {tidalConnected ? (
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">connected</span>
+                    <button onClick={disconnectTidal} className="text-[10px] text-destructive hover:underline">
+                      disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={connectTidal} className="ml-auto text-xs text-primary hover:underline">
+                    connect →
+                  </button>
+                )}
+              </div>
+              {tidalConnected && (
+                <div className="ml-5 mt-1.5 flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">sync collection</span>
+                  <button
+                    onClick={() => { setSyncTidal(!syncTidal); handleSyncToggle("sync_tidal", !syncTidal); }}
+                    style={{ touchAction: "manipulation" }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ${syncTidal ? "bg-primary" : "bg-muted"}`}
+                  >
+                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-150 ${syncTidal ? "translate-x-5" : "translate-x-1"}`} />
                   </button>
                 </div>
-              ) : (
-                <button onClick={connectYouTube} className="ml-auto text-xs text-primary hover:underline">
-                  connect →
-                </button>
               )}
             </div>
+
+            {/* Apple Music */}
+            <div>
+              <div className="flex items-center gap-3">
+                <span className={`h-2 w-2 rounded-full ${appleConnected ? "bg-green-500" : "bg-muted"}`} />
+                <span className="text-sm text-foreground">Apple Music</span>
+                {appleConnected ? (
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">connected</span>
+                    <button
+                      onClick={async () => {
+                        if (!user) return;
+                        await supabase.from("profiles").update({ apple_music_user_token: null } as any).eq("id", user.id);
+                        setAppleConnected(false);
+                        toast.success("Apple Music disconnected");
+                      }}
+                      className="text-[10px] text-destructive hover:underline"
+                    >
+                      disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={connectAppleMusic}
+                    disabled={appleLoading}
+                    className="ml-auto text-xs text-primary hover:underline disabled:opacity-50"
+                  >
+                    {appleLoading ? "connecting…" : "connect →"}
+                  </button>
+                )}
+              </div>
+              {appleConnected && (
+                <div className="ml-5 mt-1.5 flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">sync collection</span>
+                  <button
+                    onClick={() => { setSyncApple(!syncApple); handleSyncToggle("sync_apple_music", !syncApple); }}
+                    style={{ touchAction: "manipulation" }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ${syncApple ? "bg-primary" : "bg-muted"}`}
+                  >
+                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-150 ${syncApple ? "translate-x-5" : "translate-x-1"}`} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* YouTube Music */}
+            <div>
+              <div className="flex items-center gap-3">
+                <span className={`h-2 w-2 rounded-full ${youtubeConnected ? "bg-green-500" : "bg-muted"}`} />
+                <span className="text-sm text-foreground">YouTube Music</span>
+                {youtubeConnected ? (
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">connected</span>
+                    <button onClick={disconnectYouTube} className="text-[10px] text-destructive hover:underline">
+                      disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={connectYouTube} className="ml-auto text-xs text-primary hover:underline">
+                    connect →
+                  </button>
+                )}
+              </div>
+              {youtubeConnected && (
+                <div className="ml-5 mt-1.5 flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">sync collection</span>
+                  <button
+                    onClick={() => { setSyncYoutube(!syncYoutube); handleSyncToggle("sync_youtube", !syncYoutube); }}
+                    style={{ touchAction: "manipulation" }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ${syncYoutube ? "bg-primary" : "bg-muted"}`}
+                  >
+                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-150 ${syncYoutube ? "translate-x-5" : "translate-x-1"}`} />
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
 
