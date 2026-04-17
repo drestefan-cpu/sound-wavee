@@ -41,9 +41,32 @@ const Divider = () => (
 );
 
 const SectionHeader = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm tracking-[0.15em] uppercase mb-4" style={{ color: "#FF2D78" }}>
+  <p
+    className="tracking-[0.35em] uppercase mb-4"
+    style={{ color: "#FF2D78", fontSize: 9 }}
+  >
     {children}
   </p>
+);
+
+const PullQuote = ({ children }: { children: React.ReactNode }) => (
+  <div
+    className="my-8 pl-7"
+    style={{ borderLeft: "2px solid #FF2D78" }}
+  >
+    <p
+      style={{
+        fontFamily: "'Unbounded', sans-serif",
+        fontWeight: 300,
+        fontSize: "clamp(18px, 5vw, 26px)",
+        lineHeight: 1.3,
+        letterSpacing: "-0.01em",
+        color: "#F0EBE3",
+      }}
+    >
+      {children}
+    </p>
+  </div>
 );
 
 const AboutPlai = ({ onClose }: { onClose: () => void }) => {
@@ -51,7 +74,6 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#080B12" }}>
       <MiniStarfield />
 
-      {/* X button with safe area top padding */}
       <button
         onClick={onClose}
         className="fixed z-50 text-muted-foreground hover:text-foreground transition-colors"
@@ -67,7 +89,7 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
       </button>
 
       <div
-        className="relative z-10 max-w-md mx-auto px-6 text-center"
+        className="relative z-10 max-w-md mx-auto px-6"
         style={{
           fontFamily: "'DM Sans', sans-serif",
           fontWeight: 300,
@@ -77,63 +99,59 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
           paddingBottom: 64,
         }}
       >
-        <div className="mb-3">
+        {/* Header — centered */}
+        <div className="text-center mb-3">
           <PlaiLogo className="text-5xl" glow />
         </div>
-        <p className="text-[10px] tracking-[0.2em] uppercase mb-16" style={{ color: "#FF2D78" }}>
+        <p className="text-center text-[10px] tracking-[0.2em] uppercase mb-10" style={{ color: "#FF2D78" }}>
           from old provençal — it pleases me
         </p>
 
-        <p className="text-sm leading-relaxed mb-2">music is more interesting</p>
-        <p className="text-sm leading-relaxed">when you can check in on your friends</p>
+        <PullQuote>come listen to this.</PullQuote>
+
+        <p className="text-sm leading-relaxed mb-16 text-left" style={{ color: "#4a6a8a" }}>
+          the troubadours had a word for it. a song. a feeling. something you had to share. PLAI is the home for that impulse.
+        </p>
 
         <Divider />
-        <SectionHeader>your feed</SectionHeader>
 
-        <p className="text-sm leading-relaxed mb-2">your feed shows the songs</p>
-        <p className="text-sm leading-relaxed mb-2">your friends are liking</p>
+        <SectionHeader>what it is</SectionHeader>
 
-        <div className="h-10" />
+        <p className="text-sm leading-relaxed mb-4 text-left" style={{ color: "#4a6a8a" }}>
+          a feed of songs your friends actually liked. not posts. not picks. their real listening history — yours too — visible to the people who trust your taste.
+        </p>
 
-        <p className="text-sm leading-relaxed mb-2">react to what resonates.</p>
-        <p className="text-sm leading-relaxed mb-2">save what you love.</p>
-        <p className="text-sm leading-relaxed mb-2">follow the people whose taste</p>
-        <p className="text-sm leading-relaxed">you actually trust.</p>
+        <p className="text-sm leading-relaxed text-left" style={{ color: "#4a6a8a" }}>
+          react to what moves you. save what you love. send something to a friend.
+        </p>
 
         <Divider />
 
         <SectionHeader>your library</SectionHeader>
 
-        <p className="text-sm leading-relaxed mb-2">your collection is everything</p>
-        <p className="text-sm leading-relaxed mb-2">you've liked on your streaming platform.</p>
-        <p className="text-sm leading-relaxed mb-2">your finds are songs you've saved</p>
-        <p className="text-sm leading-relaxed">from your friends' feeds on PLAI.</p>
+        <p className="text-sm leading-relaxed mb-4 text-left" style={{ color: "#4a6a8a" }}>
+          your collection is everything you've liked on your streaming platform. your finds are what you've saved from other people's feeds. your for you is what someone sent just to you.
+        </p>
 
-        <div className="h-8" />
-
-        <p className="text-sm leading-relaxed mb-2">think of your collection as your history.</p>
-        <p className="text-sm leading-relaxed">your finds as your discoveries.</p>
+        <p className="text-sm leading-relaxed text-left" style={{ color: "#4a6a8a" }}>
+          your history. your discoveries. your deliveries.
+        </p>
 
         <Divider />
 
-        <SectionHeader>trending</SectionHeader>
+        <SectionHeader>not an algorithm</SectionHeader>
 
-        <p className="text-sm leading-relaxed mb-2">a live look at what's moving</p>
-        <p className="text-sm leading-relaxed mb-2">in the charts right now.</p>
-        <p className="text-sm leading-relaxed">react, save, or open directly in your player.</p>
+        <p className="text-sm leading-relaxed mb-4 text-left" style={{ color: "#4a6a8a" }}>
+          PLAI doesn't suggest songs. it doesn't know what you might like. it shows you what your friends actually liked — which is better.
+        </p>
 
-        <Divider />
-
-        <SectionHeader>settings</SectionHeader>
-
-        <p className="text-sm leading-relaxed mb-2">connect your streaming platform, set your status,</p>
-        <p className="text-sm leading-relaxed mb-2">pick your profile colour,</p>
-        <p className="text-sm leading-relaxed mb-2">and set up a quick-access PIN</p>
-        <p className="text-sm leading-relaxed">so you never have to log in twice.</p>
+        <p className="text-sm leading-relaxed text-left" style={{ color: "#4a6a8a" }}>
+          no daily posts. no performance. no pressure to share anything curated. it's ambient. it's there when you want it.
+        </p>
 
         <Divider />
 
-        <div className="space-y-3">
+        <div className="space-y-3 text-left">
           <p className="text-sm" style={{ color: "#2a3a4a" }}>
             <span style={{ color: "#FF2D78" }}>✦</span>{" "}
             <span className="tracking-[0.1em]" style={{ color: "#FF2D78" }}>
@@ -142,17 +160,18 @@ const AboutPlai = ({ onClose }: { onClose: () => void }) => {
             <span className="italic text-xs">coming soon</span>
           </p>
           <p className="text-sm" style={{ color: "#2a3a4a" }}>
-            <span style={{ color: "#FF2D78" }}>✦</span> recommendations{" "}
+            <span style={{ color: "#FF2D78" }}>✦</span> tidal collection{" "}
             <span className="italic text-xs">coming soon</span>
           </p>
           <p className="text-sm" style={{ color: "#2a3a4a" }}>
-            <span style={{ color: "#FF2D78" }}>✦</span> Apple Music <span className="italic text-xs">coming soon</span>
+            <span style={{ color: "#FF2D78" }}>✦</span> apple music{" "}
+            <span className="italic text-xs">coming soon</span>
           </p>
         </div>
 
         <Divider />
 
-        <p className="text-base italic mt-4" style={{ color: "#F0EBE3" }}>
+        <p className="text-base italic text-left mt-4" style={{ color: "#F0EBE3" }}>
           that's it.
           <br />
           enjoy what you find.
