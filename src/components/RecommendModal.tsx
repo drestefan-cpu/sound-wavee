@@ -54,9 +54,9 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-t-2xl bg-card border-t border-border p-4 max-h-[60vh] overflow-y-auto"
+        className="w-full max-w-md rounded-2xl bg-card border border-border p-4 max-h-[70vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
