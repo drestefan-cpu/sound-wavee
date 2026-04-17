@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("last_synced_at, tidal_access_token")
+        .select("last_synced_at, tidal_access_token, youtube_access_token, apple_music_user_token, sync_spotify, sync_youtube, sync_tidal, sync_apple_music")
         .eq("id", userId)
         .single();
       const lastSynced = profile?.last_synced_at ? new Date(profile.last_synced_at).getTime() : 0;
@@ -84,11 +84,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const timeSinceSync = now - lastSynced;
       if (!lastSynced || (timeSinceSync > AUTO_SYNC_INTERVAL && timeSinceSync > 60000)) {
         console.log("Auto-sync: triggering background sync");
-        await supabase.functions.invoke("sync-spotify-likes", {
-          body: { user_id: userId },
-        });
-        if (profile?.tidal_access_token) {
+        if (profile?.sync_spotify !== false) {
+          await supabase.functions.invoke("sync-spotify-likes", {
+            body: { user_id: userId },
+          });
+        }
+        if (profile?.tidal_access_token && profile?.sync_tidal !== false) {
           await supabase.functions.invoke("sync-tidal-likes", {
+            body: { user_id: userId },
+          });
+        }
+        if (profile?.youtube_access_token && profile?.sync_youtube !== false) {
+          await supabase.functions.invoke("sync-youtube-likes", {
+            body: { user_id: userId },
+          });
+        }
+        if (profile?.apple_music_user_token && profile?.sync_apple_music !== false) {
+          await supabase.functions.invoke("sync-apple-music-likes", {
             body: { user_id: userId },
           });
         }
