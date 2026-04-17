@@ -495,7 +495,7 @@ const SettingsPage = () => {
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">current mood</h3>
           <p className="text-[10px] text-muted-foreground mb-3">
-            sets your vibe — subtly tints the glow on your profile moon
+            sets your vibe — shown as an emoji next to your name in friends' libraries. Only visible to those you follow.
           </p>
           {currentMood ? (
             <p className="text-sm text-foreground mb-3">
