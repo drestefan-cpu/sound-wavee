@@ -150,12 +150,11 @@ serve(async (req) => {
         // Skip uploaded/local files — Apple Music sets kind "uploadedAudio" for
         // user-uploaded tracks (local files, demos, etc). Catalog streaming tracks
         // have kind "song". Absence of playParams entirely also means local.
-        if (!attrs.playParams || attrs.playParams.kind === "uploadedAudio") continue
+        if (attrs.playParams?.kind === "uploadedAudio") continue
 
         // Skip tracks added more than 60 days ago
         // (API returns alphabetically, so we must scan all pages and filter client-side)
-        const dateAdded = attrs.dateAdded ? new Date(attrs.dateAdded) : null
-        if (!dateAdded || dateAdded < sixtyDaysAgo) continue
+        if (attrs.dateAdded && new Date(attrs.dateAdded) < sixtyDaysAgo) continue
 
         const appleId: string = item.id
         const title: string = attrs.name
