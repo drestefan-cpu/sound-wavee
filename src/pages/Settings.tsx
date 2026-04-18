@@ -231,14 +231,17 @@ const SettingsPage = () => {
         .upsert({ id: user.id, apple_music_user_token: userToken } as any, { onConflict: "id" });
       if (upsertError) throw new Error("Could not save Apple Music token");
 
-      fetch(`${SUPABASE_URL}/functions/v1/sync-apple-music-likes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: APIKEY, Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ user_id: user.id }),
-      }).catch(() => {});
-
       setAppleConnected(true);
-      toast.success("Apple Music connected!");
+      toast.success("Apple Music connected — syncing…");
+
+      supabase.functions.invoke("sync-apple-music-likes", { body: { user_id: user.id } })
+        .then(({ data, error }) => {
+          if (error || data?.error) {
+            toast.error("sync failed — try disconnecting and reconnecting");
+          } else {
+            toast.success(`synced ${data?.count ?? 0} songs from Apple Music`);
+          }
+        });
     } catch (err: any) {
       const msg = err?.message || "";
       if (msg.toLowerCase().includes("cancel") || msg.toLowerCase().includes("abort")) {
