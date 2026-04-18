@@ -476,24 +476,24 @@ const Profile = () => {
         body: { user_id: user.id },
         headers: { Authorization: `Bearer ${currentSession?.access_token}` },
       });
-      const { data: prof } = await supabase
+      const { data: prof } = await (supabase
         .from("profiles")
-        .select("tidal_access_token, youtube_access_token, apple_music_user_token")
+        .select("tidal_access_token, youtube_access_token, apple_music_user_token, sync_tidal, sync_youtube, sync_apple_music")
         .eq("id", user.id)
-        .single();
-      if (prof?.tidal_access_token) {
+        .single() as any);
+      if (prof?.tidal_access_token && prof?.sync_tidal !== false) {
         await supabase.functions.invoke("sync-tidal-likes", {
           body: { user_id: user.id },
           headers: { Authorization: `Bearer ${currentSession?.access_token}` },
         });
       }
-      if (prof?.youtube_access_token) {
+      if (prof?.youtube_access_token && prof?.sync_youtube !== false) {
         await supabase.functions.invoke("sync-youtube-likes", {
           body: { user_id: user.id },
           headers: { Authorization: `Bearer ${currentSession?.access_token}` },
         });
       }
-      if (prof?.apple_music_user_token) {
+      if (prof?.apple_music_user_token && prof?.sync_apple_music !== false) {
         await supabase.functions.invoke("sync-apple-music-likes", {
           body: { user_id: user.id },
           headers: { Authorization: `Bearer ${currentSession?.access_token}` },
