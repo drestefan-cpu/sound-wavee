@@ -476,9 +476,25 @@ const Profile = () => {
         body: { user_id: user.id },
         headers: { Authorization: `Bearer ${currentSession?.access_token}` },
       });
-      const { data: prof } = await supabase.from("profiles").select("tidal_access_token").eq("id", user.id).single();
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("tidal_access_token, youtube_access_token, apple_music_user_token")
+        .eq("id", user.id)
+        .single();
       if (prof?.tidal_access_token) {
         await supabase.functions.invoke("sync-tidal-likes", {
+          body: { user_id: user.id },
+          headers: { Authorization: `Bearer ${currentSession?.access_token}` },
+        });
+      }
+      if (prof?.youtube_access_token) {
+        await supabase.functions.invoke("sync-youtube-likes", {
+          body: { user_id: user.id },
+          headers: { Authorization: `Bearer ${currentSession?.access_token}` },
+        });
+      }
+      if (prof?.apple_music_user_token) {
+        await supabase.functions.invoke("sync-apple-music-likes", {
           body: { user_id: user.id },
           headers: { Authorization: `Bearer ${currentSession?.access_token}` },
         });
