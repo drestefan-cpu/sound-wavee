@@ -67,6 +67,58 @@ serve(async (req) => {
       else console.log(`Cleaned up ${oldIds.length} YouTube likes older than 365 days`)
     }
 
+    // Clean up any YouTube Shorts already in this user's likes.
+    // Fetches duration for all existing yt: tracks via the YouTube API and
+    // deletes likes for anything ≤ 60 seconds.
+    const { data: existingYtLikes } = await supabase
+      .from("likes")
+      .select("track_id, tracks!inner(spotify_track_id)")
+      .eq("user_id", user_id)
+      .like("tracks.spotify_track_id", "yt:%")
+
+    if (existingYtLikes && existingYtLikes.length > 0) {
+      const videoIdToTrackId: Record<string, string> = {}
+      for (const row of existingYtLikes) {
+        const spId = (row as any).tracks?.spotify_track_id as string
+        const videoId = spId?.replace("yt:", "")
+        if (videoId) videoIdToTrackId[videoId] = row.track_id
+      }
+
+      const videoIds = Object.keys(videoIdToTrackId)
+      const shortTrackIds: string[] = []
+
+      for (let i = 0; i < videoIds.length; i += 50) {
+        const chunk = videoIds.slice(i, i + 50)
+        const dUrl = new URL("https://www.googleapis.com/youtube/v3/videos")
+        dUrl.searchParams.set("id", chunk.join(","))
+        dUrl.searchParams.set("part", "contentDetails")
+        const dRes = await fetch(dUrl.toString(), { headers: { Authorization: `Bearer ${accessToken}` } })
+        if (!dRes.ok) continue
+        const dData = await dRes.json()
+        for (const video of (dData.items || [])) {
+          const dur = video.contentDetails?.duration || ""
+          const m = dur.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+          const secs = m
+            ? (parseInt(m[1] || "0") * 3600) + (parseInt(m[2] || "0") * 60) + parseInt(m[3] || "0")
+            : 999
+          if (secs <= 60) {
+            const trackId = videoIdToTrackId[video.id]
+            if (trackId) shortTrackIds.push(trackId)
+          }
+        }
+      }
+
+      if (shortTrackIds.length > 0) {
+        const { error: shortsDeleteErr } = await supabase
+          .from("likes")
+          .delete()
+          .eq("user_id", user_id)
+          .in("track_id", shortTrackIds)
+        if (shortsDeleteErr) console.error("Shorts cleanup delete failed:", shortsDeleteErr.message)
+        else console.log(`Cleaned up ${shortTrackIds.length} YouTube Shorts from likes`)
+      }
+    }
+
     const { data: exclusionRows } = await supabase
       .from("collection_exclusions")
       .select("track_id")
@@ -104,7 +156,7 @@ serve(async (req) => {
 
       const detailsUrl = new URL("https://www.googleapis.com/youtube/v3/videos")
       detailsUrl.searchParams.set("id", videoIds.join(","))
-      detailsUrl.searchParams.set("part", "snippet")
+      detailsUrl.searchParams.set("part", "snippet,contentDetails")
 
       const detailsRes = await fetch(detailsUrl.toString(), {
         headers: { Authorization: `Bearer ${accessToken}` }
@@ -135,6 +187,17 @@ serve(async (req) => {
           pageToken = undefined
           break
         }
+
+        // Skip YouTube Shorts (≤ 60 seconds). Duration comes from contentDetails
+        // as ISO 8601, e.g. "PT30S" or "PT1M". Default 999 so missing data passes.
+        const duration = video.contentDetails?.duration || ""
+        const durationMatch = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+        const totalSeconds = durationMatch
+          ? (parseInt(durationMatch[1] || "0") * 3600)
+            + (parseInt(durationMatch[2] || "0") * 60)
+            + parseInt(durationMatch[3] || "0")
+          : 999
+        if (totalSeconds <= 60) continue
 
         console.log(`Upserting track: ${title} by ${artist}, videoId: ${videoId}`)
 
