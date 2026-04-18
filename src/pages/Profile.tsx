@@ -80,6 +80,7 @@ const Profile = () => {
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [tab, setTab] = useState<TabType>("finds");
   const [collectionFilter, setCollectionFilter] = useState<"timeline" | "hidden">("timeline");
+  const [collectionPlatformFilter, setCollectionPlatformFilter] = useState<"all" | "spotify" | "youtube" | "apple" | "tidal">("all");
   const [showFlappy, setShowFlappy] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [usernameEdit, setUsernameEdit] = useState(false);
@@ -793,7 +794,21 @@ const Profile = () => {
     return result;
   })();
   const filteredHiddenTracks = hiddenTracks.filter((h: any) => !collectionExclusionIds.has(h.track_id));
-  const collectionTimelineGroups = filteredLikes.reduce(
+
+  const getPlatformFromTrack = (spotifyTrackId?: string | null) => {
+    if (spotifyTrackId?.startsWith("yt:")) return "youtube" as const;
+    if (spotifyTrackId?.startsWith("apple:")) return "apple" as const;
+    if (spotifyTrackId?.startsWith("tidal_")) return "tidal" as const;
+    return "spotify" as const;
+  };
+  const availablePlatforms = new Set(filteredLikes.map((l: any) => getPlatformFromTrack(l.tracks?.spotify_track_id)));
+  const PLATFORM_ORDER = ["spotify", "youtube", "apple", "tidal"] as const;
+  const sortedPlatforms = PLATFORM_ORDER.filter((p) => availablePlatforms.has(p));
+  const platformFilteredLikes = collectionPlatformFilter === "all"
+    ? filteredLikes
+    : filteredLikes.filter((l: any) => getPlatformFromTrack(l.tracks?.spotify_track_id) === collectionPlatformFilter);
+
+  const collectionTimelineGroups = platformFilteredLikes.reduce(
     (groups: Array<{ label: string; items: any[] }>, like: any) => {
       const label = getTimelineMonthLabel(like.liked_at);
       const lastGroup = groups[groups.length - 1];
@@ -1088,7 +1103,10 @@ const Profile = () => {
           {tabList.map((t) => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => {
+                if (tab === "collection" && t.key !== "collection") setCollectionPlatformFilter("all");
+                setTab(t.key);
+              }}
               className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap flex items-center gap-1 relative flex-shrink-0 ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}
             >
               {"icon" in t && (t as any).icon}
@@ -1324,6 +1342,26 @@ const Profile = () => {
           </div>
         ) : (
           <>
+            {sortedPlatforms.length > 1 && collectionFilter !== "hidden" && (
+              <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-3">
+                {(["all", ...sortedPlatforms] as const).map((p) => {
+                  const label = p === "all" ? "all" : p === "youtube" ? "youtube" : p === "apple" ? "apple music" : p;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setCollectionPlatformFilter(p)}
+                      className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap ${
+                        collectionPlatformFilter === p
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-card border border-border text-muted-foreground"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {isOwnProfile && (
               <div className="mb-4 flex justify-center">
                 <button
