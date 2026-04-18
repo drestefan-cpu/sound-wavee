@@ -37,6 +37,8 @@ serve(async (req) => {
     }
 
     const accessToken = profile.youtube_access_token
+    const threeSixtyFiveDaysAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+
     let syncedCount = 0
     let pageToken: string | undefined = undefined
     let pageCount = 0
@@ -105,6 +107,13 @@ serve(async (req) => {
         const artist = video.snippet.channelTitle
         const albumArt = video.snippet.thumbnails?.high?.url || video.snippet.thumbnails?.default?.url || null
         const likedAt = item.snippet?.publishedAt
+
+        // YouTube Liked Videos returns newest-first, so once we hit something
+        // older than 365 days everything remaining is older — safe to stop.
+        if (likedAt && new Date(likedAt) < threeSixtyFiveDaysAgo) {
+          pageToken = undefined
+          break
+        }
 
         console.log(`Upserting track: ${title} by ${artist}, videoId: ${videoId}`)
 
