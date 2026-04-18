@@ -1467,8 +1467,12 @@ const Profile = () => {
                           }}
                           isSaved={isSaved(like.track_id)}
                           onToggleSave={() => toggleSave(like.track_id, profile.id, "collection")}
-                          sourceUserId={!isOwnProfile ? profile.id : undefined}
+                          sourceUserId={profile.id}
                           sourceContext={!isOwnProfile ? "finds" : undefined}
+                          onHide={isOwnProfile ? () => {
+                            setLikes(prev => prev.filter(l => l.id !== like.id));
+                            setCollectionExclusionIds(prev => new Set(prev).add(like.track_id));
+                          } : undefined}
                           onShare={() => {}}
                         />
                       ))}
