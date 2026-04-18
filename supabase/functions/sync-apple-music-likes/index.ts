@@ -85,6 +85,8 @@ serve(async (req) => {
 
     const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
 
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+
     let syncedCount = 0
     let offset = 0
     const limit = 100
@@ -124,6 +126,14 @@ serve(async (req) => {
         const attrs = item.attributes
         if (!attrs) continue
 
+        // Skip local files — streaming tracks have a catalogId in playParams
+        if (!attrs.playParams?.catalogId) continue
+
+        // Skip tracks added more than 60 days ago
+        // (API returns alphabetically, so we must scan all pages and filter client-side)
+        const dateAdded = attrs.dateAdded ? new Date(attrs.dateAdded) : null
+        if (!dateAdded || dateAdded < sixtyDaysAgo) continue
+
         const appleId: string = item.id
         const title: string = attrs.name
         const artist: string = attrs.artistName
@@ -131,7 +141,7 @@ serve(async (req) => {
         const albumArtUrl: string | null = attrs.artwork?.url
           ? attrs.artwork.url.replace("{w}", "500").replace("{h}", "500")
           : null
-        const addedAt: string = attrs.dateAdded || new Date().toISOString()
+        const addedAt: string = attrs.dateAdded
 
         if (!title || !artist || !appleId) continue
 
