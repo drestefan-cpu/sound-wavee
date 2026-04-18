@@ -85,6 +85,23 @@ serve(async (req) => {
 
     const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
 
+    // Delete all existing Apple Music likes for this user before re-syncing.
+    // This ensures stale rows (e.g. from a previous bad sync with wrong timestamps
+    // or local files) don't persist and bury tracks from other platforms.
+    const { data: staleAppleTracks } = await supabaseAdmin
+      .from("tracks")
+      .select("id")
+      .like("spotify_track_id", "apple:%")
+
+    if (staleAppleTracks && staleAppleTracks.length > 0) {
+      const staleIds = staleAppleTracks.map((t: any) => t.id)
+      await supabaseAdmin
+        .from("likes")
+        .delete()
+        .eq("user_id", user_id)
+        .in("track_id", staleIds)
+    }
+
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
 
     let syncedCount = 0
