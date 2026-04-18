@@ -46,6 +46,27 @@ serve(async (req) => {
     let trackUpsertErrors: string[] = []
     let likeUpsertErrors: string[] = []
 
+    // Remove this user's YouTube likes older than 365 days before re-syncing.
+    const { data: oldYtLikes, error: cleanupQueryErr } = await supabase
+      .from("likes")
+      .select("track_id, tracks!inner(spotify_track_id)")
+      .eq("user_id", user_id)
+      .lt("liked_at", threeSixtyFiveDaysAgo.toISOString())
+      .like("tracks.spotify_track_id", "yt:%")
+
+    if (cleanupQueryErr) {
+      console.error("YouTube cleanup query failed:", cleanupQueryErr.message)
+    } else if (oldYtLikes && oldYtLikes.length > 0) {
+      const oldIds = oldYtLikes.map((r: any) => r.track_id)
+      const { error: cleanupDeleteErr } = await supabase
+        .from("likes")
+        .delete()
+        .eq("user_id", user_id)
+        .in("track_id", oldIds)
+      if (cleanupDeleteErr) console.error("YouTube cleanup delete failed:", cleanupDeleteErr.message)
+      else console.log(`Cleaned up ${oldIds.length} YouTube likes older than 365 days`)
+    }
+
     const { data: exclusionRows } = await supabase
       .from("collection_exclusions")
       .select("track_id")
