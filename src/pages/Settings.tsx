@@ -639,6 +639,7 @@ const SettingsPage = () => {
                       onClick={async () => {
                         if (!user) return;
                         await supabase.from("profiles").update({ apple_music_user_token: null } as any).eq("id", user.id);
+                        await (supabase.rpc as any)("delete_apple_music_likes", { p_user_id: user.id });
                         setAppleConnected(false);
                         toast.success("Apple Music disconnected");
                       }}
