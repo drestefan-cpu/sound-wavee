@@ -126,6 +126,14 @@ serve(async (req) => {
       const data = await res.json()
       const items: any[] = data.data || []
 
+      console.log("PAGE_STATUS", res.status, "ITEMS", items.length, "FIRST_TYPE", items[0]?.type ?? "none")
+
+      const songItems = items.filter((i: any) => i.type === "library-songs")
+      console.log("LIBRARY_SONGS_COUNT", songItems.length)
+
+      const catalogPassCount = songItems.filter((i: any) => i.attributes?.playParams?.catalogId && i.attributes?.playParams?.kind !== "upload").length
+      console.log("CATALOG_PASS_COUNT", catalogPassCount)
+
       for (const item of items) {
         if (item.type !== "library-songs") continue
 
@@ -141,7 +149,10 @@ serve(async (req) => {
         if (attrs.dateAdded) {
           const d = new Date(attrs.dateAdded)
           if (isNaN(d.getTime()) || d.getFullYear() < 2000) continue
-          if (d < sixtyDaysAgo) { stopFetching = true; break }
+          if (d < sixtyDaysAgo) {
+            console.log("EARLY_EXIT dateAdded", attrs.dateAdded, "track", attrs.name)
+            stopFetching = true; break
+          }
         }
 
         const catalogId: string = attrs.playParams.catalogId
