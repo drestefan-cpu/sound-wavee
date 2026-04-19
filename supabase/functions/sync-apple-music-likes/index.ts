@@ -47,6 +47,21 @@ async function generateDeveloperToken(): Promise<string> {
     .replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_")}`
 }
 
+type TrackToUpsert = {
+  catalogId: string
+  title: string
+  artist: string
+  album: string | null
+  albumArtUrl: string | null
+  likedAt: string
+}
+
+type RecentAlbum = {
+  libraryId: string
+  dateAdded: string
+  artwork: any
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders })
 
@@ -78,29 +93,35 @@ serve(async (req) => {
     const developerToken = await generateDeveloperToken()
     const userToken = profile.apple_music_user_token
 
-    // Clean up existing Apple Music likes before re-syncing
-    const { data: cleanedCount, error: cleanupError } = await supabaseAdmin
+    const { data: exclusionRows } = await supabaseAdmin
+      .from("collection_exclusions")
+      .select("track_id")
+      .eq("user_id", user_id)
+
+    const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
+
+    const { error: cleanupError } = await supabaseAdmin
       .rpc("delete_apple_music_likes", { p_user_id: user_id })
     if (cleanupError) console.error("Apple Music cleanup failed:", cleanupError.message)
-    else console.log(`Cleaned up ${cleanedCount} existing Apple Music likes`)
 
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
-    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
 
-    let syncedCount = 0
-    const maxPages = 5 // 500 tracks max
-    let page = 0
+    const authHeaders = {
+      Authorization: `Bearer ${developerToken}`,
+      "Music-User-Token": userToken,
+    }
 
-    while (page < maxPages) {
-      const offset = page * 100
-      const url = `https://api.music.apple.com/v1/me/library/songs?limit=100&offset=${offset}`
+    const tracksToUpsert: TrackToUpsert[] = []
+    const recentAlbums: RecentAlbum[] = []
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${developerToken}`,
-          "Music-User-Token": userToken,
-        },
-      })
+    let nextUrl: string | null = "https://api.music.apple.com/v1/me/library/recently-added?limit=25"
+    let stopFetching = false
+    let pageCount = 0
+    const maxPages = 5
+
+    // Step 1 — collect recently added songs and albums
+    while (nextUrl && !stopFetching && pageCount < maxPages) {
+      const res = await fetch(nextUrl, { headers: authHeaders })
 
       if (res.status === 401) {
         await supabaseAdmin
@@ -114,78 +135,133 @@ serve(async (req) => {
 
       if (!res.ok) {
         const body = await res.text()
-        console.error("Apple Music API error:", res.status, body)
-        break
+        return new Response(JSON.stringify({ error: "Apple Music API failed", detail: body }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
       }
 
       const data = await res.json()
       const items: any[] = data.data || []
-
-      if (items.length === 0) break
+      pageCount++
 
       for (const item of items) {
-        const attrs = item.attributes
-        if (!attrs) continue
+        if (item.type === "library-songs") {
+          const attrs = item.attributes
+          if (!attrs) continue
+          if (!attrs.playParams?.catalogId) continue
+          if (attrs.playParams?.kind === "upload") continue
+          if (!attrs.dateAdded) continue
 
-        // Skip local/uploaded files — catalog streaming tracks have a catalogId
-        if (!attrs.playParams?.catalogId) continue
-        if (attrs.playParams?.kind === "upload") continue
-
-        const catalogId: string = attrs.playParams.catalogId
-        const title: string = attrs.name
-        const artist: string = attrs.artistName
-        const album: string | null = attrs.albumName || null
-        const albumArtUrl: string | null = attrs.artwork?.url
-          ? attrs.artwork.url.replace("{w}", "500").replace("{h}", "500")
-          : null
-
-        let addedAt: string | null = null
-
-        if (attrs.dateAdded) {
           const d = new Date(attrs.dateAdded)
-          if (!isNaN(d.getTime()) && d.getFullYear() >= 2000 && d >= sixtyDaysAgo) {
-            addedAt = attrs.dateAdded
-          }
-        } else if (attrs.releaseDate) {
-          const d = new Date(attrs.releaseDate)
-          if (!isNaN(d.getTime()) && d >= oneYearAgo) {
-            addedAt = attrs.releaseDate
-          }
+          if (isNaN(d.getTime()) || d.getFullYear() < 2000) continue
+          if (d < sixtyDaysAgo) { stopFetching = true; break }
+
+          tracksToUpsert.push({
+            catalogId: attrs.playParams.catalogId,
+            title: attrs.name,
+            artist: attrs.artistName,
+            album: attrs.albumName || null,
+            albumArtUrl: attrs.artwork?.url?.replace("{w}", "500").replace("{h}", "500") ?? null,
+            likedAt: attrs.dateAdded,
+          })
+        } else if (item.type === "library-albums") {
+          const attrs = item.attributes
+          if (!attrs) continue
+          if (!attrs.dateAdded) continue
+
+          const d = new Date(attrs.dateAdded)
+          if (isNaN(d.getTime()) || d.getFullYear() < 2000) continue
+          if (d < sixtyDaysAgo) { stopFetching = true; break }
+
+          recentAlbums.push({
+            libraryId: item.id,
+            dateAdded: attrs.dateAdded,
+            artwork: attrs.artwork,
+          })
         }
-
-        if (!addedAt) continue
-
-        if (!title || !artist || !catalogId) continue
-
-        const { data: trackData } = await supabaseAdmin
-          .from("tracks")
-          .upsert({
-            spotify_track_id: `apple:${catalogId}`,
-            apple_music_id: catalogId,
-            title,
-            artist,
-            album,
-            album_art_url: albumArtUrl,
-          }, { onConflict: "spotify_track_id" })
-          .select("id")
-          .single()
-
-        if (!trackData?.id) continue
-
-        await supabaseAdmin
-          .from("likes")
-          .upsert({
-            user_id,
-            track_id: trackData.id,
-            liked_at: addedAt,
-          }, { onConflict: "user_id,track_id" })
-
-        syncedCount++
       }
 
-      // If fewer than 100 items returned, we've hit the end
-      if (items.length < 100) break
-      page++
+      nextUrl = data.next ? `https://api.music.apple.com${data.next}` : null
+    }
+
+    // Step 2 — fetch tracks for each recently added album
+    for (const album of recentAlbums) {
+      const tracksRes = await fetch(
+        `https://api.music.apple.com/v1/me/library/albums/${album.libraryId}/tracks?limit=100`,
+        { headers: authHeaders }
+      )
+
+      if (!tracksRes.ok) {
+        console.error(`Album tracks fetch failed for ${album.libraryId}:`, tracksRes.status)
+        continue
+      }
+
+      const tracksData = await tracksRes.json()
+      const tracks: any[] = tracksData.data || []
+
+      for (const track of tracks) {
+        const attrs = track.attributes
+        if (!attrs) continue
+        if (!attrs.playParams?.catalogId) continue
+        if (attrs.playParams?.kind === "upload") continue
+        if (!attrs.name || !attrs.artistName) continue
+
+        tracksToUpsert.push({
+          catalogId: attrs.playParams.catalogId,
+          title: attrs.name,
+          artist: attrs.artistName,
+          album: attrs.albumName || null,
+          albumArtUrl: album.artwork?.url?.replace("{w}", "500").replace("{h}", "500") ?? null,
+          likedAt: album.dateAdded,
+        })
+      }
+    }
+
+    // Deduplicate by catalogId — keep the entry with the most recent likedAt
+    const deduped = new Map<string, TrackToUpsert>()
+    for (const track of tracksToUpsert) {
+      const existing = deduped.get(track.catalogId)
+      if (!existing || new Date(track.likedAt) > new Date(existing.likedAt)) {
+        deduped.set(track.catalogId, track)
+      }
+    }
+
+    // Step 3 — upsert to Supabase
+    let syncedCount = 0
+    for (const track of deduped.values()) {
+      const { data: trackData } = await supabaseAdmin
+        .from("tracks")
+        .upsert({
+          spotify_track_id: `apple:${track.catalogId}`,
+          apple_music_id: track.catalogId,
+          title: track.title,
+          artist: track.artist,
+          album: track.album,
+          album_art_url: track.albumArtUrl,
+        }, { onConflict: "spotify_track_id" })
+        .select("id")
+        .single()
+
+      if (!trackData?.id) continue
+
+      if (excludedTrackIds.has(trackData.id)) {
+        await supabaseAdmin
+          .from("collection_exclusions")
+          .delete()
+          .eq("user_id", user_id)
+          .eq("track_id", trackData.id)
+        excludedTrackIds.delete(trackData.id)
+      }
+
+      await supabaseAdmin
+        .from("likes")
+        .upsert({
+          user_id,
+          track_id: trackData.id,
+          liked_at: track.likedAt,
+        }, { onConflict: "user_id,track_id" })
+
+      syncedCount++
     }
 
     await supabaseAdmin
