@@ -142,10 +142,14 @@ serve(async (req) => {
         // have kind "song". Absence of playParams entirely also means local.
         // Skip local/uploaded files — catalog streaming tracks have a catalogId
         if (!attrs.playParams?.catalogId) continue
+        if (attrs.playParams?.kind === "upload") continue
 
-        // Skip tracks added more than 60 days ago
+        // Skip tracks added more than 60 days ago, with epoch/invalid date guard
         // (API returns alphabetically, so we must scan all pages and filter client-side)
-        if (attrs.dateAdded && new Date(attrs.dateAdded) < sixtyDaysAgo) continue
+        if (attrs.dateAdded) {
+          const d = new Date(attrs.dateAdded)
+          if (isNaN(d.getTime()) || d.getFullYear() < 2000 || d < sixtyDaysAgo) continue
+        }
 
         const appleId: string = item.id
         const title: string = attrs.name
