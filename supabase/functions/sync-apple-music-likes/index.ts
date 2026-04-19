@@ -84,6 +84,9 @@ serve(async (req) => {
     if (cleanupError) console.error("Apple Music cleanup failed:", cleanupError.message)
     else console.log(`Cleaned up ${cleanedCount} existing Apple Music likes`)
 
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+
     let syncedCount = 0
     const maxPages = 5 // 500 tracks max
     let page = 0
@@ -136,14 +139,21 @@ serve(async (req) => {
           ? attrs.artwork.url.replace("{w}", "500").replace("{h}", "500")
           : null
 
-        // Use dateAdded if valid, otherwise fall back to now
-        let addedAt = new Date().toISOString()
+        let addedAt: string | null = null
+
         if (attrs.dateAdded) {
           const d = new Date(attrs.dateAdded)
-          if (!isNaN(d.getTime()) && d.getFullYear() >= 2000) {
+          if (!isNaN(d.getTime()) && d.getFullYear() >= 2000 && d >= sixtyDaysAgo) {
             addedAt = attrs.dateAdded
           }
+        } else if (attrs.releaseDate) {
+          const d = new Date(attrs.releaseDate)
+          if (!isNaN(d.getTime()) && d >= oneYearAgo) {
+            addedAt = attrs.releaseDate
+          }
         }
+
+        if (!addedAt) continue
 
         if (!title || !artist || !catalogId) continue
 
