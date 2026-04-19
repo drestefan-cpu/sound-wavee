@@ -130,7 +130,10 @@ serve(async (req) => {
       const items: any[] = data.data || []
 
       if (offset === 0 && items.length > 0) {
-        console.log("APPLE_ATTRS_SAMPLE", JSON.stringify(items.slice(0, 3).map((i: any) => i.attributes)))
+        const catalogItems = items.filter((i: any) => i.attributes?.playParams?.catalogId)
+        console.log("TOTAL_ITEMS", items.length)
+        console.log("CATALOG_ITEMS", catalogItems.length)
+        console.log("CATALOG_SAMPLE", JSON.stringify(catalogItems.slice(0, 3).map((i: any) => i.attributes)))
       }
 
       for (const item of items) {
