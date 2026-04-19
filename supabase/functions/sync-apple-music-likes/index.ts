@@ -147,30 +147,29 @@ serve(async (req) => {
         if (!attrs.playParams?.catalogId) continue
         if (attrs.playParams?.kind === "upload") continue
 
-        // Skip tracks added more than 60 days ago, with epoch/invalid date guard
-        // (API returns alphabetically, so we must scan all pages and filter client-side)
+        // Skip only when we have confident evidence the track is old.
+        // If dateAdded is absent, pass through — API often omits it for recent tracks.
         if (attrs.dateAdded) {
           const d = new Date(attrs.dateAdded)
           if (isNaN(d.getTime()) || d.getFullYear() < 2000 || d < sixtyDaysAgo) continue
         }
 
-        const appleId: string = item.id
+        const catalogId: string = attrs.playParams.catalogId
         const title: string = attrs.name
         const artist: string = attrs.artistName
         const album: string | null = attrs.albumName || null
         const albumArtUrl: string | null = attrs.artwork?.url
           ? attrs.artwork.url.replace("{w}", "500").replace("{h}", "500")
           : null
-        const addedAt = attrs.dateAdded
-        if (!addedAt) continue
+        const addedAt = attrs.dateAdded || new Date().toISOString()
 
-        if (!title || !artist || !appleId) continue
+        if (!title || !artist || !catalogId) continue
 
         const { data: trackData } = await supabaseAdmin
           .from("tracks")
           .upsert({
-            spotify_track_id: `apple:${appleId}`,
-            apple_music_id: appleId,
+            spotify_track_id: `apple:${catalogId}`,
+            apple_music_id: catalogId,
             title,
             artist,
             album,
