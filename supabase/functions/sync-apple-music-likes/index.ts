@@ -95,19 +95,16 @@ serve(async (req) => {
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
 
     let syncedCount = 0
-    let offset = 0
-    const limit = 100
+    let nextUrl: string | null = "https://api.music.apple.com/v1/me/library/recently-added?limit=25"
+    let stopFetching = false
 
-    while (true) {
-      const res = await fetch(
-        `https://api.music.apple.com/v1/me/library/songs?limit=${limit}&offset=${offset}&extend[library-songs]=dateAdded`,
-        {
-          headers: {
-            Authorization: `Bearer ${developerToken}`,
-            "Music-User-Token": userToken,
-          },
-        }
-      )
+    while (nextUrl && !stopFetching) {
+      const res = await fetch(nextUrl, {
+        headers: {
+          Authorization: `Bearer ${developerToken}`,
+          "Music-User-Token": userToken,
+        },
+      })
 
       if (res.status === 401) {
         await supabaseAdmin
@@ -129,29 +126,22 @@ serve(async (req) => {
       const data = await res.json()
       const items: any[] = data.data || []
 
-      if (offset === 0 && items.length > 0) {
-        const catalogItems = items.filter((i: any) => i.attributes?.playParams?.catalogId)
-        console.log("TOTAL_ITEMS", items.length)
-        console.log("CATALOG_ITEMS", catalogItems.length)
-        console.log("CATALOG_SAMPLE", JSON.stringify(catalogItems.slice(0, 3).map((i: any) => i.attributes)))
-      }
-
       for (const item of items) {
+        if (item.type !== "library-songs") continue
+
         const attrs = item.attributes
         if (!attrs) continue
 
-        // Skip uploaded/local files — Apple Music sets kind "uploadedAudio" for
-        // user-uploaded tracks (local files, demos, etc). Catalog streaming tracks
-        // have kind "song". Absence of playParams entirely also means local.
         // Skip local/uploaded files — catalog streaming tracks have a catalogId
         if (!attrs.playParams?.catalogId) continue
         if (attrs.playParams?.kind === "upload") continue
 
-        // Skip only when we have confident evidence the track is old.
-        // If dateAdded is absent, pass through — API often omits it for recent tracks.
+        // Response is newest-first: stop when we hit a track older than 60 days.
+        // Skip invalid/epoch dates without stopping — bad metadata on a recent track.
         if (attrs.dateAdded) {
           const d = new Date(attrs.dateAdded)
-          if (isNaN(d.getTime()) || d.getFullYear() < 2000 || d < sixtyDaysAgo) continue
+          if (isNaN(d.getTime()) || d.getFullYear() < 2000) continue
+          if (d < sixtyDaysAgo) { stopFetching = true; break }
         }
 
         const catalogId: string = attrs.playParams.catalogId
@@ -200,8 +190,7 @@ serve(async (req) => {
         syncedCount++
       }
 
-      if (!data.next || items.length < limit) break
-      offset += limit
+      nextUrl = data.next ? `https://api.music.apple.com${data.next}` : null
     }
 
     await supabaseAdmin
