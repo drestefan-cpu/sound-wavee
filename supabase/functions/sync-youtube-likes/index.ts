@@ -195,6 +195,8 @@ serve(async (req) => {
         const video = videoMap[videoId]
         if (!video) { console.log(`No video details for ${videoId}`); continue }
 
+        if (video.snippet?.categoryId !== "10") continue
+
         const title = video.snippet.title
         const artist = video.snippet.channelTitle
         const albumArt = video.snippet.thumbnails?.high?.url || video.snippet.thumbnails?.default?.url || null
