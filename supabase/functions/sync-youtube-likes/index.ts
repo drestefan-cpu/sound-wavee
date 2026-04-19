@@ -26,7 +26,7 @@ serve(async (req) => {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("youtube_access_token")
+      .select("youtube_access_token, youtube_refresh_token")
       .eq("id", user_id)
       .single()
 
@@ -36,7 +36,7 @@ serve(async (req) => {
       })
     }
 
-    const accessToken = profile.youtube_access_token
+    let accessToken = profile.youtube_access_token
     const threeSixtyFiveDaysAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
 
     let syncedCount = 0
@@ -136,6 +136,25 @@ serve(async (req) => {
       const ytRes = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${accessToken}` }
       })
+
+      if (ytRes.status === 401 && (profile as any).youtube_refresh_token) {
+        const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: (profile as any).youtube_refresh_token,
+            client_id: Deno.env.get("GOOGLE_CLIENT_ID") || "",
+            client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
+          })
+        })
+        const refreshData = await refreshRes.json()
+        if (refreshData.access_token) {
+          accessToken = refreshData.access_token
+          await supabase.from("profiles").update({ youtube_access_token: accessToken } as any).eq("id", user_id)
+          continue
+        }
+      }
 
       if (!ytRes.ok) {
         const errText = await ytRes.text()
