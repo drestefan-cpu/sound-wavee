@@ -100,7 +100,7 @@ serve(async (req) => {
 
     while (true) {
       const res = await fetch(
-        `https://api.music.apple.com/v1/me/library/songs?limit=${limit}&offset=${offset}`,
+        `https://api.music.apple.com/v1/me/library/songs?limit=${limit}&offset=${offset}&extend=dateAdded`,
         {
           headers: {
             Authorization: `Bearer ${developerToken}`,
@@ -150,7 +150,8 @@ serve(async (req) => {
         const albumArtUrl: string | null = attrs.artwork?.url
           ? attrs.artwork.url.replace("{w}", "500").replace("{h}", "500")
           : null
-        const addedAt: string = attrs.dateAdded || new Date().toISOString()
+        const addedAt = attrs.dateAdded
+        if (!addedAt) continue
 
         if (!title || !artist || !appleId) continue
 
