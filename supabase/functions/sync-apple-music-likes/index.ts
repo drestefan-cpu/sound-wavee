@@ -78,35 +78,26 @@ serve(async (req) => {
     const developerToken = await generateDeveloperToken()
     const userToken = profile.apple_music_user_token
 
-    const { data: exclusionRows } = await supabaseAdmin
-      .from("collection_exclusions")
-      .select("track_id")
-      .eq("user_id", user_id)
-
-    const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
-
-    // Delete all existing Apple Music likes via server-side RPC — reliable single
-    // SQL DELETE with a subquery, no JS-side array chaining or URL length limits.
+    // Clean up existing Apple Music likes before re-syncing
     const { data: cleanedCount, error: cleanupError } = await supabaseAdmin
       .rpc("delete_apple_music_likes", { p_user_id: user_id })
     if (cleanupError) console.error("Apple Music cleanup failed:", cleanupError.message)
     else console.log(`Cleaned up ${cleanedCount} existing Apple Music likes`)
 
     let syncedCount = 0
-    let offset = 0
-    const limit = 100
-    const maxPages = 5
+    const maxPages = 5 // 500 tracks max
+    let page = 0
 
-    while (offset < limit * maxPages) {
-      const res = await fetch(
-        `https://api.music.apple.com/v1/me/library/songs?limit=${limit}&offset=${offset}`,
-        {
-          headers: {
-            Authorization: `Bearer ${developerToken}`,
-            "Music-User-Token": userToken,
-          },
-        }
-      )
+    while (page < maxPages) {
+      const offset = page * 100
+      const url = `https://api.music.apple.com/v1/me/library/songs?limit=100&offset=${offset}`
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${developerToken}`,
+          "Music-User-Token": userToken,
+        },
+      })
 
       if (res.status === 401) {
         await supabaseAdmin
@@ -120,13 +111,14 @@ serve(async (req) => {
 
       if (!res.ok) {
         const body = await res.text()
-        return new Response(JSON.stringify({ error: "Apple Music API failed", detail: body }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        })
+        console.error("Apple Music API error:", res.status, body)
+        break
       }
 
       const data = await res.json()
       const items: any[] = data.data || []
+
+      if (items.length === 0) break
 
       for (const item of items) {
         const attrs = item.attributes
@@ -144,10 +136,13 @@ serve(async (req) => {
           ? attrs.artwork.url.replace("{w}", "500").replace("{h}", "500")
           : null
 
+        // Use dateAdded if valid, otherwise fall back to now
         let addedAt = new Date().toISOString()
         if (attrs.dateAdded) {
           const d = new Date(attrs.dateAdded)
-          if (!isNaN(d.getTime()) && d.getFullYear() >= 2000) addedAt = attrs.dateAdded
+          if (!isNaN(d.getTime()) && d.getFullYear() >= 2000) {
+            addedAt = attrs.dateAdded
+          }
         }
 
         if (!title || !artist || !catalogId) continue
@@ -167,15 +162,6 @@ serve(async (req) => {
 
         if (!trackData?.id) continue
 
-        if (excludedTrackIds.has(trackData.id)) {
-          await supabaseAdmin
-            .from("collection_exclusions")
-            .delete()
-            .eq("user_id", user_id)
-            .eq("track_id", trackData.id)
-          excludedTrackIds.delete(trackData.id)
-        }
-
         await supabaseAdmin
           .from("likes")
           .upsert({
@@ -187,8 +173,9 @@ serve(async (req) => {
         syncedCount++
       }
 
-      if (!data.next || items.length < limit) break
-      offset += limit
+      // If fewer than 100 items returned, we've hit the end
+      if (items.length < 100) break
+      page++
     }
 
     await supabaseAdmin
