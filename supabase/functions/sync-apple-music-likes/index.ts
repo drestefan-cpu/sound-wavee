@@ -85,26 +85,12 @@ serve(async (req) => {
 
     const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
 
-    // Delete all existing Apple Music likes for this user before re-syncing.
-    // Scoped to this user's likes only — avoids scanning the global tracks table
-    // and the unreliable large .in() array that caused silent failures before.
-    const { data: existingAppleLikes, error: cleanupError } = await supabaseAdmin
-      .from("likes")
-      .select("track_id, tracks!inner(spotify_track_id)")
-      .eq("user_id", user_id)
-      .like("tracks.spotify_track_id", "apple:%")
-
-    if (cleanupError) {
-      console.error("Cleanup query failed:", cleanupError.message)
-    } else if (existingAppleLikes && existingAppleLikes.length > 0) {
-      const staleIds = existingAppleLikes.map((r: any) => r.track_id)
-      const { error: deleteError } = await supabaseAdmin
-        .from("likes")
-        .delete()
-        .eq("user_id", user_id)
-        .in("track_id", staleIds)
-      if (deleteError) console.error("Cleanup delete failed:", deleteError.message)
-    }
+    // Delete all existing Apple Music likes via server-side RPC — reliable single
+    // SQL DELETE with a subquery, no JS-side array chaining or URL length limits.
+    const { data: cleanedCount, error: cleanupError } = await supabaseAdmin
+      .rpc("delete_apple_music_likes", { p_user_id: user_id })
+    if (cleanupError) console.error("Apple Music cleanup failed:", cleanupError.message)
+    else console.log(`Cleaned up ${cleanedCount} existing Apple Music likes`)
 
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
 
