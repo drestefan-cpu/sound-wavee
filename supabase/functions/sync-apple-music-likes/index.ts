@@ -92,19 +92,21 @@ serve(async (req) => {
     if (cleanupError) console.error("Apple Music cleanup failed:", cleanupError.message)
     else console.log(`Cleaned up ${cleanedCount} existing Apple Music likes`)
 
-    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
-
     let syncedCount = 0
-    let nextUrl: string | null = "https://api.music.apple.com/v1/me/library/recently-added?limit=25"
-    let stopFetching = false
+    let offset = 0
+    const limit = 100
+    const maxPages = 5
 
-    while (nextUrl && !stopFetching) {
-      const res = await fetch(nextUrl, {
-        headers: {
-          Authorization: `Bearer ${developerToken}`,
-          "Music-User-Token": userToken,
-        },
-      })
+    while (offset < limit * maxPages) {
+      const res = await fetch(
+        `https://api.music.apple.com/v1/me/library/songs?limit=${limit}&offset=${offset}`,
+        {
+          headers: {
+            Authorization: `Bearer ${developerToken}`,
+            "Music-User-Token": userToken,
+          },
+        }
+      )
 
       if (res.status === 401) {
         await supabaseAdmin
@@ -126,34 +128,13 @@ serve(async (req) => {
       const data = await res.json()
       const items: any[] = data.data || []
 
-      console.log("PAGE_STATUS", res.status, "ITEMS", items.length, "FIRST_TYPE", items[0]?.type ?? "none")
-
-      const songItems = items.filter((i: any) => i.type === "library-songs")
-      console.log("LIBRARY_SONGS_COUNT", songItems.length)
-
-      const catalogPassCount = songItems.filter((i: any) => i.attributes?.playParams?.catalogId && i.attributes?.playParams?.kind !== "upload").length
-      console.log("CATALOG_PASS_COUNT", catalogPassCount)
-
       for (const item of items) {
-        if (item.type !== "library-songs") continue
-
         const attrs = item.attributes
         if (!attrs) continue
 
         // Skip local/uploaded files — catalog streaming tracks have a catalogId
         if (!attrs.playParams?.catalogId) continue
         if (attrs.playParams?.kind === "upload") continue
-
-        // Response is newest-first: stop when we hit a track older than 60 days.
-        // Skip invalid/epoch dates without stopping — bad metadata on a recent track.
-        if (attrs.dateAdded) {
-          const d = new Date(attrs.dateAdded)
-          if (isNaN(d.getTime()) || d.getFullYear() < 2000) continue
-          if (d < sixtyDaysAgo) {
-            console.log("EARLY_EXIT dateAdded", attrs.dateAdded, "track", attrs.name)
-            stopFetching = true; break
-          }
-        }
 
         const catalogId: string = attrs.playParams.catalogId
         const title: string = attrs.name
@@ -162,7 +143,12 @@ serve(async (req) => {
         const albumArtUrl: string | null = attrs.artwork?.url
           ? attrs.artwork.url.replace("{w}", "500").replace("{h}", "500")
           : null
-        const addedAt = attrs.dateAdded || new Date().toISOString()
+
+        let addedAt = new Date().toISOString()
+        if (attrs.dateAdded) {
+          const d = new Date(attrs.dateAdded)
+          if (!isNaN(d.getTime()) && d.getFullYear() >= 2000) addedAt = attrs.dateAdded
+        }
 
         if (!title || !artist || !catalogId) continue
 
@@ -201,7 +187,8 @@ serve(async (req) => {
         syncedCount++
       }
 
-      nextUrl = data.next ? `https://api.music.apple.com${data.next}` : null
+      if (!data.next || items.length < limit) break
+      offset += limit
     }
 
     await supabaseAdmin
