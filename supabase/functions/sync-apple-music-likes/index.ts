@@ -100,7 +100,7 @@ serve(async (req) => {
 
     while (true) {
       const res = await fetch(
-        `https://api.music.apple.com/v1/me/library/songs?limit=${limit}&offset=${offset}&extend=dateAdded`,
+        `https://api.music.apple.com/v1/me/library/songs?limit=${limit}&offset=${offset}&extend[library-songs]=dateAdded`,
         {
           headers: {
             Authorization: `Bearer ${developerToken}`,
