@@ -129,6 +129,10 @@ serve(async (req) => {
       const data = await res.json()
       const items: any[] = data.data || []
 
+      if (offset === 0 && items.length > 0) {
+        console.log("APPLE_ATTRS_SAMPLE", JSON.stringify(items.slice(0, 3).map((i: any) => i.attributes)))
+      }
+
       for (const item of items) {
         const attrs = item.attributes
         if (!attrs) continue
