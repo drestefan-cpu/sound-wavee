@@ -476,11 +476,7 @@ const Profile = () => {
         body: { user_id: user.id },
         headers: { Authorization: `Bearer ${currentSession?.access_token}` },
       });
-      const { data: prof } = await (supabase
-        .from("profiles")
-        .select("tidal_access_token, youtube_access_token, apple_music_user_token, sync_tidal, sync_youtube, sync_apple_music")
-        .eq("id", user.id)
-        .single() as any);
+      const { data: prof } = await (supabase.rpc("get_my_profile") as any).single();
       if (prof?.tidal_access_token && prof?.sync_tidal !== false) {
         await supabase.functions.invoke("sync-tidal-likes", {
           body: { user_id: user.id },

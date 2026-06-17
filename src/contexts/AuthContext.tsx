@@ -74,11 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!currentUser || currentUser.is_anonymous) return;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("last_synced_at, tidal_access_token, youtube_access_token, apple_music_user_token, sync_spotify, sync_youtube, sync_tidal, sync_apple_music")
-        .eq("id", userId)
-        .single();
+      const { data: profile } = await (supabase.rpc("get_my_profile") as any).single();
       const lastSynced = profile?.last_synced_at ? new Date(profile.last_synced_at).getTime() : 0;
       const now = Date.now();
       const timeSinceSync = now - lastSynced;

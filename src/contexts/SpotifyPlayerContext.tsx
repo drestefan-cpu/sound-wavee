@@ -39,7 +39,7 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     const initPlayer = async () => {
-      const { data } = await supabase.from("profiles").select("spotify_access_token").eq("id", user.id).single();
+      const { data } = await (supabase.rpc("get_my_profile") as any).single();
 
       if (!data?.spotify_access_token) return;
       tokenRef.current = data.spotify_access_token;

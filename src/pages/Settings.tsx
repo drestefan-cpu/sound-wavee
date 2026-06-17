@@ -72,7 +72,7 @@ const SettingsPage = () => {
   useEffect(() => {
     const load = async () => {
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      const { data } = await (supabase.rpc("get_my_profile") as any).single();
       if (data) {
         setDisplayName(data.display_name || "");
         setUsername(data.username || "");
