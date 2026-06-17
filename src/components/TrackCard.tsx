@@ -5,6 +5,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import EmojiReactions from "@/components/EmojiReactions";
 import { getSpotifyUrl } from "@/lib/songlink";
+import { isYouTubeSentinel } from "@/lib/trackLinks";
+
+function getPlatformLabel(spotifyTrackId?: string): string {
+  if (!spotifyTrackId) return "Spotify";
+  if (spotifyTrackId.startsWith("apple:")) return "Apple Music";
+  if (isYouTubeSentinel(spotifyTrackId)) return "YouTube";
+  if (spotifyTrackId.startsWith("tidal_")) return "Tidal";
+  return "Spotify";
+}
 import { toast } from "sonner";
 import { formatTimestamp } from "@/lib/formatTimestamp";
 
@@ -109,7 +118,7 @@ const TrackCard = ({
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">{formatTimestamp(item.liked_at)}</span>
             <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Spotify
+              {getPlatformLabel(item.tracks?.spotify_track_id)}
             </span>
           </div>
         </div>
