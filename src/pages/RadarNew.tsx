@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,8 +87,9 @@ const RadarNew = () => {
   const [sourceUrl, setSourceUrl] = useState("");
   const [detectedPlatform, setDetectedPlatform] = useState("");
   const [spotifyArtistId, setSpotifyArtistId] = useState<string | null>(null);
-  const [fetchingSpotify, setFetchingSpotify] = useState(false);
-  const [spotifyFetchError, setSpotifyFetchError] = useState("");
+  const [fetchingMeta, setFetchingMeta] = useState(false);
+  const [metaSource, setMetaSource] = useState<"spotify" | "og" | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState("");
@@ -120,10 +121,40 @@ const RadarNew = () => {
     spotify_monthly_listeners?: number;
     spotify_followers?: number;
     spotify_popularity?: number;
-    genre?: string;
+    spotify_top_tracks?: unknown;
   }>({});
 
   const [submitting, setSubmitting] = useState(false);
+
+  const fetchMeta = async (url: string) => {
+    if (!user || !url.trim()) return;
+    setFetchingMeta(true);
+    setMetaSource(null);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "fetch-artist-metadata",
+        { body: { url, user_id: user.id } }
+      );
+      if (error || !data?.success) return;
+      if (data.photo_url) setPhotoUrl(data.photo_url);
+      if (data.name) setName((prev) => prev.trim() === "" ? data.name : prev);
+      if (Array.isArray(data.genre) && data.genre.length > 0) {
+        setGenres(data.genre.filter((g: string) => GENRE_OPTIONS.includes(g)));
+      }
+      if (data.spotify_artist_id) setSpotifyArtistId(data.spotify_artist_id);
+      spotifyExtras.current = {
+        spotify_monthly_listeners: data.spotify_monthly_listeners ?? undefined,
+        spotify_followers: data.spotify_followers ?? undefined,
+        spotify_popularity: data.spotify_popularity ?? undefined,
+        spotify_top_tracks: data.spotify_top_tracks ?? undefined,
+      };
+      if (data.source === "spotify" || data.source === "og") {
+        setMetaSource(data.source);
+      }
+    } catch { /* silent — let user fill manually */ } finally {
+      setFetchingMeta(false);
+    }
+  };
 
   const handleSourceChange = (val: string) => {
     setSourceUrl(val);
@@ -131,38 +162,20 @@ const RadarNew = () => {
     setDetectedPlatform(platform);
     const artistId = extractSpotifyArtistId(val);
     setSpotifyArtistId(artistId);
-    setSpotifyFetchError("");
+    setMetaSource(null);
     if (platform === "Spotify" && artistId) {
       setSocials((prev) => ({ ...prev, spotify_url: val }));
     }
-  };
-
-  const handleFetchSpotify = async () => {
-    if (!user || !sourceUrl) return;
-    setFetchingSpotify(true);
-    setSpotifyFetchError("");
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        "fetch-spotify-artist",
-        { body: { spotify_url: sourceUrl, user_id: user.id } }
-      );
-      if (error || !data) throw new Error("fetch failed");
-      if (data.name) setName(data.name);
-      if (data.photo_url) setPhotoUrl(data.photo_url);
-      if (data.spotify_artist_id) setSpotifyArtistId(data.spotify_artist_id);
-      if (data.genre) setGenres([data.genre]);
-      spotifyExtras.current = {
-        spotify_monthly_listeners: data.spotify_monthly_listeners ?? undefined,
-        spotify_followers: data.spotify_followers ?? undefined,
-        spotify_popularity: data.spotify_popularity ?? undefined,
-        genre: data.genre ?? undefined,
-      };
-    } catch {
-      setSpotifyFetchError("couldn't fetch — fill in manually");
-    } finally {
-      setFetchingSpotify(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.trim()) {
+      debounceRef.current = setTimeout(() => fetchMeta(val), 800);
     }
   };
+
+  // Cancel pending debounce on unmount
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
 
   const toggleGenre = (g: string) => {
     setGenres((prev) =>
@@ -269,31 +282,33 @@ const RadarNew = () => {
               type="url"
               value={sourceUrl}
               onChange={(e) => handleSourceChange(e.target.value)}
-              onBlur={(e) => handleSourceChange(e.target.value)}
+              onBlur={(e) => {
+                if (debounceRef.current) clearTimeout(debounceRef.current);
+                fetchMeta(e.target.value);
+              }}
               placeholder="paste a link — instagram, spotify, tiktok, anything"
               className={fieldInput}
             />
-            {detectedPlatform && (
-              <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex items-center gap-2 min-h-[20px]">
+              {detectedPlatform && (
                 <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                   {detectedPlatform}
                 </span>
-                {detectedPlatform === "Spotify" && spotifyArtistId && (
-                  <button
-                    onClick={handleFetchSpotify}
-                    disabled={fetchingSpotify}
-                    className="text-xs text-primary hover:opacity-80 transition-opacity disabled:opacity-50"
-                  >
-                    {fetchingSpotify ? "fetching…" : "fetch from Spotify →"}
-                  </button>
-                )}
-              </div>
-            )}
-            {spotifyFetchError && (
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {spotifyFetchError}
-              </p>
-            )}
+              )}
+              {fetchingMeta && (
+                <span className="text-xs text-muted-foreground">fetching info...</span>
+              )}
+              {!fetchingMeta && metaSource === "spotify" && (
+                <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  info from Spotify
+                </span>
+              )}
+              {!fetchingMeta && metaSource === "og" && (
+                <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  info from page
+                </span>
+              )}
+            </div>
           </div>
 
           {/* 1b. Date discovered */}
