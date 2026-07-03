@@ -18,6 +18,8 @@ type RadarArtistRow = {
   source_platform: string | null;
   source_url: string | null;
   genre: string | null;
+  strengths: string[] | null;
+  discovered_at: string | null;
   location: string | null;
   spotify_artist_id: string | null;
   spotify_monthly_listeners: number | null;
@@ -495,20 +497,33 @@ const RadarArtist = () => {
                 </div>
               )}
 
+              {artist.strengths && artist.strengths.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {artist.strengths.map((s) => (
+                    <span
+                      key={s}
+                      className="inline-flex items-center rounded-full bg-card border border-border px-2 py-0.5 text-[10px] text-muted-foreground"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {artist.location && (
                 <p className="text-xs text-muted-foreground mt-1">
                   {artist.location}
                 </p>
               )}
 
-              {(artist.source_platform || artist.created_at) && (
+              {(artist.source_platform || artist.discovered_at) && (
                 <p className="text-xs text-muted-foreground mt-1">
                   {[
                     artist.source_platform
                       ? `found on ${artist.source_platform}`
                       : null,
-                    artist.created_at
-                      ? formatShortDate(artist.created_at)
+                    artist.discovered_at
+                      ? `discovered ${formatShortDate(artist.discovered_at)}`
                       : null,
                   ]
                     .filter(Boolean)

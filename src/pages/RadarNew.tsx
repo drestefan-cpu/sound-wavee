@@ -17,6 +17,11 @@ const GENRE_OPTIONS = [
   "Electronic", "Rock", "Country", "Other",
 ];
 
+const STRENGTH_OPTIONS = [
+  "Charisma", "Creativity", "Hooks", "Lyricism", "Melody", "Messaging",
+  "Performance", "Production", "Storytelling", "Structure", "Versatility", "Visuals",
+];
+
 const SOCIAL_FIELDS: { key: string; label: string }[] = [
   { key: "instagram_url", label: "Instagram" },
   { key: "tiktok_url", label: "TikTok" },
@@ -89,6 +94,10 @@ const RadarNew = () => {
   const [nameError, setNameError] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
+  const [strengths, setStrengths] = useState<string[]>([]);
+  const [discoveredAt, setDiscoveredAt] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<Status>("new_find");
   const [firstNote, setFirstNote] = useState("");
@@ -161,6 +170,12 @@ const RadarNew = () => {
     );
   };
 
+  const toggleStrength = (s: string) => {
+    setStrengths((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+    );
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
     if (!name.trim()) {
@@ -178,6 +193,8 @@ const RadarNew = () => {
       source_url: sourceUrl.trim() || null,
       photo_url: photoUrl.trim() || null,
       genre: genres.length > 0 ? genres.join(", ") : null,
+      strengths: strengths.length > 0 ? strengths : null,
+      discovered_at: discoveredAt || null,
       location: location.trim() || null,
       spotify_artist_id: spotifyArtistId,
       instagram_url: socials.instagram_url.trim() || null,
@@ -279,6 +296,17 @@ const RadarNew = () => {
             )}
           </div>
 
+          {/* 1b. Date discovered */}
+          <div>
+            <Label>date discovered</Label>
+            <input
+              type="date"
+              value={discoveredAt}
+              onChange={(e) => setDiscoveredAt(e.target.value)}
+              className={`${fieldInput} [color-scheme:dark]`}
+            />
+          </div>
+
           {/* 2. Artist name */}
           <div>
             <Label>artist name</Label>
@@ -331,6 +359,29 @@ const RadarNew = () => {
                     }`}
                   >
                     {g}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4b. Strengths */}
+          <div>
+            <Label>strengths</Label>
+            <div className="flex flex-wrap gap-2">
+              {STRENGTH_OPTIONS.map((s) => {
+                const selected = strengths.includes(s);
+                return (
+                  <button
+                    key={s}
+                    onClick={() => toggleStrength(s)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                      selected
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card border-border text-muted-foreground"
+                    }`}
+                  >
+                    {s}
                   </button>
                 );
               })}
