@@ -4,12 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-
-const RadarDashboard = () => (
-  <div className="flex min-h-screen items-center justify-center bg-background">
-    <p className="text-muted-foreground text-sm">dashboard coming</p>
-  </div>
-);
+import RadarDashboard from "@/components/radar/RadarDashboard";
 
 const Radar = () => {
   const { user, loading } = useAuth();

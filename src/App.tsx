@@ -50,6 +50,7 @@ const App = () => (
                 <Route path="/demo" element={<Demo />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/radar" element={<Radar />} />
+                <Route path="/radar/new" element={<RadarArtist />} />
                 <Route path="/radar/artist/:id" element={<RadarArtist />} />
                 <Route path="/auth/tidal/callback" element={<TidalCallback />} />
                 <Route path="/auth/youtube/callback" element={<YouTubeCallback />} />
