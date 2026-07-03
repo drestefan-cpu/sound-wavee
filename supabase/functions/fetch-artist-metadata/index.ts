@@ -21,7 +21,7 @@ const err = (msg: string) =>
 
 // ── Platform detection ────────────────────────────────────────────────────────
 
-type Platform = "spotify" | "soundcloud" | "youtube" | "instagram" | "tiktok" | "generic"
+type Platform = "spotify" | "soundcloud" | "youtube" | "instagram" | "tiktok" | "tidal" | "generic"
 
 function detectPlatform(url: string): Platform {
   try {
@@ -31,6 +31,7 @@ function detectPlatform(url: string): Platform {
     if (host.includes("youtube.com") || host === "youtu.be") return "youtube"
     if (host.includes("instagram.com")) return "instagram"
     if (host.includes("tiktok.com")) return "tiktok"
+    if (host.includes("tidal.com")) return "tidal"
     return "generic"
   } catch {
     return "generic"
@@ -98,9 +99,21 @@ async function fetchOgData(
       )?.[1] ??
       null
 
+    const cleanTitle = ogTitle
+      ? decodeHTMLEntities(ogTitle)
+          .replace(/ on Apple Music$/i, "")
+          .replace(/ on Spotify$/i, "")
+          .replace(/ on TIDAL$/i, "")
+          .replace(/ on SoundCloud$/i, "")
+          .replace(/ on YouTube$/i, "")
+          .replace(/ \| Spotify$/i, "")
+          .replace(/ \| Apple Music$/i, "")
+          .trim() || null
+      : null
+
     return {
       photo_url: ogImage ?? null,
-      name: ogTitle ? decodeHTMLEntities(ogTitle) : null,
+      name: cleanTitle,
     }
   } catch {
     return { photo_url: null, name: null }
