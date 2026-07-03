@@ -19,7 +19,6 @@ type RadarArtistRow = {
   source_url: string | null;
   genre: string | null;
   location: string | null;
-  followup_date: string | null;
   spotify_artist_id: string | null;
   spotify_monthly_listeners: number | null;
   spotify_followers: number | null;

@@ -91,7 +91,6 @@ const RadarNew = () => {
   const [genres, setGenres] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<Status>("new_find");
-  const [followupDate, setFollowupDate] = useState("");
   const [firstNote, setFirstNote] = useState("");
 
   // Social links
@@ -180,7 +179,6 @@ const RadarNew = () => {
       photo_url: photoUrl.trim() || null,
       genre: genres.length > 0 ? genres.join(", ") : null,
       location: location.trim() || null,
-      followup_date: followupDate || null,
       spotify_artist_id: spotifyArtistId,
       instagram_url: socials.instagram_url.trim() || null,
       tiktok_url: socials.tiktok_url.trim() || null,
@@ -406,18 +404,7 @@ const RadarNew = () => {
             )}
           </div>
 
-          {/* 8. Follow-up date */}
-          <div>
-            <Label>check back on</Label>
-            <input
-              type="date"
-              value={followupDate}
-              onChange={(e) => setFollowupDate(e.target.value)}
-              className={`${fieldInput} [color-scheme:dark]`}
-            />
-          </div>
-
-          {/* 9. First note */}
+          {/* 8. First note */}
           <div>
             <Label>first impressions</Label>
             <textarea
