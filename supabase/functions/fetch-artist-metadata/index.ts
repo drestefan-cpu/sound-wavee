@@ -46,6 +46,15 @@ function extractSpotifyArtistId(url: string): string | null {
   }
 }
 
+function extractSpotifyTrackId(url: string): string | null {
+  try {
+    const match = new URL(url).pathname.match(/^\/track\/([A-Za-z0-9]+)/)
+    return match?.[1] ?? null
+  } catch {
+    return null
+  }
+}
+
 // ── OG image fallback ─────────────────────────────────────────────────────────
 
 async function fetchOgData(
@@ -129,9 +138,9 @@ serve(async (req) => {
 
   if (platform === "spotify") {
     const artistId = extractSpotifyArtistId(url)
-    if (!artistId) {
-      // Not an artist URL (could be track/album/playlist) — fall through to OG
-    } else {
+    const trackId = artistId ? null : extractSpotifyTrackId(url)
+
+    if (artistId || trackId) {
       try {
         const supabase = createClient(
           Deno.env.get("SUPABASE_URL")!,
@@ -146,10 +155,25 @@ serve(async (req) => {
 
         const token = profile?.spotify_access_token
         if (token) {
+          // Resolve track URL → artist ID via /v1/tracks/{id}
+          let resolvedArtistId = artistId
+          if (trackId) {
+            const trackRes = await fetch(
+              `https://api.spotify.com/v1/tracks/${trackId}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
+            if (trackRes.status === 401) return ok({ success: true, source: "none", name: null, photo_url: null, spotify_artist_id: null, spotify_monthly_listeners: null, spotify_followers: null, spotify_popularity: null, genre: null, spotify_top_tracks: null })
+            if (!trackRes.ok) return ok({ success: true, source: "none", name: null, photo_url: null, spotify_artist_id: null, spotify_monthly_listeners: null, spotify_followers: null, spotify_popularity: null, genre: null, spotify_top_tracks: null })
+            const trackData = await trackRes.json()
+            resolvedArtistId = trackData.artists?.[0]?.id ?? null
+            if (!resolvedArtistId) return ok({ success: true, source: "none", name: null, photo_url: null, spotify_artist_id: null, spotify_monthly_listeners: null, spotify_followers: null, spotify_popularity: null, genre: null, spotify_top_tracks: null })
+          }
+
           const artistRes = await fetch(
-            `https://api.spotify.com/v1/artists/${artistId}`,
+            `https://api.spotify.com/v1/artists/${resolvedArtistId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           )
+          if (artistRes.status === 401) return ok({ success: true, source: "none", name: null, photo_url: null, spotify_artist_id: null, spotify_monthly_listeners: null, spotify_followers: null, spotify_popularity: null, genre: null, spotify_top_tracks: null })
 
           if (artistRes.ok) {
             const artist = await artistRes.json()
@@ -158,7 +182,7 @@ serve(async (req) => {
             let topTracks: { name: string; id: string; album_art: string | null }[] = []
             try {
               const ttRes = await fetch(
-                `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`,
+                `https://api.spotify.com/v1/artists/${resolvedArtistId}/top-tracks?market=US`,
                 { headers: { Authorization: `Bearer ${token}` } }
               )
               if (ttRes.ok) {
@@ -184,9 +208,11 @@ serve(async (req) => {
               source: "spotify",
             })
           }
-          // 401 or other error — fall through to OG
         }
-      } catch { /* fall through to OG */ }
+      } catch { /* fall through to none */ }
+
+      // Spotify URL but token missing/exhausted — do not OG-scrape spotify.com
+      return ok({ success: true, source: "none", name: null, photo_url: null, spotify_artist_id: null, spotify_monthly_listeners: null, spotify_followers: null, spotify_popularity: null, genre: null, spotify_top_tracks: null })
     }
   }
 
