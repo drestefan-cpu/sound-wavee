@@ -17,7 +17,7 @@ type RadarArtistRow = {
   photo_url: string | null;
   source_platform: string | null;
   source_url: string | null;
-  genre: string | null;
+  genre: string[] | null;
   strengths: string[] | null;
   discovered_at: string | null;
   location: string | null;
@@ -360,9 +360,7 @@ const RadarArtist = () => {
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  const genreTags = artist.genre
-    ? artist.genre.split(",").map((g) => g.trim()).filter(Boolean)
-    : [];
+  const genreTags = artist.genre ?? [];
 
   const activeSocialLinks = SOCIAL_LINK_KEYS.filter(
     ({ key }) => artist[key] != null && String(artist[key]).length > 0

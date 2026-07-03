@@ -192,7 +192,7 @@ const RadarNew = () => {
       source_platform: detectedPlatform || null,
       source_url: sourceUrl.trim() || null,
       photo_url: photoUrl.trim() || null,
-      genre: genres.length > 0 ? genres.join(", ") : null,
+      genre: genres.length > 0 ? genres : null,
       strengths: strengths.length > 0 ? strengths : null,
       discovered_at: discoveredAt || null,
       location: location.trim() || null,
