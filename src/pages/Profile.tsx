@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { useParams, Link, Navigate } from "react-router-dom";
+import { useParams, Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
-import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library, Users } from "lucide-react";
+import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library, Users, Radar } from "lucide-react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import BottomNav from "@/components/BottomNav";
@@ -113,6 +113,18 @@ const Profile = () => {
   const [profileOwnerHiddenIds, setProfileOwnerHiddenIds] = useState<Set<string>>(new Set());
 
   const isOwnProfile = profile?.id === user?.id;
+  const navigate = useNavigate();
+  const [hasRadarAccess, setHasRadarAccess] = useState(false);
+
+  useEffect(() => {
+    if (!isOwnProfile || !user) return;
+    supabase
+      .from("radar_access" as any)
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setHasRadarAccess(!!data));
+  }, [isOwnProfile, user]);
 
   useEffect(() => {
     const snapshot = profileSnapshots.get(cacheKey);
@@ -872,6 +884,14 @@ const Profile = () => {
         rightContent={
           isOwnProfile ? (
             <div className="flex items-center gap-2">
+              {hasRadarAccess && (
+                <button
+                  onClick={() => navigate("/radar")}
+                  className="text-muted-foreground hover:text-foreground transition-colors duration-150"
+                >
+                  <Radar className="h-5 w-5" />
+                </button>
+              )}
               <button
                 onClick={() => setShowQR(true)}
                 className="text-muted-foreground hover:text-foreground transition-colors duration-150"

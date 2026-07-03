@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, Radar } from "lucide-react";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
@@ -68,6 +68,17 @@ const SettingsPage = () => {
   });
   const [notifLoaded, setNotifLoaded] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [hasRadarAccess, setHasRadarAccess] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("radar_access" as any)
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setHasRadarAccess(!!data));
+  }, [user]);
 
   useEffect(() => {
     const load = async () => {
@@ -376,6 +387,20 @@ const SettingsPage = () => {
             developer notes →
           </button>
         </div>
+
+        {/* Tools */}
+        {hasRadarAccess && (
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">tools</p>
+            <Link
+              to="/radar"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <Radar className="h-4 w-4 text-primary" />
+              PLAI Radar
+            </Link>
+          </div>
+        )}
 
         {/* Display name — separate save handler */}
         <div>
