@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, ExternalLink, Send, X } from "lucide-react";
+import { Heart, ExternalLink, Send, X, Share2 } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ interface TrackDetailModalProps {
   hidePlay?: boolean;
   onHide?: () => void;
   isOwnTrack?: boolean;
+  sharerUsername?: string;
 }
 
 // Log track detail view silently
@@ -50,6 +51,7 @@ const TrackDetailModal = ({
   hidePlay = false,
   onHide,
   isOwnTrack,
+  sharerUsername,
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
   const [artError, setArtError] = useState(false);
@@ -232,6 +234,29 @@ const TrackDetailModal = ({
             </div>
             <span className="text-[10px] text-muted-foreground">recommend</span>
           </button>
+
+          {track.trackDbId && (
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/song/${track.trackDbId}${sharerUsername ? "?from=" + sharerUsername.toLowerCase() : ""}`;
+                if (navigator.share) {
+                  navigator.share({ title: `${track.title} — ${track.artist}`, url });
+                } else {
+                  navigator.clipboard.writeText(url);
+                  toast("link copied");
+                }
+              }}
+              className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
+            >
+              <div
+                className="h-8 w-8 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "#1a2535" }}
+              >
+                <Share2 className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+              </div>
+              <span className="text-[10px] text-muted-foreground">share</span>
+            </button>
+          )}
         </div>
 
         {canHide && (

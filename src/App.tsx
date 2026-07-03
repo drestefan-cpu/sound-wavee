@@ -23,6 +23,7 @@ import Notifications from "./pages/Notifications";
 import Radar from "./pages/Radar";
 import RadarArtist from "./pages/RadarArtist";
 import RadarNew from "./pages/RadarNew";
+import SongShare from "./pages/SongShare";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
               </SpotifyPlayerProvider>
               <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/song/:trackId" element={<SongShare />} />
                 <Route path="/feed" element={<Feed />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/:username" element={<Profile />} />

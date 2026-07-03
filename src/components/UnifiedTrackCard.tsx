@@ -35,6 +35,7 @@ interface UnifiedTrackCardProps {
   sourceUserId?: string;
   sourceContext?: string;
   children?: React.ReactNode;
+  sharerUsername?: string;
 }
 
 const openUrl = (url: string) => {
@@ -62,6 +63,7 @@ const UnifiedTrackCard = ({
   sourceUserId,
   sourceContext,
   children,
+  sharerUsername,
 }: UnifiedTrackCardProps) => {
   const { preferredPlatform } = usePlatform();
   const { isSaved: isGloballySaved, toggleSave } = useSavedTracks();
@@ -202,6 +204,7 @@ const UnifiedTrackCard = ({
             onClose={() => setShowDetail(false)}
             onHide={onHide}
             isOwnTrack={isOwnTrack}
+            sharerUsername={sharerUsername}
           />
         )}
       </>

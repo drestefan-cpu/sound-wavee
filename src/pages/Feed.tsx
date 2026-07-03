@@ -222,6 +222,7 @@ const Feed = () => {
   const [artistHasDestinRelease, setArtistHasDestinRelease] = useState(false);
   const [journalPosts, setJournalPosts] = useState<DiscoverPost[]>([]);
   const [journalLoading, setJournalLoading] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [journalLoaded, setJournalLoaded] = useState(false);
   const [activePost, setActivePost] = useState<DiscoverPost | null>(null);
 
@@ -333,7 +334,13 @@ const Feed = () => {
             setHiddenIds(new Set(nextHiddenIds));
             setCollectionExclusionIds(new Set(nextExclusionIds));
           });
-          await Promise.all([feedPromise, filtersPromise]);
+          const usernamePromise = supabase
+            .from("profiles")
+            .select("username")
+            .eq("id", user.id)
+            .single()
+            .then(({ data }) => setCurrentUsername((data as any)?.username || null));
+          await Promise.all([feedPromise, filtersPromise, usernamePromise]);
         } else {
           await feedPromise;
         }
@@ -1047,6 +1054,7 @@ const Feed = () => {
                         })
                       }
                       onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
+                      sharerUsername={currentUsername ?? undefined}
                       header={
                         <div className="mb-2 flex items-center gap-3">
                           <Link to={`/profile/${profile?.username || profile?.id}`}>
