@@ -1,96 +1,91 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const SITE = "https://onplai.lovable.app"
-const DEFAULT_IMAGE = `${SITE}/plai-icon.png`
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 }
 
-function html(content: string): Response {
-  return new Response(content, {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
-  })
-}
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { status: 200, headers: corsHeaders })
+  }
 
-function escape(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-}
+  const url = new URL(req.url)
+  const trackId = url.searchParams.get("id")
+  const from = url.searchParams.get("from")
 
-function buildHtml(opts: {
-  title: string
-  description: string
-  image: string
-  url: string
-}): string {
-  const { title, description, image, url } = opts
-  return `<!DOCTYPE html>
+  const defaultOG = `<!DOCTYPE html>
 <html>
 <head>
-  <meta property="og:title" content="${escape(title)}" />
-  <meta property="og:description" content="${escape(description)}" />
-  <meta property="og:image" content="${escape(image)}" />
-  <meta property="og:url" content="${escape(url)}" />
-  <meta property="og:type" content="music.song" />
+  <meta property="og:title" content="PLAI" />
+  <meta property="og:description" content="i love your taste" />
+  <meta property="og:image" content="https://onplai.lovable.app/plai-icon.png" />
+  <meta property="og:url" content="https://onplai.lovable.app" />
+  <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${escape(title)}" />
-  <meta name="twitter:description" content="${escape(description)}" />
-  <meta name="twitter:image" content="${escape(image)}" />
-  <meta http-equiv="refresh" content="0;url=${escape(url)}" />
+  <meta name="twitter:title" content="PLAI" />
+  <meta name="twitter:description" content="i love your taste" />
+  <meta name="twitter:image" content="https://onplai.lovable.app/plai-icon.png" />
+  <meta http-equiv="refresh" content="0;url=https://onplai.lovable.app" />
 </head>
-<body>
-  <p>Redirecting to PLAI...</p>
-</body>
+<body><p>Redirecting to PLAI...</p></body>
 </html>`
-}
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
-  if (req.method !== "GET") return new Response("GET only", { status: 405, headers: corsHeaders })
-
-  const trackId = new URL(req.url).searchParams.get("id")
 
   if (!trackId) {
-    return html(buildHtml({
-      title: "PLAI",
-      description: "i love your taste",
-      image: DEFAULT_IMAGE,
-      url: SITE,
-    }))
+    return new Response(defaultOG, {
+      headers: { ...corsHeaders, "Content-Type": "text/html" }
+    })
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-  )
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!
+    )
 
-  const { data: track } = await supabase
-    .from("tracks")
-    .select("title, artist, album, album_art_url")
-    .eq("id", trackId)
-    .maybeSingle()
+    const { data: track } = await supabase
+      .from("tracks")
+      .select("id, title, artist, album, album_art_url")
+      .eq("id", trackId)
+      .single()
 
-  if (!track) {
-    return html(buildHtml({
-      title: "PLAI",
-      description: "i love your taste",
-      image: DEFAULT_IMAGE,
-      url: `${SITE}/song/${trackId}`,
-    }))
+    if (!track) {
+      return new Response(defaultOG, {
+        headers: { ...corsHeaders, "Content-Type": "text/html" }
+      })
+    }
+
+    const songUrl = `https://onplai.lovable.app/song/${trackId}${from ? "?from=" + from : ""}`
+    const image = track.album_art_url || "https://onplai.lovable.app/plai-icon.png"
+    const title = `${track.title} — ${track.artist}`
+    const description = track.album ? `${track.album} · on PLAI` : `${track.artist} on PLAI`
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:image" content="${image}" />
+  <meta property="og:url" content="${songUrl}" />
+  <meta property="og:type" content="music.song" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:image" content="${image}" />
+  <meta http-equiv="refresh" content="0;url=${songUrl}" />
+</head>
+<body><p>Redirecting to PLAI...</p></body>
+</html>`
+
+    return new Response(html, {
+      headers: { ...corsHeaders, "Content-Type": "text/html" }
+    })
+
+  } catch (err) {
+    return new Response(defaultOG, {
+      headers: { ...corsHeaders, "Content-Type": "text/html" }
+    })
   }
-
-  return html(buildHtml({
-    title: `${track.title} — ${track.artist}`,
-    description: `${track.artist} on PLAI`,
-    image: track.album_art_url || DEFAULT_IMAGE,
-    url: `${SITE}/song/${trackId}`,
-  }))
 })
