@@ -15,6 +15,8 @@ type RadarArtistRow = {
   monthly_listeners: number | null;
   followup_date: string | null;
   updated_at: string;
+  genre: string[] | null;
+  strengths: string[] | null;
 };
 
 const SECTIONS: { status: Status; label: string; emoji: string }[] = [
@@ -71,6 +73,18 @@ const ArtistCard = ({ artist }: { artist: RadarArtistRow }) => {
       <p className="text-sm font-medium text-foreground truncate leading-tight mb-1">
         {artist.name}
       </p>
+
+      {[...(artist.genre || []), ...(artist.strengths || [])].slice(0, 3).length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1 mb-1">
+          {[...(artist.genre || []), ...(artist.strengths || [])]
+            .slice(0, 3)
+            .map((tag) => (
+              <span key={tag} className="text-[9px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5">
+                {tag}
+              </span>
+            ))}
+        </div>
+      )}
 
       {artist.source_platform && (
         <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground mb-1">
