@@ -388,20 +388,6 @@ const SettingsPage = () => {
           </button>
         </div>
 
-        {/* Tools */}
-        {hasRadarAccess && (
-          <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">tools</p>
-            <Link
-              to="/radar"
-              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
-            >
-              <Radar className="h-4 w-4 text-primary" />
-              PLAI Radar
-            </Link>
-          </div>
-        )}
-
         {/* Display name — separate save handler */}
         <div>
           <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
@@ -731,6 +717,20 @@ const SettingsPage = () => {
 
           </div>
         </div>
+
+        {/* Tools */}
+        {hasRadarAccess && (
+          <div className="border-t border-border pt-6">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">tools</p>
+            <Link
+              to="/radar"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <Radar className="h-4 w-4 text-primary" />
+              PLAI Radar
+            </Link>
+          </div>
+        )}
 
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">privacy</h3>
