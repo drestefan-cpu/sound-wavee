@@ -20,6 +20,8 @@ import YouTubeCallback from "./pages/YouTubeCallback";
 import GoogleCallback from "./pages/GoogleCallback";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
+import Radar from "./pages/Radar";
+import RadarArtist from "./pages/RadarArtist";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +49,8 @@ const App = () => (
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/demo" element={<Demo />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/radar" element={<Radar />} />
+                <Route path="/radar/artist/:id" element={<RadarArtist />} />
                 <Route path="/auth/tidal/callback" element={<TidalCallback />} />
                 <Route path="/auth/youtube/callback" element={<YouTubeCallback />} />
                 <Route path="/auth/google/callback" element={<GoogleCallback />} />
