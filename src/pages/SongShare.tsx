@@ -30,6 +30,30 @@ const SongShare = () => {
   const [artError, setArtError] = useState(false);
 
   useEffect(() => {
+    if (!track) return;
+    document.title = `${track.title} — ${track.artist} | PLAI`;
+
+    const setMeta = (property: string, content: string) => {
+      let el = document.querySelector(`meta[property="${property}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute("property", property);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    setMeta("og:title", `${track.title} — ${track.artist}`);
+    setMeta("og:description", `${track.artist} on PLAI`);
+    setMeta("og:image", track.album_art_url || "https://onplai.lovable.app/plai-icon.png");
+    setMeta("og:url", window.location.href);
+
+    return () => {
+      document.title = "PLAI";
+    };
+  }, [track]);
+
+  useEffect(() => {
     const load = async () => {
       if (!trackId) { setLoading(false); return; }
 
