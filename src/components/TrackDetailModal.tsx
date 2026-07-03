@@ -238,7 +238,8 @@ const TrackDetailModal = ({
           {track.trackDbId && (
             <button
               onClick={() => {
-                const url = `${window.location.origin}/song/${track.trackDbId}${sharerUsername ? "?from=" + sharerUsername.toLowerCase() : ""}`;
+                const base = `https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/og-song?id=${track.trackDbId}`;
+                const url = sharerUsername ? `${base}&from=${sharerUsername.toLowerCase()}` : base;
                 if (navigator.share) {
                   navigator.share({ title: `${track.title} — ${track.artist}`, url });
                 } else {
