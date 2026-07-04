@@ -83,8 +83,16 @@ serve(async (req) => {
           preview_url: track.preview_url,
           isrc: track.external_ids?.isrc || null,
         }, { onConflict: "spotify_track_id" })
-        .select("id")
+        .select("id, short_id")
         .single()
+
+      if (trackData && !trackData.short_id) {
+        const generateShortId = () => Math.random().toString(36).slice(2, 8)
+        await supabaseAdmin
+          .from("tracks")
+          .update({ short_id: generateShortId() })
+          .eq("id", trackData.id)
+      }
 
       if (!trackData?.id) continue
 

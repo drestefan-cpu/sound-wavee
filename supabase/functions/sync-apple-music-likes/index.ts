@@ -54,6 +54,7 @@ type TrackToUpsert = {
   album: string | null
   albumArtUrl: string | null
   likedAt: string
+  isrc: string | null
 }
 
 type RecentAlbum = {
@@ -176,6 +177,7 @@ serve(async (req) => {
             album: attrs.albumName || null,
             albumArtUrl: attrs.artwork?.url?.replace("{w}", "500").replace("{h}", "500") ?? null,
             likedAt: attrs.dateAdded,
+            isrc: attrs.isrc || null,
           })
         } else if (item.type === "library-albums") {
           if (albumLogCount < 3) {
@@ -237,6 +239,7 @@ serve(async (req) => {
           album: attrs.albumName || null,
           albumArtUrl: album.artwork?.url?.replace("{w}", "500").replace("{h}", "500") ?? null,
           likedAt: album.dateAdded,
+          isrc: attrs.isrc || null,
         })
       }
     }
@@ -264,8 +267,16 @@ serve(async (req) => {
           album_art_url: track.albumArtUrl,
           isrc: track.isrc || null,
         }, { onConflict: "spotify_track_id" })
-        .select("id")
+        .select("id, short_id")
         .single()
+
+      if (trackData && !trackData.short_id) {
+        const generateShortId = () => Math.random().toString(36).slice(2, 8)
+        await supabaseAdmin
+          .from("tracks")
+          .update({ short_id: generateShortId() })
+          .eq("id", trackData.id)
+      }
 
       if (!trackData?.id) continue
 
