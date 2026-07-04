@@ -162,7 +162,7 @@ const SongShare = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ position: "relative", minHeight: "100vh", background: "#080B12" }}>
+    <div style={{ position: "relative", height: "100dvh", overflow: "hidden", background: "#080B12" }}>
 
       {/* Background: blurred album art */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden" }}>
@@ -199,12 +199,12 @@ const SongShare = () => {
       <div style={{
         position: "relative",
         zIndex: 10,
-        minHeight: "100vh",
+        height: "100dvh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "48px 24px",
+        padding: "24px 24px",
       }}>
 
         {/* Sharer row */}
@@ -252,6 +252,8 @@ const SongShare = () => {
           maxWidth: 400,
           width: "100%",
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          maxHeight: "calc(100dvh - 48px)",
+          overflowY: "auto",
         }}>
 
           {/* Album art */}
@@ -262,20 +264,23 @@ const SongShare = () => {
               onError={() => setArtError(true)}
               style={{
                 width: "100%",
+                maxWidth: 200,
                 aspectRatio: "1",
                 objectFit: "cover",
                 borderRadius: 16,
                 boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
                 display: "block",
+                margin: "0 auto",
               }}
             />
           ) : (
             <div style={{
-              width: "100%", aspectRatio: "1",
+              width: "100%", maxWidth: 200, aspectRatio: "1",
               borderRadius: 16,
               background: "rgba(26,37,53,0.8)",
               border: "1px solid rgba(255,255,255,0.06)",
               display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto",
             }}>
               <Music style={{ width: 48, height: 48, color: "#4a6a8a" }} />
             </div>
@@ -297,7 +302,7 @@ const SongShare = () => {
           </div>
 
           {/* Platform buttons */}
-          <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 6 }}>
 
             {showSpotify && (
               <a

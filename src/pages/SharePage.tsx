@@ -58,6 +58,8 @@ const card: React.CSSProperties = {
   maxWidth: 440,
   width: "100%",
   boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+  maxHeight: "calc(100dvh - 80px)",
+  overflowY: "auto",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -122,7 +124,7 @@ const SharePage = () => {
   };
 
   return (
-    <div style={{ position: "relative", minHeight: "100vh", background: "#080B12" }}>
+    <div style={{ position: "relative", height: "100dvh", overflow: "hidden", background: "#080B12" }}>
       {/* Starfield */}
       <div style={{ position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none" }}>
         <Starfield />
@@ -133,12 +135,12 @@ const SharePage = () => {
         style={{
           position: "relative",
           zIndex: 10,
-          minHeight: "100vh",
+          height: "100dvh",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: "24px 24px",
+          padding: "16px 24px",
         }}
       >
         {/* Top bar */}
