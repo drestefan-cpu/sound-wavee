@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
 import { Heart, ExternalLink, Send, X, Share2 } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
@@ -55,6 +57,7 @@ const TrackDetailModal = ({
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
   const [artError, setArtError] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
   const { user } = useAuth();
   const { preferredPlatform } = usePlatform();
 
@@ -237,13 +240,58 @@ const TrackDetailModal = ({
 
           {track.trackDbId && (
             <button
-              onClick={() => {
-                const base = `https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/og-song?id=${track.trackDbId}`;
-                const url = sharerUsername ? `${base}&from=${sharerUsername.toLowerCase()}` : base;
+              onClick={async () => {
+                if (shareLoading) return;
+                setShareLoading(true);
+
+                const sid = track.spotifyTrackId;
+                const platformUrl = sid?.startsWith("yt:")
+                  ? `https://www.youtube.com/watch?v=${sid.replace("yt:", "")}`
+                  : sid?.startsWith("apple:")
+                  ? `https://music.apple.com/us/song/${sid.replace("apple:", "")}`
+                  : sid
+                  ? `https://open.spotify.com/track/${sid}`
+                  : null;
+
+                const fallbackUrl = `${window.location.origin}/song/${track.trackDbId}`;
+                let shareUrl = fallbackUrl;
+
+                if (platformUrl) {
+                  try {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 3000);
+                    const res = await fetch(
+                      "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/create-share-link",
+                      {
+                        method: "POST",
+                        signal: controller.signal,
+                        headers: {
+                          "Content-Type": "application/json",
+                          apikey: ANON_KEY,
+                          Authorization: `Bearer ${ANON_KEY}`,
+                        },
+                        body: JSON.stringify({
+                          url: platformUrl,
+                          sharer_username: sharerUsername || undefined,
+                        }),
+                      }
+                    );
+                    clearTimeout(timer);
+                    const data = await res.json();
+                    if (data.success && data.short_url) {
+                      shareUrl = data.short_url;
+                    }
+                  } catch {
+                    // timeout or network error — use fallback
+                  }
+                }
+
+                setShareLoading(false);
+
                 if (navigator.share) {
-                  navigator.share({ title: `${track.title} — ${track.artist}`, url });
+                  navigator.share({ title: `${track.title} — ${track.artist}`, url: shareUrl });
                 } else {
-                  navigator.clipboard.writeText(url);
+                  navigator.clipboard.writeText(shareUrl);
                   toast("link copied");
                 }
               }}
@@ -253,7 +301,20 @@ const TrackDetailModal = ({
                 className="h-8 w-8 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: "#1a2535" }}
               >
-                <Share2 className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+                {shareLoading ? (
+                  <div
+                    className="animate-spin"
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: "50%",
+                      border: "2px solid rgba(74,106,138,0.3)",
+                      borderTopColor: "#4a6a8a",
+                    }}
+                  />
+                ) : (
+                  <Share2 className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+                )}
               </div>
               <span className="text-[10px] text-muted-foreground">share</span>
             </button>

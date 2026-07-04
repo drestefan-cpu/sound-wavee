@@ -13,7 +13,10 @@ interface TrackRow {
   album: string | null;
   album_art_url: string | null;
   spotify_track_id: string | null;
+  apple_music_id: string | null;
   youtube_video_id: string | null;
+  isrc: string | null;
+  short_id: string | null;
 }
 
 interface SharerProfile {
@@ -31,6 +34,24 @@ const SongShare = () => {
   const [sharer, setSharer] = useState<SharerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [artError, setArtError] = useState(false);
+
+  // Share analytics — fire and forget
+  useEffect(() => {
+    if (!track?.id) return;
+    fetch("https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/log-share-open", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
+      },
+      body: JSON.stringify({
+        track_id: track.id,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent,
+      }),
+    }).catch(() => {});
+  }, [track?.id]);
 
   // Dynamic OG tags once track loads
   useEffect(() => {
@@ -64,7 +85,7 @@ const SongShare = () => {
 
       const trackPromise = supabase
         .from("tracks")
-        .select("id, title, artist, album, album_art_url, spotify_track_id, youtube_video_id")
+        .select("id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, youtube_video_id, isrc, short_id")
         .eq("id", trackId)
         .maybeSingle();
 
@@ -126,9 +147,9 @@ const SongShare = () => {
   const appleMusicUrl = appleMusicId
     ? `https://music.apple.com/us/song/${appleMusicId}`
     : `https://music.apple.com/search?term=${q}`;
-  const youtubeMusicUrl = ytVideoId
-    ? `https://music.youtube.com/watch?v=${ytVideoId}`
-    : `https://music.youtube.com/search?q=${q}`;
+  const youtubeUrl = ytVideoId
+    ? `https://www.youtube.com/watch?v=${ytVideoId}`
+    : `https://www.youtube.com/results?search_query=${q}`;
   const sharerName = sharer?.display_name || sharer?.username || null;
 
   const handleCopyLink = () => {
@@ -305,7 +326,7 @@ const SongShare = () => {
             </a>
 
             <a
-              href={youtubeMusicUrl}
+              href={youtubeUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={btnStyle("#FF0000", "white")}
@@ -313,7 +334,7 @@ const SongShare = () => {
               <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, fill: "currentColor", flexShrink: 0 }}>
                 <path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z" />
               </svg>
-              Listen on YouTube Music
+              YouTube
             </a>
 
             <a
@@ -391,6 +412,12 @@ const SongShare = () => {
           <div style={{ marginTop: 12, opacity: 0.3 }}>
             <PlaiLogo className="text-sm" glow={false} />
           </div>
+          <a
+            href="https://onplai.lovable.app"
+            style={{ fontSize: "0.75rem", color: "rgba(240,235,227,0.3)", textDecoration: "none", display: "block", marginTop: 8 }}
+          >
+            open in PLAI →
+          </a>
         </div>
 
       </div>
