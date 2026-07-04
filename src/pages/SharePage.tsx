@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Music } from "lucide-react";
 import Starfield from "@/components/Starfield";
@@ -65,14 +66,17 @@ const card: React.CSSProperties = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 const SharePage = () => {
+  const [searchParams] = useSearchParams();
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ShareResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const autoSubmittedUrlRef = useRef<string | null>(null);
 
-  const handleSubmit = async () => {
-    if (!inputValue.trim() || loading) return;
+  const submitUrl = useCallback(async (url: string) => {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl || loading) return;
     setLoading(true);
     setError(null);
     try {
@@ -85,7 +89,7 @@ const SharePage = () => {
             apikey: ANON_KEY,
             Authorization: `Bearer ${ANON_KEY}`,
           },
-          body: JSON.stringify({ url: inputValue.trim() }),
+          body: JSON.stringify({ url: trimmedUrl }),
         }
       );
       const data = await res.json();
@@ -99,6 +103,23 @@ const SharePage = () => {
     } finally {
       setLoading(false);
     }
+  }, [loading]);
+
+  useEffect(() => {
+    const queryUrl = searchParams.get("url")?.trim();
+    if (!queryUrl) return;
+
+    setInputValue(queryUrl);
+
+    if (searchParams.get("auto") !== "1") return;
+    if (autoSubmittedUrlRef.current === queryUrl) return;
+
+    autoSubmittedUrlRef.current = queryUrl;
+    submitUrl(queryUrl);
+  }, [searchParams, submitUrl]);
+
+  const handleSubmit = () => {
+    submitUrl(inputValue);
   };
 
   const handleReset = () => {
