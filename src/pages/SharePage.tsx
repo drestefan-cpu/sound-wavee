@@ -54,7 +54,7 @@ const card: React.CSSProperties = {
   WebkitBackdropFilter: "blur(20px)",
   border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: 24,
-  padding: 28,
+  padding: 20,
   maxWidth: 440,
   width: "100%",
   boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
@@ -138,23 +138,12 @@ const SharePage = () => {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: "48px 24px",
+          padding: "24px 24px",
         }}
       >
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ marginBottom: 24 }}>
-            <PlaiLogo className="text-2xl" />
-          </div>
-          <h1
-            className="font-display"
-            style={{ fontSize: 30, fontWeight: 700, color: "#F0EBE3", lineHeight: 1.2 }}
-          >
-            share any song
-          </h1>
-          <p style={{ fontSize: 14, color: "#4a6a8a", marginTop: 8 }}>
-            paste a link from spotify, apple music, tidal, or youtube
-          </p>
+        {/* Top bar */}
+        <div style={{ width: "100%", maxWidth: 440, marginBottom: 16 }}>
+          <PlaiLogo className="text-base" />
         </div>
 
         {/* Main card */}
@@ -174,7 +163,7 @@ const SharePage = () => {
                   background: "rgba(255,255,255,0.05)",
                   border: `1px solid ${error ? "#ef4444" : "rgba(255,255,255,0.08)"}`,
                   borderRadius: 12,
-                  padding: 16,
+                  padding: 12,
                   color: "#F0EBE3",
                   fontSize: 14,
                   outline: "none",
@@ -201,7 +190,7 @@ const SharePage = () => {
                     justifyContent: "center",
                     gap: 8,
                     marginTop: 12,
-                    padding: "14px 0",
+                    padding: "11px 0",
                   }}
                 >
                   <div
@@ -225,7 +214,7 @@ const SharePage = () => {
                     width: "100%",
                     background: inputValue.trim() ? "#FF2D78" : "rgba(255,45,120,0.3)",
                     borderRadius: 100,
-                    padding: "14px 0",
+                    padding: "11px 0",
                     fontSize: 14,
                     fontWeight: 500,
                     color: "white",
@@ -243,18 +232,18 @@ const SharePage = () => {
             /* ── Success state ── */
             <>
               {/* Track preview */}
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 {result.track.album_art_url ? (
                   <img
                     src={result.track.album_art_url}
                     alt=""
-                    style={{ width: 72, height: 72, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+                    style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
                   />
                 ) : (
                   <div
                     style={{
-                      width: 72,
-                      height: 72,
+                      width: 56,
+                      height: 56,
                       borderRadius: 12,
                       background: "rgba(26,37,53,0.8)",
                       display: "flex",
@@ -298,20 +287,7 @@ const SharePage = () => {
               </div>
 
               {/* Divider */}
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", margin: "20px 0" }} />
-
-              {/* Your link */}
-              <p
-                style={{
-                  fontSize: 10,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  color: "#4a6a8a",
-                  marginBottom: 8,
-                }}
-              >
-                your link
-              </p>
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", margin: "14px 0" }} />
 
               <div
                 style={{
@@ -320,7 +296,7 @@ const SharePage = () => {
                   background: "rgba(255,255,255,0.05)",
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 100,
-                  padding: "10px 16px",
+                  padding: "8px 14px",
                 }}
               >
                 <span
@@ -354,14 +330,14 @@ const SharePage = () => {
               </div>
 
               {/* Action buttons */}
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <button
                   onClick={handleCopy}
                   style={{
                     flex: 1,
                     background: "#FF2D78",
                     borderRadius: 100,
-                    padding: "12px 0",
+                    padding: "11px 0",
                     fontSize: 14,
                     fontWeight: 500,
                     color: "white",
@@ -379,7 +355,7 @@ const SharePage = () => {
                       flex: 1,
                       background: "transparent",
                       borderRadius: 100,
-                      padding: "12px 0",
+                      padding: "11px 0",
                       fontSize: 14,
                       color: "#F0EBE3",
                       border: "1px solid rgba(255,255,255,0.12)",
@@ -393,7 +369,7 @@ const SharePage = () => {
               </div>
 
               {/* Try another */}
-              <div style={{ textAlign: "center", marginTop: 16 }}>
+              <div style={{ textAlign: "center", marginTop: 12 }}>
                 <button
                   onClick={handleReset}
                   style={{
