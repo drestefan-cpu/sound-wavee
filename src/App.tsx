@@ -25,6 +25,7 @@ import RadarArtist from "./pages/RadarArtist";
 import RadarNew from "./pages/RadarNew";
 import SongShare from "./pages/SongShare";
 import ShareTarget from "./pages/ShareTarget";
+import ShortLink from "./pages/ShortLink";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/song/:trackId" element={<SongShare />} />
+                <Route path="/s/:shortId" element={<ShortLink />} />
                 <Route path="/share-target" element={<ShareTarget />} />
                 <Route path="/feed" element={<Feed />} />
                 <Route path="/profile" element={<Profile />} />
