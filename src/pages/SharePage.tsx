@@ -47,6 +47,19 @@ function getPlatformLinks(track: TrackResult) {
   };
 }
 
+// ── YouTube video ID extractor ────────────────────────────────────────────────
+
+function extractYouTubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
+    if (u.hostname === "youtu.be") return u.pathname.slice(1).split("?")[0] || null;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const card: React.CSSProperties = {
@@ -96,7 +109,23 @@ const SharePage = () => {
       if (data.success) {
         setResult(data as ShareResult);
       } else {
-        setError(data.error || "couldn't find that song — try a different link");
+        const ytVideoId = extractYouTubeVideoId(trimmedUrl);
+        if (ytVideoId) {
+          setResult({
+            share_url: trimmedUrl,
+            short_url: null,
+            track: {
+              title: "YouTube video",
+              artist: "",
+              album_art_url: null,
+              spotify_track_id: null,
+              apple_music_id: null,
+              youtube_video_id: ytVideoId,
+            },
+          });
+        } else {
+          setError(data.error || "couldn't find that song — try a different link");
+        }
       }
     } catch {
       setError("something went wrong — check your connection and try again");
