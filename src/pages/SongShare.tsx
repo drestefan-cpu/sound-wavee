@@ -125,10 +125,7 @@ const SongShare = () => {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#080B12]">
         <p className="text-sm" style={{ color: "rgba(240,235,227,0.4)" }}>song not found</p>
-        <a
-          href="https://onplai.lovable.app"
-          className="mt-3 text-xs text-primary"
-        >
+        <a href="https://onplai.lovable.app" className="mt-3 text-xs text-primary">
           go to PLAI →
         </a>
       </div>
@@ -176,13 +173,12 @@ const SongShare = () => {
               height: "100%",
               objectFit: "cover",
               filter: "blur(40px) brightness(0.3) saturate(1.2)",
-              transform: "scale(1.1)", // prevents blur edge bleed
+              transform: "scale(1.1)",
             }}
           />
         ) : (
           <div style={{ width: "100%", height: "100%", background: "#080B12" }} />
         )}
-        {/* Dark gradient overlay */}
         <div style={{
           position: "absolute",
           inset: 0,
@@ -201,60 +197,45 @@ const SongShare = () => {
         zIndex: 10,
         height: "100dvh",
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "24px 24px",
+        padding: "32px 24px 24px",
       }}>
+        <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center" }}>
 
-        {/* Sharer row */}
-        {sharer && sharerName && sharer.username && (
-          <Link
-            to={`/profile/${sharer.username}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 32,
-              color: "rgba(240,235,227,0.7)",
-              fontSize: 12,
-              textDecoration: "none",
-            }}
-          >
-            {sharer.avatar_url ? (
-              <img
-                src={sharer.avatar_url}
-                alt=""
-                style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }}
-              />
-            ) : (
-              <div style={{
-                width: 28, height: 28, borderRadius: "50%",
-                background: "rgba(255,45,120,0.2)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 11, fontWeight: 700, color: "#FF2D78",
-              }}>
-                {(sharerName[0] || "?").toUpperCase()}
-              </div>
-            )}
-            <span>{sharerName} shared this</span>
-          </Link>
-        )}
-
-        {/* Glassmorphism card */}
-        <div style={{
-          background: "rgba(15,21,32,0.7)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 24,
-          padding: 32,
-          maxWidth: 400,
-          width: "100%",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-          maxHeight: "calc(100dvh - 48px)",
-          overflowY: "auto",
-        }}>
+          {/* Sharer row */}
+          {sharer && sharerName && sharer.username && (
+            <Link
+              to={`/profile/${sharer.username}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 20,
+                color: "rgba(240,235,227,0.7)",
+                fontSize: 12,
+                textDecoration: "none",
+              }}
+            >
+              {sharer.avatar_url ? (
+                <img
+                  src={sharer.avatar_url}
+                  alt=""
+                  style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }}
+                />
+              ) : (
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: "rgba(255,45,120,0.2)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 700, color: "#FF2D78",
+                }}>
+                  {(sharerName[0] || "?").toUpperCase()}
+                </div>
+              )}
+              <span>{sharerName} shared this</span>
+            </Link>
+          )}
 
           {/* Album art */}
           {track.album_art_url && !artError ? (
@@ -263,31 +244,28 @@ const SongShare = () => {
               alt=""
               onError={() => setArtError(true)}
               style={{
-                width: "100%",
-                maxWidth: 200,
-                aspectRatio: "1",
+                width: 180,
+                height: 180,
                 objectFit: "cover",
                 borderRadius: 16,
                 boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
                 display: "block",
-                margin: "0 auto",
               }}
             />
           ) : (
             <div style={{
-              width: "100%", maxWidth: 200, aspectRatio: "1",
+              width: 180, height: 180,
               borderRadius: 16,
               background: "rgba(26,37,53,0.8)",
               border: "1px solid rgba(255,255,255,0.06)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto",
             }}>
               <Music style={{ width: 48, height: 48, color: "#4a6a8a" }} />
             </div>
           )}
 
           {/* Track info */}
-          <div style={{ marginTop: 20, textAlign: "center" }}>
+          <div style={{ marginTop: 16, textAlign: "center", width: "100%" }}>
             <p style={{ fontSize: 20, fontWeight: 500, color: "#F0EBE3", lineHeight: 1.3 }}>
               {track.title}
             </p>
@@ -302,7 +280,7 @@ const SongShare = () => {
           </div>
 
           {/* Platform buttons */}
-          <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
 
             {showSpotify && (
               <a
@@ -378,6 +356,7 @@ const SongShare = () => {
               borderRadius: 100,
               padding: "10px 16px",
               cursor: "pointer",
+              width: "100%",
             }}
           >
             <LinkIcon style={{ width: 13, height: 13, color: "rgba(240,235,227,0.4)", flexShrink: 0 }} />
@@ -395,36 +374,36 @@ const SongShare = () => {
               copy
             </span>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div style={{ marginTop: 32, textAlign: "center" }}>
-          {sharerName && sharer?.username ? (
-            <Link
-              to={`/profile/${sharer.username}`}
-              style={{ fontSize: 12, color: "rgba(240,235,227,0.4)", textDecoration: "none" }}
-            >
-              see what {sharerName} is listening to on PLAI →
-            </Link>
-          ) : (
+          {/* Footer */}
+          <div style={{ marginTop: 20, textAlign: "center", width: "100%" }}>
+            {sharerName && sharer?.username ? (
+              <Link
+                to={`/profile/${sharer.username}`}
+                style={{ fontSize: 12, color: "rgba(240,235,227,0.4)", textDecoration: "none" }}
+              >
+                see what {sharerName} is listening to on PLAI →
+              </Link>
+            ) : (
+              <a
+                href="https://onplai.lovable.app"
+                style={{ fontSize: 12, color: "rgba(240,235,227,0.4)", textDecoration: "none" }}
+              >
+                find music with friends on PLAI →
+              </a>
+            )}
+            <div style={{ marginTop: 12, opacity: 0.3 }}>
+              <PlaiLogo className="text-sm" glow={false} />
+            </div>
             <a
               href="https://onplai.lovable.app"
-              style={{ fontSize: 12, color: "rgba(240,235,227,0.4)", textDecoration: "none" }}
+              style={{ fontSize: "0.75rem", color: "rgba(240,235,227,0.3)", textDecoration: "none", display: "block", marginTop: 8 }}
             >
-              find music with friends on PLAI →
+              open in PLAI →
             </a>
-          )}
-          <div style={{ marginTop: 12, opacity: 0.3 }}>
-            <PlaiLogo className="text-sm" glow={false} />
           </div>
-          <a
-            href="https://onplai.lovable.app"
-            style={{ fontSize: "0.75rem", color: "rgba(240,235,227,0.3)", textDecoration: "none", display: "block", marginTop: 8 }}
-          >
-            open in PLAI →
-          </a>
-        </div>
 
+        </div>
       </div>
     </div>
   );
