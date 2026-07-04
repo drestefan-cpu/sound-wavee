@@ -262,6 +262,7 @@ serve(async (req) => {
           artist: track.artist,
           album: track.album,
           album_art_url: track.albumArtUrl,
+          isrc: track.isrc || null,
         }, { onConflict: "spotify_track_id" })
         .select("id")
         .single()

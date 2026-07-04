@@ -81,6 +81,7 @@ serve(async (req) => {
           album: track.album?.name,
           album_art_url: track.album?.images?.[0]?.url,
           preview_url: track.preview_url,
+          isrc: track.external_ids?.isrc || null,
         }, { onConflict: "spotify_track_id" })
         .select("id")
         .single()
