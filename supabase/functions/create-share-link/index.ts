@@ -166,7 +166,9 @@ serve(async (req) => {
 
   // ── Apple Music ───────────────────────────────────────────────────────────────
   else if (platform === "applemusic") {
-    const match = new URL(url).pathname.match(/\/([0-9]+)(?:\?|$)/)
+    const u = new URL(url)
+    const iParam = u.searchParams.get("i")
+    const match = iParam ? [null, iParam] : u.pathname.match(/\/([0-9]+)(?:\?|$)/)
     if (!match) return fail("could not extract song ID from Apple Music URL")
     const songId = match[1]
     try {
