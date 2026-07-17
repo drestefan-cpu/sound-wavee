@@ -169,23 +169,30 @@ serve(async (req) => {
     const u = new URL(url)
     const iParam = u.searchParams.get("i")
     const match = iParam ? [null, iParam] : u.pathname.match(/\/([0-9]+)(?:\?|$)/)
+    console.log("APPLE_MATCH", JSON.stringify(match), "PATH", u.pathname, "IPARAM", iParam)
     if (!match) return fail("could not extract song ID from Apple Music URL")
     const songId = match[1]
+    console.log("APPLE_SONG_ID", songId)
     try {
       const devToken = await generateAppleDeveloperToken()
       const res = await fetch(`https://api.music.apple.com/v1/catalog/us/songs/${songId}`, {
         headers: { Authorization: `Bearer ${devToken}` }
       })
+      console.log("APPLE_API_STATUS", res.status)
       if (res.ok) {
         const data = await res.json()
         const attrs = data.data?.[0]?.attributes
+        console.log("APPLE_ATTRS", JSON.stringify(attrs)?.slice(0, 200))
         if (attrs) {
+          console.log("INSIDE_ATTRS")
+          try {
           title = attrs.name
           artist = attrs.artistName
           album = attrs.albumName
           album_art_url = attrs.artwork?.url?.replace("{w}", "500").replace("{h}", "500") || null
           isrc = attrs.isrc || null
           apple_music_id = data.data?.[0]?.id || null
+          } catch(attrErr) { console.log("ATTR_ERR", String(attrErr)) }
         }
       }
     } catch { return fail("could not fetch track from Apple Music") }
@@ -297,25 +304,36 @@ serve(async (req) => {
 
   if (!title) return fail("could not find track info from that link — try a direct track URL")
 
+  console.log("BEFORE_DB_CHECK", "title", title, "artist", artist, "apple_music_id", apple_music_id)
   // ── Check if track exists in DB ───────────────────────────────────────────────
   let existingTrack: any = null
+  try {
 
-  if (isrc) {
-    const { data } = await supabase.from("tracks").select("*").eq("isrc", isrc).maybeSingle()
-    existingTrack = data
-  }
-  if (!existingTrack && spotify_track_id) {
-    const { data } = await supabase.from("tracks").select("*").eq("spotify_track_id", spotify_track_id).maybeSingle()
-    existingTrack = data
-  }
-  if (!existingTrack && apple_music_id) {
-    const { data } = await supabase.from("tracks").select("*").eq("apple_music_id", apple_music_id).maybeSingle()
-    existingTrack = data
-  }
-  if (!existingTrack && youtube_video_id) {
-    const { data } = await supabase.from("tracks").select("*").eq("youtube_video_id", youtube_video_id).maybeSingle()
-    existingTrack = data
-  }
+  console.log("DB_CHECK_START isrc:", isrc, "apple_music_id:", apple_music_id)
+  // Check by ISRC first, then fall back to platform IDs
+  try {
+    if (isrc) {
+      const { data, error } = await supabase.from("tracks").select("*").eq("isrc", isrc).maybeSingle()
+      console.log("ISRC_LOOKUP", error?.message || "ok", !!data)
+      if (data) existingTrack = data
+    }
+    if (!existingTrack && apple_music_id) {
+      const { data, error } = await supabase.from("tracks").select("*").eq("apple_music_id", apple_music_id).maybeSingle()
+      console.log("APPLE_LOOKUP", error?.message || "ok", !!data)
+      if (data) existingTrack = data
+    }
+    if (!existingTrack && spotify_track_id) {
+      const { data, error } = await supabase.from("tracks").select("*").eq("spotify_track_id", spotify_track_id).maybeSingle()
+      console.log("SPOTIFY_LOOKUP", error?.message || "ok", !!data)
+      if (data) existingTrack = data
+    }
+    if (!existingTrack && youtube_video_id) {
+      const { data, error } = await supabase.from("tracks").select("*").eq("youtube_video_id", youtube_video_id).maybeSingle()
+      console.log("YT_LOOKUP", error?.message || "ok", !!data)
+      if (data) existingTrack = data
+    }
+    console.log("DB_LOOKUP_COMPLETE, found:", !!existingTrack)
+  } catch(e: any) { console.log("DB_LOOKUP_ERR", String(e), e?.message) }
 
   // ── Create or update track ────────────────────────────────────────────────────
   let trackId: string
@@ -336,6 +354,7 @@ serve(async (req) => {
     }
   } else {
     shortId = generateShortId()
+    console.log("INSERTING_TRACK", title, artist)
     const { data: newTrack, error } = await supabase.from("tracks").insert({
       title: title || "Unknown",
       artist: artist || "Unknown",
@@ -348,6 +367,7 @@ serve(async (req) => {
       short_id: shortId,
       track_source: "share",
     }).select("id").single()
+    console.log("INSERT_RESULT error:", error?.message, "track:", newTrack?.id)
     if (error || !newTrack) return fail("could not create share link")
     trackId = newTrack.id
   }
@@ -395,6 +415,11 @@ serve(async (req) => {
   const base = `https://onplai.lovable.app/song/${trackId}`
   const shareUrl = sharer_username ? `${base}?from=${sharer_username.toLowerCase()}` : base
   const shortUrl = `https://onplai.lovable.app/s/${shortId}`
+
+  } catch(dbErr: any) {
+    console.log('DB_ERR', String(dbErr), dbErr?.message, dbErr?.stack?.slice(0,300))
+    return fail('could not create share link')
+  }
 
   return ok({
     success: true,
