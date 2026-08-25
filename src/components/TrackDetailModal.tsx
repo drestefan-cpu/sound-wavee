@@ -253,14 +253,13 @@ const TrackDetailModal = ({
                   ? `https://open.spotify.com/track/${sid}`
                   : null;
 
-                const fallbackUrl = `${window.location.origin}/song/${track.trackDbId}`;
-                let shareUrl = fallbackUrl;
+                const shareUrl = `https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/og-song?id=${track.trackDbId}${sharerUsername ? "&from=" + sharerUsername.toLowerCase() : ""}`;
 
                 if (platformUrl) {
                   try {
                     const controller = new AbortController();
                     const timer = setTimeout(() => controller.abort(), 3000);
-                    const res = await fetch(
+                    await fetch(
                       "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/create-share-link",
                       {
                         method: "POST",
@@ -277,12 +276,8 @@ const TrackDetailModal = ({
                       }
                     );
                     clearTimeout(timer);
-                    const data = await res.json();
-                    if (data.success && data.short_url) {
-                      shareUrl = data.short_url;
-                    }
                   } catch {
-                    // timeout or network error — use fallback
+                    // non-fatal
                   }
                 }
 
