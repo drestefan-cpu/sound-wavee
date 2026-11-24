@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { requireCaller } from "../_shared/auth.ts"
-import { resolveSpotifyLinks } from "../_shared/spotify.ts"
+import { resolveTrackLinks } from "../_shared/links.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -319,17 +319,17 @@ serve(async (req) => {
       if (error) throw error
     }
 
-    // Find each song's Spotify ID (by ISRC) so play buttons can open it directly in Spotify
+    // Find each song's Spotify and Apple Music IDs (by ISRC) so play/share buttons open the exact song everywhere
 
-    let spotifyLinked = 0
+    let links = { checked: 0, spotifyFound: 0, appleFound: 0 }
 
     try {
 
-      spotifyLinked = await resolveSpotifyLinks(supabaseAdmin, likedTrackIds)
+      links = await resolveTrackLinks(supabaseAdmin, likedTrackIds)
 
     } catch (err) {
 
-      console.error("Spotify link lookup failed (sync continues):", String(err))
+      console.error("Link lookup failed (sync continues):", String(err))
 
     }
 
@@ -339,7 +339,7 @@ serve(async (req) => {
       .update({ last_synced_at: new Date().toISOString() })
       .eq("id", user_id)
 
-    return json({ success: true, count: likeRows.length, spotifyLinked })
+    return json({ success: true, count: likeRows.length, links })
   } catch (err) {
     console.error("sync-apple-music-likes error:", err)
     return json({ error: String((err as any)?.message ?? err) }, 500)

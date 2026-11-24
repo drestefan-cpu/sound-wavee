@@ -352,6 +352,8 @@ serve(async (req) => {
     if (youtube_video_id && !existingTrack.youtube_video_id) updates.youtube_video_id = youtube_video_id
     // Replace a missing or "share:" placeholder Spotify ID with the real one
     if (spotify_track_id && (!existingTrack.spotify_track_id || existingTrack.spotify_track_id.startsWith("share:"))) updates.spotify_track_id = spotify_track_id
+    // Songs from Tidal / Apple / YouTube keep their placeholder ID; store the real Spotify ID alongside it
+    else if (spotify_track_id && /^(tidal_|apple:|yt:)/.test(existingTrack.spotify_track_id || "") && !existingTrack.spotify_link_id) updates.spotify_link_id = spotify_track_id
     if (isrc && !existingTrack.isrc) updates.isrc = isrc
     if (album_art_url && !existingTrack.album_art_url) updates.album_art_url = album_art_url
     if (Object.keys(updates).length > 0) {

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { requireCaller } from "../_shared/auth.ts"
-import { resolveSpotifyLinks } from "../_shared/spotify.ts"
+import { resolveTrackLinks } from "../_shared/links.ts"
 
 // Syncs a user's TIDAL favourite tracks using the current TIDAL API (v2, JSON:API):
 //   1. GET /userCollectionTracks/me/relationships/items  → track ids + addedAt (newest first)
@@ -354,19 +354,19 @@ serve(async (req) => {
         if (error) throw error
       }
 
-        // Find each song's Spotify ID (by ISRC) so play buttons can open it directly in Spotify
-        let spotifyLinked = 0
+        // Find each song's Spotify and Apple Music IDs (by ISRC) so play/share buttons open the exact song everywhere
+        let links = { checked: 0, spotifyFound: 0, appleFound: 0 }
         try {
-          spotifyLinked = await resolveSpotifyLinks(supabaseAdmin, likedTrackIds)
+          links = await resolveTrackLinks(supabaseAdmin, likedTrackIds)
         } catch (err) {
-          console.error("Spotify link lookup failed (sync continues):", String(err))
+          console.error("Link lookup failed (sync continues):", String(err))
         }
       await supabaseAdmin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", user_id)
 
       return json({
         success: true,
         count: likeRows.length,
-        spotifyLinked,
+        links,
         stats: { pages, itemsSeen, favourites: favourites.length, withDetails: trackInfo.size, withArt: coverByAlbumId.size, oldestSeen, partial: rateLimitedEarly },
       })
     } catch (err) {

@@ -398,6 +398,7 @@ const SettingsPage = () => {
 
         {/* Display name — separate save handler */}
         <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">account</h3>
           <label className="mb-1.5 block text-sm font-medium text-foreground">display name</label>
           <div className="flex gap-2">
             <Input
@@ -440,6 +441,7 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">your profile</h3>
           <label className="mb-1.5 block text-sm font-medium text-foreground">profile photo</label>
           <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
@@ -478,7 +480,8 @@ const SettingsPage = () => {
           </button>
         </div>
 
-        <div className="border-t border-border pt-6">
+        {/* status sits under "your profile" with the photo */}
+        <div className="-mt-2">
           <label className="mb-1.5 block text-sm font-medium text-foreground">status</label>
           <div className="flex gap-2">
             <Input

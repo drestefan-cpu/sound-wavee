@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Heart, Play, Send } from "lucide-react";
 import { getTrackUrl, isYouTubeSentinel } from "@/lib/trackLinks";
+import { resolveTrackLinks } from "@/lib/resolveLinks";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -98,6 +99,10 @@ const UnifiedTrackCard = ({
     e.stopPropagation();
     e.preventDefault();
     openUrl(trackUrl);
+    // Search was the fallback — look up this song's exact links so the next tap opens it directly
+    if (trackUrl.includes("/search") && track.trackDbId) {
+      resolveTrackLinks([track.trackDbId], { keepalive: true });
+    }
   };
 
   const handleShare = (e: React.MouseEvent) => {

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId } from "@/lib/trackLinks";
 import { songShareUrl } from "@/lib/shareLinks";
+import { resolveTrackLinks } from "@/lib/resolveLinks";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
@@ -55,6 +56,26 @@ const SongShare = () => {
         user_agent: navigator.userAgent,
       }),
     }).catch(() => {});
+  }, [track?.id]);
+
+  // Fill in missing cross-platform links (e.g. a Tidal song's Spotify ID) so every button opens
+  // the exact song. Buttons show a search link until the answer arrives.
+  useEffect(() => {
+    if (!track?.id) return;
+    const needsSpotify = /^(tidal_|apple:|yt:|share:)/.test(track.spotify_track_id || "") && !track.spotify_link_id;
+    const needsApple = !track.apple_music_id;
+    if (!needsSpotify && !needsApple) return;
+    let cancelled = false;
+    resolveTrackLinks([track.id]).then((rows) => {
+      const row = rows.find((r) => r.id === track.id);
+      if (!row || cancelled) return;
+      setTrack((prev) =>
+        prev ? { ...prev, spotify_link_id: row.spotify_link_id, apple_music_id: row.apple_music_id } : prev,
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [track?.id]);
 
   // Dynamic OG tags once track loads

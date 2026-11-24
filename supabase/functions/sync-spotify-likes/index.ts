@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { requireCaller } from "../_shared/auth.ts"
+import { resolveTrackLinks } from "../_shared/links.ts"
 
 // Syncs a user's Spotify Liked Songs from the last 12 months (same window as the other platforms).
 // The first sync reads back to the 12-month cutoff (capped at MAX_PAGES × 50 songs). Later syncs
@@ -212,6 +213,14 @@ serve(async (req) => {
       if (error) throw error
     }
 
+    // Find Apple Music IDs (by ISRC) so share pages show an exact Apple Music button too
+    let links = { checked: 0, spotifyFound: 0, appleFound: 0 }
+    try {
+      links = await resolveTrackLinks(supabaseAdmin, likeRows.map((r) => r.track_id))
+    } catch (err) {
+      console.error("Link lookup failed (sync continues):", String(err))
+    }
+
     const now = new Date().toISOString()
     // Mark the history as read once we've reached the end of Liked Songs (or the page cap)
     const reachedEnd = !nextUrl || reachedCutoff || pages >= MAX_PAGES
@@ -220,7 +229,7 @@ serve(async (req) => {
       ...(!backfilled && reachedEnd ? { spotify_backfilled_at: now } : {}),
     }).eq("id", user_id)
 
-    return json({ count: likeRows.length, success: true, stats: { pages, read: items.length, caughtUp, reachedCutoff, backfill: !backfilled } })
+    return json({ count: likeRows.length, success: true, stats: { pages, read: items.length, caughtUp, reachedCutoff, backfill: !backfilled, links } })
   } catch (err) {
     console.error("sync-spotify-likes error:", err)
     return json({ error: String((err as any)?.message ?? err) }, 500)
