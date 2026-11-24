@@ -65,10 +65,12 @@ serve(async (req) => {
 
     const { data: exclusionRows } = await supabaseAdmin
       .from("collection_exclusions")
-      .select("track_id")
+      .select("track_id, created_at")
       .eq("user_id", user_id)
 
-    const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
+    const excludedAtByTrackId = new Map<string, string>(
+      (exclusionRows || []).map((row: any) => [row.track_id, row.created_at])
+    )
 
     for (const item of tidalData.data || []) {
       const track = item.attributes
@@ -96,14 +98,17 @@ serve(async (req) => {
         trackId = inserted.id
       }
 
-      if (excludedTrackIds.has(trackId)) {
+      // A removed song stays removed unless it was re-liked on Tidal after the removal
+      const excludedAt = excludedAtByTrackId.get(trackId)
+      if (excludedAt) {
+        const relikedAfterRemoval = !!track.dateAdded && new Date(track.dateAdded) > new Date(excludedAt)
+        if (!relikedAfterRemoval) continue
         await supabaseAdmin
           .from("collection_exclusions")
           .delete()
           .eq("user_id", user_id)
           .eq("track_id", trackId)
-
-        excludedTrackIds.delete(trackId)
+        excludedAtByTrackId.delete(trackId)
       }
 
       const { data: existingLike } = await supabaseAdmin

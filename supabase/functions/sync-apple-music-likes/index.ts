@@ -281,10 +281,29 @@ serve(async (req) => {
       const existing = likeByTrackId.get(trackId)
       if (!existing || new Date(t.likedAt) > new Date(existing)) likeByTrackId.set(trackId, t.likedAt)
     }
-    const likedTrackIds = [...likeByTrackId.keys()]
+    // A song the user removed from their collection stays removed, unless it was
+    // added to their Apple library again after the removal
+    const { data: exclusionRows } = await supabaseAdmin
+      .from("collection_exclusions")
+      .select("track_id, created_at")
+      .eq("user_id", user_id)
+    const excludedAtByTrackId = new Map<string, string>(
+      (exclusionRows || []).map((row: any) => [row.track_id, row.created_at])
+    )
 
-    // Re-liking a song undoes a previous "remove from collection" (same behaviour as before)
-    for (const ids of chunk(likedTrackIds, 100)) {
+    const likedTrackIds: string[] = []
+    const relikedTrackIds: string[] = []
+    for (const [trackId, likedAt] of likeByTrackId) {
+      const excludedAt = excludedAtByTrackId.get(trackId)
+      if (!excludedAt) {
+        likedTrackIds.push(trackId)
+      } else if (new Date(likedAt) > new Date(excludedAt)) {
+        likedTrackIds.push(trackId)
+        relikedTrackIds.push(trackId)
+      }
+    }
+
+    for (const ids of chunk(relikedTrackIds, 100)) {
       await supabaseAdmin.from("collection_exclusions").delete().eq("user_id", user_id).in("track_id", ids)
     }
 

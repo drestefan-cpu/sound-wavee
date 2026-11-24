@@ -154,10 +154,12 @@ serve(async (req) => {
 
     const { data: exclusionRows } = await supabase
       .from("collection_exclusions")
-      .select("track_id")
+      .select("track_id, created_at")
       .eq("user_id", user_id)
 
-    const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
+    const excludedAtByTrackId = new Map<string, string>(
+      (exclusionRows || []).map((row: any) => [row.track_id, row.created_at])
+    )
 
     do {
       const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems")
@@ -261,14 +263,17 @@ serve(async (req) => {
         }
 
 
-        if (excludedTrackIds.has(track.id)) {
+        // A removed song stays removed unless it was re-liked on YouTube after the removal
+        const excludedAt = excludedAtByTrackId.get(track.id)
+        if (excludedAt) {
+          const relikedAfterRemoval = !!likedAt && new Date(likedAt) > new Date(excludedAt)
+          if (!relikedAfterRemoval) continue
           await supabase
             .from("collection_exclusions")
             .delete()
             .eq("user_id", user_id)
             .eq("track_id", track.id)
-
-          excludedTrackIds.delete(track.id)
+          excludedAtByTrackId.delete(track.id)
         }
 
         const { error: likeErr } = await supabase

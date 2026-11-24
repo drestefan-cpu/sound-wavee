@@ -61,12 +61,15 @@ serve(async (req) => {
     const spotifyData = await spotifyRes.json()
     let syncedCount = 0
 
+    // Songs the user removed from their collection, and when they removed them
     const { data: exclusionRows } = await supabaseAdmin
       .from("collection_exclusions")
-      .select("track_id")
+      .select("track_id, created_at")
       .eq("user_id", user_id)
 
-    const excludedTrackIds = new Set((exclusionRows || []).map((row: any) => row.track_id))
+    const excludedAtByTrackId = new Map<string, string>(
+      (exclusionRows || []).map((row: any) => [row.track_id, row.created_at])
+    )
 
     for (const item of spotifyData.items || []) {
       const track = item.track
@@ -96,14 +99,17 @@ serve(async (req) => {
 
       if (!trackData?.id) continue
 
-      if (excludedTrackIds.has(trackData.id)) {
+      // A removed song stays removed unless it was re-liked on Spotify after the removal
+      const excludedAt = excludedAtByTrackId.get(trackData.id)
+      if (excludedAt) {
+        const relikedAfterRemoval = !!item.added_at && new Date(item.added_at) > new Date(excludedAt)
+        if (!relikedAfterRemoval) continue
         await supabaseAdmin
           .from("collection_exclusions")
           .delete()
           .eq("user_id", user_id)
           .eq("track_id", trackData.id)
-
-        excludedTrackIds.delete(trackData.id)
+        excludedAtByTrackId.delete(trackData.id)
       }
 
       await supabaseAdmin
