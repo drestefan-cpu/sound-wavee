@@ -28,6 +28,11 @@ function seededRandom(seed: string) {
 }
 
 type TabType = "finds" | "collection" | "activity" | "foryou" | "friends";
+
+/** Songs loaded per page in the collection tab ("show more" loads the next page) */
+const COLLECTION_PAGE_SIZE = 100;
+const COLLECTION_SELECT =
+  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)";
 type ActivityFilterType = "all" | "follows" | "reactions" | "saves" | "recommendations";
 
 type ProfileSnapshot = {
@@ -76,6 +81,7 @@ const Profile = () => {
   const [followerCount, setFollowerCount] = useState(cachedSnapshot?.followerCount ?? 0);
   const [followingCount, setFollowingCount] = useState(cachedSnapshot?.followingCount ?? 0);
   const [likesCount, setLikesCount] = useState(cachedSnapshot?.likesCount ?? 0);
+  const [loadingMoreLikes, setLoadingMoreLikes] = useState(false);
   const [findsCount, setFindsCount] = useState(cachedSnapshot?.findsCount ?? 0);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
@@ -234,7 +240,8 @@ const Profile = () => {
         )
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
-        .limit(100),
+        .order("id", { ascending: true })
+        .limit(COLLECTION_PAGE_SIZE),
       supabase
         .from("likes")
         .select("*", { count: "exact", head: true })
@@ -262,7 +269,8 @@ const Profile = () => {
             )
             .eq("user_id", profile.id)
             .order("liked_at", { ascending: false })
-            .limit(100),
+            .order("id", { ascending: true })
+            .limit(COLLECTION_PAGE_SIZE),
           supabase
             .from("saved_tracks")
             .select("*, tracks(*), profiles!saved_tracks_source_user_id_fkey(username, display_name, avatar_url)")
@@ -389,8 +397,9 @@ const Profile = () => {
         supabase
           .from("reactions")
           .select(
-            "emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey(user_id, tracks(title, artist))",
+            "emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey!inner(user_id, tracks(title, artist))",
           )
+          .eq("likes.user_id", user.id) // only reactions on this user's songs
           .order("created_at", { ascending: false })
           .limit(50),
         supabase
@@ -588,7 +597,8 @@ const Profile = () => {
         .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)")
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
-        .limit(100),
+        .order("id", { ascending: true })
+        .limit(COLLECTION_PAGE_SIZE),
       supabase
         .from("saved_tracks")
         .select("*, tracks(*), profiles!saved_tracks_source_user_id_fkey(username, display_name, avatar_url)")
@@ -653,8 +663,9 @@ const Profile = () => {
         ? supabase
             .from("reactions")
             .select(
-              "emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey(user_id, tracks(title, artist))",
+              "emoji, created_at, profiles!reactions_user_id_fkey(username, display_name, avatar_url), likes!reactions_like_id_fkey!inner(user_id, tracks(title, artist))",
             )
+            .eq("likes.user_id", user.id) // only reactions on this user's songs
             .order("created_at", { ascending: false })
             .limit(50)
         : Promise.resolve({ data: null } as any),
@@ -841,7 +852,28 @@ const Profile = () => {
     },
     [],
   );
-  const visibleCollectionCount = filteredLikes.length;
+  // Real total (all likes minus hidden songs), not just the songs loaded so far
+  const hiddenCount = isOwnProfile ? ownHiddenIds.size : profileOwnerHiddenIds.size;
+  const visibleCollectionCount = Math.max(filteredLikes.length, likesCount - hiddenCount);
+  const hasMoreLikes = likes.length < likesCount;
+
+  const loadMoreLikes = async () => {
+    if (!profile || loadingMoreLikes) return;
+    setLoadingMoreLikes(true);
+    const from = likes.length;
+    const { data } = await supabase
+      .from("likes")
+      .select(COLLECTION_SELECT)
+      .eq("user_id", profile.id)
+      .order("liked_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, from + COLLECTION_PAGE_SIZE - 1);
+    setLikes((prev) => {
+      const seen = new Set(prev.map((l: any) => l.id));
+      return [...prev, ...((data || []) as any[]).filter((l) => !seen.has(l.id))];
+    });
+    setLoadingMoreLikes(false);
+  };
 
   const filteredActivity = activity.filter((item) => {
     if (activityFilter === "all") return true;
@@ -1495,6 +1527,20 @@ const Profile = () => {
                     </div>
                   </section>
                 ))}
+                {hasMoreLikes && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={loadMoreLikes}
+                      disabled={loadingMoreLikes}
+                      className="rounded-full border border-border bg-card px-5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+                      style={{ touchAction: "manipulation" }}
+                    >
+                      {loadingMoreLikes
+                        ? "loading…"
+                        : `show more · ${Math.max(0, likesCount - likes.length)} older songs`}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="py-6 text-center text-sm text-muted-foreground">
