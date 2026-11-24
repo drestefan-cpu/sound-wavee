@@ -17,6 +17,7 @@ export interface UnifiedTrackData {
   spotifyTrackId?: string;
   appleMusicId?: string | null;
   spotifyLinkId?: string | null;
+  tidalTrackId?: string | null;
   likeId?: string;
   localOnly?: boolean;
   initialReactions?: { emoji: string; count: number }[];
@@ -77,7 +78,7 @@ const UnifiedTrackCard = ({
 
   const trackDbId = track.trackDbId || track.id;
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
-  const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist, track.appleMusicId, track.spotifyLinkId);
+  const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist, track.appleMusicId, track.spotifyLinkId, track.tidalTrackId);
   const isCurrentlyPlaying = false;
   const isOwnTrack = !!sourceUserId && sourceUserId === user?.id;
 
@@ -145,8 +146,13 @@ const UnifiedTrackCard = ({
               {subtitle}
             </div>
             <div className="flex flex-col items-center gap-0 flex-shrink-0">
+              {/* Your own songs are already in your collection — no save button (spacer keeps play aligned) */}
+              {isOwnTrack ? (
+                <div className="w-[44px] h-[30px]" aria-hidden="true" />
+              ) : (
               <button
                 onClick={handleSave}
+                aria-label={saved ? "saved" : "save"}
                 className={`flex items-center justify-center w-[44px] h-[30px] transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
               >
                 <Heart
@@ -155,6 +161,7 @@ const UnifiedTrackCard = ({
                   style={{ color: saved ? undefined : "hsl(var(--muted-foreground))" }}
                 />
               </button>
+              )}
               <button
                 onClick={handlePlay}
                 className="flex items-center justify-center w-[44px] h-[30px] hover:opacity-80"
@@ -235,8 +242,11 @@ const UnifiedTrackCard = ({
             )}
             {subtitle}
           </div>
+          {/* Your own songs are already in your collection — no save button */}
+          {!isOwnTrack && (
           <button
             onClick={handleSave}
+            aria-label={saved ? "saved" : "save"}
             className={`flex-shrink-0 transition-all duration-200 ${bouncing ? "scale-[1.3]" : "scale-100"}`}
           >
             <Heart
@@ -245,6 +255,7 @@ const UnifiedTrackCard = ({
               style={{ color: saved ? undefined : "hsl(var(--muted-foreground))" }}
             />
           </button>
+          )}
         </div>
         <div className="flex items-center gap-1.5 pt-2">
           <div className="flex-1 min-w-0">

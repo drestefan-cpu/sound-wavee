@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Music, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId } from "@/lib/trackLinks";
+import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId, tidalTrackUrl } from "@/lib/trackLinks";
 import { songShareUrl } from "@/lib/shareLinks";
 import { resolveTrackLinks } from "@/lib/resolveLinks";
 import Starfield from "@/components/Starfield";
@@ -19,6 +19,7 @@ interface TrackRow {
   spotify_track_id: string | null;
   apple_music_id: string | null;
   spotify_link_id: string | null;
+  tidal_track_id: string | null;
   youtube_video_id: string | null;
   isrc: string | null;
   short_id: string | null;
@@ -64,13 +65,16 @@ const SongShare = () => {
     if (!track?.id) return;
     const needsSpotify = /^(tidal_|apple:|yt:|share:)/.test(track.spotify_track_id || "") && !track.spotify_link_id;
     const needsApple = !track.apple_music_id;
-    if (!needsSpotify && !needsApple) return;
+    const needsTidal = !track.tidal_track_id;
+    if (!needsSpotify && !needsApple && !needsTidal) return;
     let cancelled = false;
     resolveTrackLinks([track.id]).then((rows) => {
       const row = rows.find((r) => r.id === track.id);
       if (!row || cancelled) return;
       setTrack((prev) =>
-        prev ? { ...prev, spotify_link_id: row.spotify_link_id, apple_music_id: row.apple_music_id } : prev,
+        prev
+          ? { ...prev, spotify_link_id: row.spotify_link_id, apple_music_id: row.apple_music_id, tidal_track_id: row.tidal_track_id }
+          : prev,
       );
     });
     return () => {
@@ -110,7 +114,7 @@ const SongShare = () => {
 
       const trackPromise = supabase
         .from("tracks")
-        .select("id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, youtube_video_id, isrc, short_id")
+        .select("id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, youtube_video_id, isrc, short_id")
         .eq("id", trackId)
         .maybeSingle();
 
@@ -350,7 +354,7 @@ const SongShare = () => {
             </a>
 
             <a
-              href={`https://tidal.com/search?q=${q}`}
+              href={track.tidal_track_id ? tidalTrackUrl(track.tidal_track_id) : `https://tidal.com/search?q=${q}`}
               target="_blank"
               rel="noopener noreferrer"
               style={btnStyleGlass()}
@@ -358,7 +362,7 @@ const SongShare = () => {
               <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, fill: "currentColor", flexShrink: 0 }}>
                 <path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996l4.004 4.004L8.008 8l4.004 4-4.004 4.004 4.004 4.004 4.004-4.004-4.004-4.004 4.004-4L20.02 3.992l4.004 4.004-4.004 4.004-4.004-4.004-4.004 4.004z" />
               </svg>
-              Search on Tidal
+              {track.tidal_track_id ? "Listen on Tidal" : "Search on Tidal"}
             </a>
 
             <a

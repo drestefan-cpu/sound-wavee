@@ -5,6 +5,7 @@
 //   • its Spotify ID      → tracks.spotify_link_id  (for Tidal / Apple / YouTube songs, whose
 //                            spotify_track_id holds a placeholder like "tidal_…")
 //   • its Apple Music ID  → tracks.apple_music_id   (for songs that don't have one yet)
+//   • its Tidal ID        → tracks.tidal_track_id   (for songs that don't have one yet)
 // Uses PLAI's own app credentials, never a user's token. Search links remain the fallback for
 // anything we can't match.
 
@@ -37,7 +38,7 @@ export async function generateAppleDeveloperToken(): Promise<string | null> {
 
 const isPlaceholderSpotifyId = (id: string | null) => /^(tidal_|apple:|yt:|share:)/.test(id || "")
 
-export type LinkResult = { checked: number; spotifyFound: number; appleFound: number }
+export type LinkResult = { checked: number; spotifyFound: number; appleFound: number; tidalFound: number }
 
 /**
  * Fills in missing Spotify / Apple Music IDs for the given PLAI track ids.
@@ -49,7 +50,7 @@ export async function resolveTrackLinks(
   opts: { spotifyLimit?: number } = {},
 ): Promise<LinkResult> {
   const spotifyLimit = opts.spotifyLimit ?? 60
-  const result: LinkResult = { checked: 0, spotifyFound: 0, appleFound: 0 }
+  const result: LinkResult = { checked: 0, spotifyFound: 0, appleFound: 0, tidalFound: 0 }
   if (trackIds.length === 0) return result
 
   // ── Step 0: older Apple Music songs were saved without an ISRC — get it from Apple's catalogue ──
@@ -88,12 +89,12 @@ export async function resolveTrackLinks(
     }
   }
 
-  type Row = { id: string; isrc: string; spotify_track_id: string | null; spotify_link_id: string | null; apple_music_id: string | null }
+  type Row = { id: string; isrc: string; spotify_track_id: string | null; spotify_link_id: string | null; apple_music_id: string | null; tidal_track_id: string | null }
   const rows: Row[] = []
   for (let i = 0; i < trackIds.length; i += 100) {
     const { data } = await admin
       .from("tracks")
-      .select("id, isrc, spotify_track_id, spotify_link_id, apple_music_id")
+      .select("id, isrc, spotify_track_id, spotify_link_id, apple_music_id, tidal_track_id")
       .in("id", trackIds.slice(i, i + 100))
       .not("isrc", "is", null)
     rows.push(...((data || []) as Row[]))
@@ -155,5 +156,62 @@ export async function resolveTrackLinks(
     }
   }
 
+  // ── Tidal: any song without a Tidal ID (20 ISRCs per request, paced for TIDAL's rate limit) ──
+  const needTidal = rows.filter((r) => !r.tidal_track_id)
+  if (needTidal.length > 0) {
+    const tidalToken = await getTidalAppToken()
+    if (tidalToken) {
+      for (let i = 0; i < needTidal.length; i += 20) {
+        const batch = needTidal.slice(i, i + 20)
+        const url = new URL("https://openapi.tidal.com/v2/tracks")
+        url.searchParams.set("countryCode", "US")
+        for (const isrc of new Set(batch.map((r) => r.isrc))) url.searchParams.append("filter[isrc]", isrc)
+        let res = await fetch(url, { headers: { Authorization: `Bearer ${tidalToken}`, Accept: "application/vnd.api+json" } })
+        if (res.status === 429) {
+          const wait = Math.min((Number(res.headers.get("Retry-After")) || 2) * 1000, 10_000)
+          await sleep(wait)
+          res = await fetch(url, { headers: { Authorization: `Bearer ${tidalToken}`, Accept: "application/vnd.api+json" } })
+          if (res.status === 429) break // still limited; the rest fill in next time
+        }
+        if (res.ok) {
+          const data = await res.json()
+          const tidalIdByIsrc = new Map<string, string>()
+          for (const t of (data.data || []) as any[]) {
+            const isrc = t.attributes?.isrc
+            if (isrc && t.id && !tidalIdByIsrc.has(isrc)) tidalIdByIsrc.set(isrc, String(t.id))
+          }
+          for (const row of batch) {
+            const tidalId = tidalIdByIsrc.get(row.isrc)
+            if (!tidalId) continue
+            const { error } = await admin.from("tracks").update({ tidal_track_id: tidalId }).eq("id", row.id).is("tidal_track_id", null)
+            if (!error) result.tidalFound++
+          }
+        }
+        await sleep(600)
+      }
+    }
+  }
+
   return result
+}
+
+/** PLAI's own TIDAL app token (client-credentials flow) for catalogue lookups. */
+async function getTidalAppToken(): Promise<string | null> {
+  try {
+    const clientId = Deno.env.get("TIDAL_CLIENT_ID")
+    const clientSecret = Deno.env.get("TIDAL_CLIENT_SECRET")
+    if (!clientId || !clientSecret) return null
+    const res = await fetch("https://auth.tidal.com/v1/oauth2/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      },
+      body: "grant_type=client_credentials",
+    })
+    const data = await res.json()
+    return data.access_token || null
+  } catch {
+    return null
+  }
 }

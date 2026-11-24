@@ -5,7 +5,7 @@ import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
-import { isYouTubeSentinel, extractYouTubeVideoId, getRealSpotifyId, getAppleMusicId } from "@/lib/trackLinks";
+import { isYouTubeSentinel, extractYouTubeVideoId, getRealSpotifyId, getAppleMusicId, tidalTrackUrl } from "@/lib/trackLinks";
 import { toast } from "sonner";
 import { songShareUrl } from "@/lib/shareLinks";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
@@ -130,7 +130,7 @@ const TrackDetailModal = ({
           ? `https://music.youtube.com/watch?v=${ytVideoId}`
           : `https://music.youtube.com/search?q=${q}`;
       case "tidal":
-        return `https://listen.tidal.com/search?q=${q}`;
+        return track.tidalTrackId ? tidalTrackUrl(track.tidalTrackId) : `https://listen.tidal.com/search?q=${q}`;
       default:
         return realSpotifyId
           ? `https://open.spotify.com/track/${realSpotifyId}`

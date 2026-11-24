@@ -11,6 +11,7 @@ import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import BottomNav from "@/components/BottomNav";
 import FollowButton from "@/components/FollowButton";
 import NotifyBell from "@/components/NotifyBell";
+import RecommendModal from "@/components/RecommendModal";
 import PageHeader from "@/components/PageHeader";
 import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
@@ -33,7 +34,7 @@ type TabType = "finds" | "collection" | "activity" | "foryou" | "friends";
 /** Songs loaded per page in the collection tab ("show more" loads the next page) */
 const COLLECTION_PAGE_SIZE = 100;
 const COLLECTION_SELECT =
-  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, preview_url)";
+  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, preview_url)";
 type ActivityFilterType = "all" | "follows" | "reactions" | "saves" | "recommendations";
 
 type ProfileSnapshot = {
@@ -83,6 +84,19 @@ const Profile = () => {
   const [followingCount, setFollowingCount] = useState(cachedSnapshot?.followingCount ?? 0);
   const [likesCount, setLikesCount] = useState(cachedSnapshot?.likesCount ?? 0);
   const [loadingMoreLikes, setLoadingMoreLikes] = useState(false);
+  // Envelope button on cards → recommend / share screen
+  const [recommendTrack, setRecommendTrack] = useState<{ id: string; title?: string; artist?: string } | null>(null);
+  // Signed-in user's username (shared links say "<username> shared this")
+  const [myUsername, setMyUsername] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setMyUsername(data?.username ?? null));
+  }, [user]);
   const [findsCount, setFindsCount] = useState(cachedSnapshot?.findsCount ?? 0);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
@@ -237,7 +251,7 @@ const Profile = () => {
       supabase
         .from("likes")
         .select(
-          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, preview_url)",
+          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, preview_url)",
         )
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
@@ -266,7 +280,7 @@ const Profile = () => {
           supabase
             .from("likes")
             .select(
-              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, preview_url)",
+              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, preview_url)",
             )
             .eq("user_id", profile.id)
             .order("liked_at", { ascending: false })
@@ -595,7 +609,7 @@ const Profile = () => {
       supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", profile.id).single(),
       supabase
         .from("likes")
-        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, preview_url)")
+        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, preview_url)")
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
         .order("id", { ascending: true })
@@ -1201,11 +1215,12 @@ const Profile = () => {
                     spotifyTrackId: s.tracks?.spotify_track_id,
                     appleMusicId: s.tracks?.apple_music_id,
                     spotifyLinkId: s.tracks?.spotify_link_id,
+                    tidalTrackId: s.tracks?.tidal_track_id,
                     trackDbId: s.track_id,
                   }}
                   isSaved={isSaved(s.track_id)}
                   onToggleSave={() => toggleSave(s.track_id, s.source_user_id, "finds")}
-                  onShare={() => {}}
+                  onShare={() => setRecommendTrack({ id: s.track_id, title: s.tracks?.title, artist: s.tracks?.artist })}
                   subtitle={
                     <p className="text-[10px] text-muted-foreground">
                       {s.source_context === "trending"
@@ -1350,6 +1365,7 @@ const Profile = () => {
                     spotifyTrackId: rec.tracks?.spotify_track_id,
                     appleMusicId: rec.tracks?.apple_music_id,
                     spotifyLinkId: rec.tracks?.spotify_link_id,
+                    tidalTrackId: rec.tracks?.tidal_track_id,
                     trackDbId: rec.track_id,
                   }}
                   isSaved={isSaved(rec.track_id)}
@@ -1464,6 +1480,7 @@ const Profile = () => {
                           spotifyTrackId: h.tracks?.spotify_track_id,
                           appleMusicId: h.tracks?.apple_music_id,
                           spotifyLinkId: h.tracks?.spotify_link_id,
+                          tidalTrackId: h.tracks?.tidal_track_id,
                           trackDbId: h.track_id,
                         }}
                         isSaved={isSaved(h.track_id)}
@@ -1515,6 +1532,7 @@ const Profile = () => {
                             spotifyTrackId: like.tracks?.spotify_track_id,
                             appleMusicId: like.tracks?.apple_music_id,
                             spotifyLinkId: like.tracks?.spotify_link_id,
+                            tidalTrackId: like.tracks?.tidal_track_id,
                             likeId: like.id,
                             trackDbId: like.track_id,
                           }}
@@ -1526,7 +1544,7 @@ const Profile = () => {
                             setLikes(prev => prev.filter(l => l.id !== like.id));
                             setCollectionExclusionIds(prev => new Set(prev).add(like.track_id));
                           } : undefined}
-                          onShare={() => {}}
+                          onShare={() => setRecommendTrack({ id: like.track_id, title: like.tracks?.title, artist: like.tracks?.artist })}
                         />
                       ))}
                     </div>
@@ -1561,6 +1579,16 @@ const Profile = () => {
           </button>
         </div>
       </main>
+
+      {recommendTrack && (
+        <RecommendModal
+          trackId={recommendTrack.id}
+          trackTitle={recommendTrack.title || "this song"}
+          trackArtist={recommendTrack.artist}
+          sharerUsername={myUsername ?? undefined}
+          onClose={() => setRecommendTrack(null)}
+        />
+      )}
 
       {showQR && (
         <div

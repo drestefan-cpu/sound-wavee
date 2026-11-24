@@ -36,6 +36,11 @@ export function getRealSpotifyId(spotifyTrackId?: string, spotifyLinkId?: string
   return spotifyLinkId || undefined;
 }
 
+/** Opens the track in the Tidal app when installed (universal link), otherwise tidal.com */
+export function tidalTrackUrl(tidalTrackId: string): string {
+  return `https://tidal.com/browse/track/${tidalTrackId}`;
+}
+
 /** Apple Music catalog ID from the apple_music_id column, or from an "apple:" sentinel */
 export function getAppleMusicId(spotifyTrackId?: string, appleMusicId?: string | null): string | null {
   if (appleMusicId) return appleMusicId;
@@ -50,6 +55,7 @@ export function getTrackUrl(
   artist?: string,
   appleMusicId?: string | null,
   spotifyLinkId?: string | null,
+  tidalTrackId?: string | null,
 ): string {
   const query = encodeURIComponent(`${title || ""} ${artist || ""}`.trim());
   const realSpotifyId = getRealSpotifyId(spotifyTrackId, spotifyLinkId);
@@ -71,7 +77,7 @@ export function getTrackUrl(
         ? `https://music.youtube.com/watch?v=${ytVideoId}`
         : `https://music.youtube.com/search?q=${query}`;
     case "tidal":
-      return `https://tidal.com/search?q=${query}`;
+      return tidalTrackId ? tidalTrackUrl(tidalTrackId) : `https://tidal.com/search?q=${query}`;
     default:
       return realSpotifyId
         ? `https://open.spotify.com/track/${realSpotifyId}`

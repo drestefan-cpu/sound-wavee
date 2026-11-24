@@ -5,6 +5,7 @@ export interface ResolvedLinks {
   spotify_track_id: string | null;
   spotify_link_id: string | null;
   apple_music_id: string | null;
+  tidal_track_id: string | null;
 }
 
 /**

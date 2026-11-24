@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { optionalCallerId } from "../_shared/auth.ts"
+import { resolveTrackLinks } from "../_shared/links.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -320,6 +321,7 @@ serve(async (req) => {
   let shortId: string
   let shareUrl: string
   let shortUrl: string
+  let tidal_track_id: string | null = null
   try {
 
   // Check by ISRC first, then fall back to platform IDs
@@ -416,6 +418,16 @@ serve(async (req) => {
     }
   }
 
+  // ── Fill in this song's other platform links (Spotify / Apple / Tidal by ISRC) ──
+  try {
+    await resolveTrackLinks(supabase, [trackId], { spotifyLimit: 1 })
+    const { data: linked } = await supabase.from("tracks").select("tidal_track_id, apple_music_id").eq("id", trackId).single()
+    tidal_track_id = linked?.tidal_track_id ?? null
+    if (!apple_music_id && linked?.apple_music_id) apple_music_id = linked.apple_music_id
+  } catch (err) {
+    console.error("Link lookup failed (share link still created):", String(err))
+  }
+
   // ── Build share URLs ──────────────────────────────────────────────────────────
   // Share links go through the share-preview service (rich iMessage previews), which forwards to the app
   const base = `https://plai.delaneyprojects.xyz/song/${trackId}`
@@ -440,6 +452,7 @@ serve(async (req) => {
       spotify_track_id,
       apple_music_id,
       youtube_video_id,
+      tidal_track_id,
       isrc,
     }
   })

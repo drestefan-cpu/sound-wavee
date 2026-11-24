@@ -27,7 +27,7 @@ serve(async (req) => {
 
     const { data } = await admin
       .from("tracks")
-      .select("id, spotify_track_id, spotify_link_id, apple_music_id")
+      .select("id, spotify_track_id, spotify_link_id, apple_music_id, tidal_track_id")
       .in("id", ids)
 
     return jsonResponse({ success: true, stats, tracks: data || [] })

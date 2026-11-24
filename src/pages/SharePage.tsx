@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Music } from "lucide-react";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
-import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId as extractSentinelVideoId } from "@/lib/trackLinks";
+import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId as extractSentinelVideoId, tidalTrackUrl } from "@/lib/trackLinks";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
 const ANON_KEY = SUPABASE_PUBLISHABLE_KEY;
@@ -16,6 +16,7 @@ interface TrackResult {
   spotify_track_id: string | null;
   apple_music_id: string | null;
   youtube_video_id: string | null;
+  tidal_track_id?: string | null;
 }
 
 interface ShareResult {
@@ -41,7 +42,7 @@ function getPlatformLinks(track: TrackResult) {
     youtube: ytVideoId
       ? `https://music.youtube.com/watch?v=${ytVideoId}`
       : `https://music.youtube.com/search?q=${q}`,
-    tidal: `https://tidal.com/search?q=${q}`,
+    tidal: track.tidal_track_id ? tidalTrackUrl(track.tidal_track_id) : `https://tidal.com/search?q=${q}`,
     amazon: `https://music.amazon.com/search/${q}`,
   };
 }

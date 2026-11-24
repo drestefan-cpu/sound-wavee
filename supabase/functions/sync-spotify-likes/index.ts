@@ -214,7 +214,7 @@ serve(async (req) => {
     }
 
     // Find Apple Music IDs (by ISRC) so share pages show an exact Apple Music button too
-    let links = { checked: 0, spotifyFound: 0, appleFound: 0 }
+    let links = { checked: 0, spotifyFound: 0, appleFound: 0, tidalFound: 0 }
     try {
       links = await resolveTrackLinks(supabaseAdmin, likeRows.map((r) => r.track_id))
     } catch (err) {
