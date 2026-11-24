@@ -14,6 +14,7 @@ export interface UnifiedTrackData {
   album?: string | null;
   albumArtUrl?: string | null;
   spotifyTrackId?: string;
+  appleMusicId?: string | null;
   likeId?: string;
   localOnly?: boolean;
   initialReactions?: { emoji: string; count: number }[];
@@ -74,7 +75,7 @@ const UnifiedTrackCard = ({
 
   const trackDbId = track.trackDbId || track.id;
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
-  const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist);
+  const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist, track.appleMusicId);
   const isCurrentlyPlaying = false;
   const isOwnTrack = !!sourceUserId && sourceUserId === user?.id;
 

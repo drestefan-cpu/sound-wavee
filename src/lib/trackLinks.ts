@@ -9,15 +9,31 @@ export function extractYouTubeVideoId(spotifyTrackId?: string): string | null {
   return spotifyTrackId!.slice(3) || null;
 }
 
+/** Returns the stored ID only if it's a real Spotify track ID (not a yt:/apple:/tidal_/share: placeholder) */
+export function getRealSpotifyId(spotifyTrackId?: string): string | undefined {
+  if (!spotifyTrackId) return undefined;
+  if (/^(yt:|apple:|tidal_|share:)/.test(spotifyTrackId)) return undefined;
+  return spotifyTrackId;
+}
+
+/** Apple Music catalog ID from the apple_music_id column, or from an "apple:" sentinel */
+export function getAppleMusicId(spotifyTrackId?: string, appleMusicId?: string | null): string | null {
+  if (appleMusicId) return appleMusicId;
+  if (spotifyTrackId?.startsWith("apple:")) return spotifyTrackId.slice(6) || null;
+  return null;
+}
+
 export function getTrackUrl(
   platform: string,
   spotifyTrackId?: string,
   title?: string,
   artist?: string,
+  appleMusicId?: string | null,
 ): string {
   const query = encodeURIComponent(`${title || ""} ${artist || ""}`.trim());
-  const realSpotifyId = spotifyTrackId && !isYouTubeSentinel(spotifyTrackId) ? spotifyTrackId : undefined;
+  const realSpotifyId = getRealSpotifyId(spotifyTrackId);
   const ytVideoId = extractYouTubeVideoId(spotifyTrackId);
+  const appleId = getAppleMusicId(spotifyTrackId, appleMusicId);
 
   switch (platform) {
     case "spotify":
@@ -25,7 +41,9 @@ export function getTrackUrl(
         ? `https://open.spotify.com/track/${realSpotifyId}`
         : `https://open.spotify.com/search/${query}`;
     case "apple_music":
-      return `https://music.apple.com/search?term=${query}`;
+      return appleId
+        ? `https://music.apple.com/us/song/${appleId}`
+        : `https://music.apple.com/search?term=${query}`;
     case "youtube_music":
       // Direct watch URL for YouTube-sourced tracks; search otherwise
       return ytVideoId

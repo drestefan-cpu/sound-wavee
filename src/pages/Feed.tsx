@@ -34,6 +34,7 @@ interface FeedItem {
   tracks: {
     id: string;
     spotify_track_id: string;
+    apple_music_id?: string | null;
     title: string;
     artist: string;
     album: string | null;
@@ -258,7 +259,7 @@ const Feed = () => {
       const { data, error } = await supabase
         .from("likes")
         .select(
-          `id, liked_at, user_id, track_id, profiles!likes_user_id_fkey(id, display_name, avatar_url, username), tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)`,
+          `id, liked_at, user_id, track_id, profiles!likes_user_id_fkey(id, display_name, avatar_url, username), tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)`,
         )
         .in("user_id", userIds)
         .order("liked_at", { ascending: false })
@@ -726,7 +727,7 @@ const Feed = () => {
           const { data } = await supabase
             .from("likes")
             .select(
-              "id, liked_at, user_id, track_id, profiles!likes_user_id_fkey(id, display_name, avatar_url, username), tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)",
+              "id, liked_at, user_id, track_id, profiles!likes_user_id_fkey(id, display_name, avatar_url, username), tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)",
             )
             .eq("id", newLike.id)
             .single();
@@ -1039,6 +1040,7 @@ const Feed = () => {
                         album: track?.album,
                         albumArtUrl: track?.album_art_url,
                         spotifyTrackId: track?.spotify_track_id,
+                        appleMusicId: track?.apple_music_id,
                         likeId: item.id,
                         trackDbId: item.track_id,
                       }}

@@ -229,7 +229,7 @@ const Profile = () => {
       supabase
         .from("likes")
         .select(
-          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)",
+          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)",
         )
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
@@ -257,7 +257,7 @@ const Profile = () => {
           supabase
             .from("likes")
             .select(
-              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)",
+              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)",
             )
             .eq("user_id", profile.id)
             .order("liked_at", { ascending: false })
@@ -584,7 +584,7 @@ const Profile = () => {
       supabase.from("profiles").select("*").eq("id", profile.id).single(),
       supabase
         .from("likes")
-        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, preview_url)")
+        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)")
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
         .limit(100),
@@ -1170,6 +1170,7 @@ const Profile = () => {
                     artist: s.tracks?.artist || "Unknown",
                     albumArtUrl: s.tracks?.album_art_url,
                     spotifyTrackId: s.tracks?.spotify_track_id,
+                    appleMusicId: s.tracks?.apple_music_id,
                     trackDbId: s.track_id,
                   }}
                   isSaved={isSaved(s.track_id)}
@@ -1317,6 +1318,7 @@ const Profile = () => {
                     artist: rec.tracks?.artist || "Unknown",
                     albumArtUrl: rec.tracks?.album_art_url,
                     spotifyTrackId: rec.tracks?.spotify_track_id,
+                    appleMusicId: rec.tracks?.apple_music_id,
                     trackDbId: rec.track_id,
                   }}
                   isSaved={isSaved(rec.track_id)}
@@ -1429,6 +1431,7 @@ const Profile = () => {
                           artist: h.tracks?.artist || "Unknown",
                           albumArtUrl: h.tracks?.album_art_url,
                           spotifyTrackId: h.tracks?.spotify_track_id,
+                          appleMusicId: h.tracks?.apple_music_id,
                           trackDbId: h.track_id,
                         }}
                         isSaved={isSaved(h.track_id)}
@@ -1478,6 +1481,7 @@ const Profile = () => {
                             album: like.tracks?.album,
                             albumArtUrl: like.tracks?.album_art_url,
                             spotifyTrackId: like.tracks?.spotify_track_id,
+                            appleMusicId: like.tracks?.apple_music_id,
                             likeId: like.id,
                             trackDbId: like.track_id,
                           }}

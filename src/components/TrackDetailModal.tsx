@@ -6,7 +6,7 @@ import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
-import { isYouTubeSentinel, extractYouTubeVideoId } from "@/lib/trackLinks";
+import { isYouTubeSentinel, extractYouTubeVideoId, getRealSpotifyId, getAppleMusicId } from "@/lib/trackLinks";
 import { toast } from "sonner";
 
 interface TrackDetailModalProps {
@@ -116,12 +116,13 @@ const TrackDetailModal = ({
 
   const getPlatformUrl = () => {
     const q = encodeURIComponent(`${track.title} ${track.artist}`);
-    const realSpotifyId = track.spotifyTrackId && !isYouTubeSentinel(track.spotifyTrackId)
-      ? track.spotifyTrackId
-      : undefined;
+    const realSpotifyId = getRealSpotifyId(track.spotifyTrackId);
+    const appleId = getAppleMusicId(track.spotifyTrackId, track.appleMusicId);
     switch (preferredPlatform) {
       case "apple_music":
-        return `https://music.apple.com/search?term=${q}`;
+        return appleId
+          ? `https://music.apple.com/us/song/${appleId}`
+          : `https://music.apple.com/search?term=${q}`;
       case "youtube_music":
         return ytVideoId
           ? `https://music.youtube.com/watch?v=${ytVideoId}`
