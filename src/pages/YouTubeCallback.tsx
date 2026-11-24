@@ -76,23 +76,33 @@ const YouTubeCallback = () => {
         return;
       }
 
-      // Returning user — their data is already under existing_user_id
-      if (result.existing_user_id && result.existing_user_id !== userId) {
+      // Returning user on a new device — sign into the account this YouTube channel belongs to
+      if (result.login_token_hash && result.existing_user_id) {
         setStatusText("welcome back…");
+        const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: result.login_token_hash,
+          type: "magiclink",
+        });
+        if (verifyError || !verified.session) {
+          toast.error("Couldn't sign you back in — please try again");
+          setTimeout(() => navigate("/"), 2000);
+          return;
+        }
         toast.success("Welcome back to PLAI!");
-        // Don't sign out — keep current session, their data is merged
         setStatusText("syncing your liked music…");
         try {
           await fetch(`${SUPABASE_URL}/functions/v1/sync-youtube-likes`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${authToken}`,
+              Authorization: `Bearer ${verified.session.access_token}`,
               apikey: APIKEY,
             },
             body: JSON.stringify({ user_id: result.existing_user_id }),
           });
-        } catch (e) {}
+        } catch {
+          // non-fatal — auto-sync will retry
+        }
         navigate("/feed");
         return;
       }

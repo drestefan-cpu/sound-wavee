@@ -14,6 +14,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTO_SYNC_INTERVAL = 7 * 60 * 1000; // 7 minutes
+
+/** Google OAuth access tokens start with "ya29." — Spotify tokens never do */
+const isGoogleToken = (token: string) => token.startsWith("ya29.");
 const isLocalDev =
   typeof window !== "undefined" &&
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
@@ -123,7 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const params = new URLSearchParams(hash.substring(1));
       const providerToken = params.get("provider_token");
       const providerRefreshToken = params.get("provider_refresh_token");
-      if (!providerToken) return;
+      // Google sign-in tokens are YouTube tokens — GoogleCallback stores those
+      if (!providerToken || isGoogleToken(providerToken)) return;
 
       const {
         data: { session },
@@ -184,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setLoading(false);
 
-      if (event === "SIGNED_IN" && session?.provider_token) {
+      if (event === "SIGNED_IN" && session?.provider_token && !isGoogleToken(session.provider_token)) {
         storeTokensAndSync(
           session.user.id,
           session.provider_token,
