@@ -29,7 +29,7 @@ const MiniStarfield = () => {
             width: s.size,
             height: s.size,
             opacity: s.opacity,
-            backgroundColor: "#F0EBE3",
+            backgroundColor: "hsl(var(--foreground))",
           }}
         />
       ))}
@@ -117,7 +117,7 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
     <div
       className="fixed inset-0 z-50 overflow-y-auto"
       style={{
-        backgroundColor: "#080B12",
+        backgroundColor: "hsl(var(--background))",
         overscrollBehavior: "contain",
         WebkitOverflowScrolling: "touch",
       }}
@@ -164,7 +164,7 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
           fontFamily: "'DM Sans', sans-serif",
           fontWeight: 300,
           lineHeight: 1.8,
-          color: "#F0EBE3",
+          color: "hsl(var(--foreground))",
           paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 64px), 80px)",
           paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 112px), 112px)",
         }}
@@ -172,7 +172,7 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
         <div className="mb-3 text-center">
           <PlaiLogo className="text-5xl" glow />
         </div>
-        <p className="text-[10px] tracking-[0.2em] uppercase mb-8 text-center" style={{ color: "#FF2D78" }}>
+        <p className="text-[10px] tracking-[0.2em] uppercase mb-8 text-center" style={{ color: "hsl(var(--primary))" }}>
           developer notes
         </p>
 

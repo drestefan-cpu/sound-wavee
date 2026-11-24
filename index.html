@@ -26,6 +26,20 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PLAI" />
     <meta name="theme-color" content="#080B12" />
+    <script>
+      // Apply the saved appearance before the first paint so Dawn users don't see a flash of Night
+      (function () {
+        try {
+          var pref = localStorage.getItem("plai-theme");
+          var light = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+          if (pref === "dawn" || (pref === "system" && light)) {
+            document.documentElement.setAttribute("data-theme", "dawn");
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute("content", "#F4EFE7");
+          }
+        } catch (e) {}
+      })();
+    </script>
     <link rel="apple-touch-icon" href="/plai-icon.png?v=2" />
     <link rel="manifest" href="/manifest.json" />
     <script>

@@ -55,7 +55,7 @@ const PullToRefreshIndicator = ({ pullDistance, progress, ready, refreshing, rel
           left: 0,
           right: 0,
           height: Math.min(pullDistance * 0.42, 28),
-          background: `linear-gradient(to top, hsl(340 100% 59% / ${glowIntensity * 0.045}) 0%, hsl(210 72% 78% / ${glowIntensity * 0.025}) 48%, transparent 100%)`,
+          background: `linear-gradient(to top, hsl(var(--primary) / ${glowIntensity * 0.045}) 0%, hsl(210 72% 78% / ${glowIntensity * 0.025}) 48%, transparent 100%)`,
           opacity,
           transition: released ? "opacity 0.6s ease" : "none",
         }}

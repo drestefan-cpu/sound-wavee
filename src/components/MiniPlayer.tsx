@@ -129,15 +129,15 @@ const MiniPlayer = () => {
   return (
     <>
       <div className="fixed left-0 right-0 z-40" style={{ bottom: "calc(3.5rem + env(safe-area-inset-bottom, 0px))" }}>
-        <div className="h-[2px] w-full" style={{ backgroundColor: "#1a2535" }}>
+        <div className="h-[2px] w-full" style={{ backgroundColor: "hsl(var(--secondary))" }}>
           <div
             className="h-full transition-all duration-1000 ease-linear"
-            style={{ width: `${pct}%`, backgroundColor: "#FF2D78" }}
+            style={{ width: `${pct}%`, backgroundColor: "hsl(var(--primary))" }}
           />
         </div>
         <div
           className="flex items-center gap-3 px-4 py-2 border-t border-border cursor-pointer"
-          style={{ backgroundColor: "#0F1520" }}
+          style={{ backgroundColor: "hsl(var(--card))" }}
           onClick={() => setShowDetail(true)}
         >
           {art ? (
@@ -145,16 +145,16 @@ const MiniPlayer = () => {
           ) : (
             <div
               className="h-10 w-10 rounded flex-shrink-0 flex items-center justify-center text-xs text-muted-foreground"
-              style={{ backgroundColor: "#1a2535" }}
+              style={{ backgroundColor: "hsl(var(--secondary))" }}
             >
               ♪
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium" style={{ color: "#F0EBE3" }}>
+            <p className="truncate text-[13px] font-medium" style={{ color: "hsl(var(--foreground))" }}>
               {title}
             </p>
-            <p className="truncate text-[11px]" style={{ color: "#4a6a8a" }}>
+            <p className="truncate text-[11px]" style={{ color: "hsl(var(--muted-foreground))" }}>
               {artist}
             </p>
           </div>
@@ -165,12 +165,12 @@ const MiniPlayer = () => {
                 togglePlayPause();
               }}
               className="h-[30px] w-[30px] rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "#1a2535" }}
+              style={{ backgroundColor: "hsl(var(--secondary))" }}
             >
               {playing ? (
-                <Pause className="h-3.5 w-3.5" style={{ color: "#F0EBE3" }} />
+                <Pause className="h-3.5 w-3.5" style={{ color: "hsl(var(--foreground))" }} />
               ) : (
-                <Play className="h-3.5 w-3.5 fill-current" style={{ color: "#F0EBE3" }} />
+                <Play className="h-3.5 w-3.5 fill-current" style={{ color: "hsl(var(--foreground))" }} />
               )}
             </button>
           )}

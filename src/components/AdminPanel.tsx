@@ -145,10 +145,10 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
   const activeCount = taglines.filter((t) => t.active).length;
 
   const inputStyle: React.CSSProperties = {
-    background: "#080B12",
-    border: "0.5px solid #1a2535",
+    background: "hsl(var(--background))",
+    border: "0.5px solid hsl(var(--border))",
     borderRadius: 6,
-    color: "#F0EBE3",
+    color: "hsl(var(--foreground))",
   };
 
   return (
@@ -215,7 +215,7 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
                       localStorage.setItem("plai-releases-debug", next ? "1" : "0");
                     }}
                     className="rounded-full w-10 h-5 relative flex-shrink-0"
-                    style={{ background: releasesDebug ? "#FF2D78" : "#2a3a4a" }}
+                    style={{ background: releasesDebug ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
                   >
                     <div
                       className="absolute top-0.5 rounded-full w-4 h-4 bg-white transition-all"
@@ -278,7 +278,7 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
                         <div
                           key={t.id}
                           className="flex items-center gap-2 px-3"
-                          style={{ height: 40, background: idx % 2 === 0 ? "#0F1520" : "#080B12" }}
+                          style={{ height: 40, background: idx % 2 === 0 ? "hsl(var(--card))" : "hsl(var(--background))" }}
                         >
                           {/* Text - inline editable */}
                           {editingId === t.id ? (
@@ -300,7 +300,7 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
                                 setEditText(t.text);
                               }}
                               className={`flex-1 text-xs min-w-0 truncate cursor-pointer ${t.active ? "" : "line-through"}`}
-                              style={{ color: t.active ? "#F0EBE3" : "#4a6a8a" }}
+                              style={{ color: t.active ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))" }}
                             >
                               {t.text}
                             </p>
@@ -334,7 +334,7 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
                           <button
                             onClick={() => toggleTaglineActive(t.id, t.active)}
                             className="rounded-full w-8 h-4 relative flex-shrink-0"
-                            style={{ background: t.active ? "#FF2D78" : "#2a3a4a" }}
+                            style={{ background: t.active ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
                           >
                             <div
                               className="absolute top-0.5 rounded-full w-3 h-3 bg-white transition-all"

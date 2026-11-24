@@ -97,7 +97,7 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
                 >
                   <div
                     className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0"
-                    style={{ backgroundColor: "#FF2D78" }}
+                    style={{ backgroundColor: "hsl(var(--primary))" }}
                   >
                     {p.avatar_url ? (
                       <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />

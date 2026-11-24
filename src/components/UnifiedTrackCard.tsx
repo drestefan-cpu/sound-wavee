@@ -123,7 +123,7 @@ const UnifiedTrackCard = ({
   };
 
   const PlayIcon = () => (
-    <Play className={compact ? "h-3 w-3 fill-current" : "h-3.5 w-3.5 fill-current"} style={{ color: "#4a6a8a" }} />
+    <Play className={compact ? "h-3 w-3 fill-current" : "h-3.5 w-3.5 fill-current"} style={{ color: "hsl(var(--muted-foreground))" }} />
   );
 
   if (compact) {
@@ -164,7 +164,7 @@ const UnifiedTrackCard = ({
                 <Heart
                   className={`h-[22px] w-[22px] ${saved ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-primary"}`}
                   strokeWidth={saved ? 0 : 1.5}
-                  style={{ color: saved ? undefined : "#2a3a4a" }}
+                  style={{ color: saved ? undefined : "hsl(var(--muted-foreground))" }}
                 />
               </button>
               <button
@@ -173,7 +173,7 @@ const UnifiedTrackCard = ({
               >
                 <div
                   className="h-[22px] w-[22px] rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: "#1a2535" }}
+                  style={{ backgroundColor: "hsl(var(--secondary))" }}
                 >
                   <PlayIcon />
                 </div>
@@ -184,9 +184,9 @@ const UnifiedTrackCard = ({
               >
                 <div
                   className="h-[22px] w-[22px] rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: "#1a2535" }}
+                  style={{ backgroundColor: "hsl(var(--secondary))" }}
                 >
-                  <Send className="h-3 w-3" style={{ color: "#4a6a8a" }} />
+                  <Send className="h-3 w-3" style={{ color: "hsl(var(--muted-foreground))" }} />
                 </div>
               </button>
             </div>
@@ -241,7 +241,7 @@ const UnifiedTrackCard = ({
             <p className="truncate font-medium text-foreground text-sm">{track.title}</p>
             <p className="truncate text-muted-foreground text-xs">{track.artist}</p>
             {track.album && (
-              <p className="truncate text-[11px]" style={{ color: "#2a3a4a" }}>
+              <p className="truncate text-[11px]" style={{ color: "hsl(var(--muted-foreground))" }}>
                 {track.album}
               </p>
             )}
@@ -254,7 +254,7 @@ const UnifiedTrackCard = ({
             <Heart
               className={`h-9 w-9 ${saved ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-primary"}`}
               strokeWidth={saved ? 0 : 1.5}
-              style={{ color: saved ? undefined : "#2a3a4a" }}
+              style={{ color: saved ? undefined : "hsl(var(--muted-foreground))" }}
             />
           </button>
         </div>
@@ -269,12 +269,12 @@ const UnifiedTrackCard = ({
               />
             )}
           </div>
-          <div className="w-px self-stretch mx-1.5 flex-shrink-0" style={{ backgroundColor: "#1a2535" }} />
+          <div className="w-px self-stretch mx-1.5 flex-shrink-0" style={{ backgroundColor: "hsl(var(--secondary))" }} />
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={handlePlay}
               className="h-[30px] w-[30px] rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-              style={{ backgroundColor: "#1a2535" }}
+              style={{ backgroundColor: "hsl(var(--secondary))" }}
             >
               <PlayIcon />
             </button>
@@ -282,9 +282,9 @@ const UnifiedTrackCard = ({
               <button
                 onClick={handleShare}
                 className="h-[30px] w-[30px] rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style={{ backgroundColor: "#1a2535" }}
+                style={{ backgroundColor: "hsl(var(--secondary))" }}
               >
-                <Send className="h-3.5 w-3.5" style={{ color: "#4a6a8a" }} />
+                <Send className="h-3.5 w-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
               </button>
             )}
           </div>

@@ -287,7 +287,7 @@ const Landing = () => {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(8,11,18,0.95)",
+            background: "hsl(var(--background) / 0.95)",
             zIndex: 100,
             display: "flex",
             alignItems: "flex-end",
@@ -298,26 +298,26 @@ const Landing = () => {
           <div
             style={{
               width: "100%",
-              background: "#0F1520",
-              borderTop: "0.5px solid #1a2535",
+              background: "hsl(var(--card))",
+              borderTop: "0.5px solid hsl(var(--border))",
               borderRadius: "24px 24px 0 0",
               padding: "12px 24px 52px",
               textAlign: "center",
             }}
           >
-            <div style={{ width: 36, height: 4, background: "#1a2535", borderRadius: 2, margin: "0 auto 28px" }} />
+            <div style={{ width: 36, height: 4, background: "hsl(var(--secondary))", borderRadius: 2, margin: "0 auto 28px" }} />
             <img
               src="/plai-icon.png"
               alt="PLAI"
               style={{ width: 72, height: 72, borderRadius: 16, marginBottom: 16 }}
             />
-            <p style={{ fontSize: 22, fontWeight: 600, color: "#F0EBE3", marginBottom: 8 }}>
+            <p style={{ fontSize: 22, fontWeight: 600, color: "hsl(var(--foreground))", marginBottom: 8 }}>
               save PLAI to your home screen
             </p>
             <p
               style={{
                 fontSize: 13,
-                color: "#4a6a8a",
+                color: "hsl(var(--muted-foreground))",
                 lineHeight: 1.6,
                 marginBottom: 32,
                 maxWidth: 260,
@@ -328,8 +328,8 @@ const Landing = () => {
             </p>
             <div
               style={{
-                background: "#080B12",
-                border: "0.5px solid #1a2535",
+                background: "hsl(var(--background))",
+                border: "0.5px solid hsl(var(--border))",
                 borderRadius: 14,
                 padding: "20px",
                 marginBottom: 28,
@@ -338,14 +338,14 @@ const Landing = () => {
             >
               {[
                 <span>
-                  tap the <span style={{ color: "#FF2D78", fontWeight: 500 }}>Share</span> button{" "}
+                  tap the <span style={{ color: "hsl(var(--primary))", fontWeight: 500 }}>Share</span> button{" "}
                   <svg
                     style={{ display: "inline", verticalAlign: "middle", marginBottom: 2 }}
                     width="13"
                     height="13"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#FF2D78"
+                    stroke="hsl(var(--primary))"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -357,10 +357,10 @@ const Landing = () => {
                   at the bottom of Safari
                 </span>,
                 <span>
-                  scroll down and tap <span style={{ color: "#FF2D78", fontWeight: 500 }}>"Add to Home Screen"</span>
+                  scroll down and tap <span style={{ color: "hsl(var(--primary))", fontWeight: 500 }}>"Add to Home Screen"</span>
                 </span>,
                 <span>
-                  tap <span style={{ color: "#FF2D78", fontWeight: 500 }}>Add</span> — then open PLAI from your home
+                  tap <span style={{ color: "hsl(var(--primary))", fontWeight: 500 }}>Add</span> — then open PLAI from your home
                   screen
                 </span>,
               ].map((text, i) => (
@@ -373,7 +373,7 @@ const Landing = () => {
                       width: 22,
                       height: 22,
                       borderRadius: "50%",
-                      background: "#FF2D78",
+                      background: "hsl(var(--primary))",
                       color: "white",
                       fontSize: 11,
                       fontWeight: 700,
@@ -386,7 +386,7 @@ const Landing = () => {
                   >
                     {i + 1}
                   </div>
-                  <p style={{ fontSize: 13, color: "#F0EBE3", lineHeight: 1.5 }}>{text}</p>
+                  <p style={{ fontSize: 13, color: "hsl(var(--foreground))", lineHeight: 1.5 }}>{text}</p>
                 </div>
               ))}
             </div>
@@ -395,7 +395,7 @@ const Landing = () => {
               style={{
                 width: "100%",
                 padding: "15px",
-                background: "#FF2D78",
+                background: "hsl(var(--primary))",
                 color: "white",
                 border: "none",
                 borderRadius: 100,
@@ -409,7 +409,7 @@ const Landing = () => {
             </button>
             <button
               onClick={dismissInstall}
-              style={{ background: "none", border: "none", color: "#2a3a4a", fontSize: 11, cursor: "pointer" }}
+              style={{ background: "none", border: "none", color: "hsl(var(--muted-foreground))", fontSize: 11, cursor: "pointer" }}
             >
               skip for now
             </button>
@@ -620,7 +620,7 @@ const AndroidInstallPrompt = () => {
           setVisible(false);
         }}
         className="rounded-full px-5 py-2 text-xs font-medium text-primary-foreground"
-        style={{ background: "#FF2D78", touchAction: "manipulation" }}
+        style={{ background: "hsl(var(--primary))", touchAction: "manipulation" }}
       >
         add PLAI to your home screen →
       </button>

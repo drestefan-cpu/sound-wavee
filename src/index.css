@@ -19,50 +19,114 @@
 }
 
 @layer base {
+  /* ── Night (default): #080B12 sky, cream text, PLAI pink.
+        Cards, borders and secondary text lifted for readability (all text ≥ 4.5:1). ── */
   :root {
-    --background: 218 32% 5%;
-    --foreground: 30 20% 92%;
+    color-scheme: dark;
 
-    --card: 218 32% 8%;
-    --card-foreground: 30 20% 92%;
+    --background: 222 38% 5.1%;        /* #080B12 */
+    --foreground: 37 30% 91.6%;        /* #F0EBE3 */
 
-    --popover: 218 32% 8%;
-    --popover-foreground: 30 20% 92%;
+    --card: 218 38% 11.4%;             /* #121A28 */
+    --card-foreground: 37 30% 91.6%;
 
-    --primary: 340 100% 59%;
+    --popover: 218 38% 11.4%;
+    --popover-foreground: 37 30% 91.6%;
+
+    --primary: 339 100% 58.8%;         /* #FF2D78 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 212 30% 15%;
-    --secondary-foreground: 30 20% 92%;
+    --secondary: 219 33% 16.5%;        /* #1C2638 */
+    --secondary-foreground: 37 30% 91.6%;
 
-    --muted: 212 25% 20%;
-    --muted-foreground: 210 30% 40%;
+    --muted: 218 33% 18%;              /* #1F2A3D */
+    --muted-foreground: 212 26% 55.3%; /* #6F8BAB */
 
-    --accent: 340 100% 59%;
+    --accent: 339 100% 58.8%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 212 30% 15%;
-    --input: 212 30% 15%;
-    --ring: 340 100% 59%;
+    --border: 220 32% 22%;             /* #26324A */
+    --input: 220 32% 22%;
+    --ring: 339 100% 58.8%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 218 32% 5%;
-    --sidebar-foreground: 30 20% 92%;
-    --sidebar-primary: 340 100% 59%;
+    --sidebar-background: 222 38% 5.1%;
+    --sidebar-foreground: 37 30% 91.6%;
+    --sidebar-primary: 339 100% 58.8%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 212 30% 12%;
-    --sidebar-accent-foreground: 30 20% 92%;
-    --sidebar-border: 212 30% 15%;
-    --sidebar-ring: 340 100% 59%;
+    --sidebar-accent: 219 33% 16.5%;
+    --sidebar-accent-foreground: 37 30% 91.6%;
+    --sidebar-border: 220 32% 22%;
+    --sidebar-ring: 339 100% 58.8%;
+
+    /* Star specks and the horizon glow behind the page */
+    --star-opacity: 1;
+    --sky-glow: transparent;
+
+    /* Blurred album-art backdrop on the song page: dimmed at Night */
+    --art-backdrop-filter: blur(40px) brightness(0.3) saturate(1.2);
+    --art-overlay-top: 0.3;
+    --art-overlay-bottom: 0.7;
 
     --font-display: "Unbounded", sans-serif;
     --font-sans: "DM Sans", system-ui, sans-serif;
 
     --transition-fast: 150ms ease;
+  }
+
+  /* ── Dawn: the same sky at first light. Cream becomes the sky, navy becomes the ink,
+        pink deepens so it stays readable on light backgrounds. ── */
+  :root[data-theme="dawn"] {
+    color-scheme: light;
+
+    --background: 37 37% 93.1%;        /* #F4EFE7 */
+    --foreground: 221 35% 12.2%;       /* #141B2A */
+
+    --card: 38 50% 96.9%;              /* #FBF8F3 */
+    --card-foreground: 221 35% 12.2%;
+
+    --popover: 38 50% 96.9%;
+    --popover-foreground: 221 35% 12.2%;
+
+    --primary: 336 83% 42.9%;          /* #C8135A */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 37 32% 89%;           /* #ECE5DA */
+    --secondary-foreground: 221 35% 12.2%;
+
+    --muted: 35 31% 85.9%;             /* #E6DDD0 */
+    --muted-foreground: 212 24% 41%;   /* #4F6782 */
+
+    --accent: 336 83% 42.9%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 46%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 37 30% 82.7%;            /* #E0D6C6 */
+    --input: 37 30% 82.7%;
+    --ring: 336 83% 42.9%;
+
+    --sidebar-background: 37 37% 93.1%;
+    --sidebar-foreground: 221 35% 12.2%;
+    --sidebar-primary: 336 83% 42.9%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 37 32% 89%;
+    --sidebar-accent-foreground: 221 35% 12.2%;
+    --sidebar-border: 37 30% 82.7%;
+    --sidebar-ring: 336 83% 42.9%;
+
+    --star-opacity: 0.6;
+    --sky-glow: hsl(336 83% 42.9% / 0.08);
+
+    /* Album-art backdrop at Dawn: bright, soft colour wash under a cream veil */
+    --art-backdrop-filter: blur(48px) brightness(1.1) saturate(1.3);
+    --art-overlay-top: 0.62;
+    --art-overlay-bottom: 0.9;
   }
 }
 
@@ -92,8 +156,41 @@
     animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  /* ── PLAI wordmark ──
+     Night: solid cream letters. Dawn: a proper outline — a thick navy stroke layer underneath,
+     with the letters filled in the surface colour on top, so only the outer edge of the word shows. */
+  .plai-logo {
+    position: relative;
+    display: inline-block;
+  }
+  .plai-logo-fill {
+    position: relative;
+  }
+  .plai-logo-letters {
+    color: hsl(var(--foreground));
+  }
+  .plai-logo-outline {
+    display: none;
+  }
+  :root[data-theme="dawn"] .plai-logo-outline {
+    display: block;
+    position: absolute;
+    inset: 0;
+    color: transparent;
+    -webkit-text-stroke: max(2px, 0.13em) hsl(var(--foreground));
+    pointer-events: none;
+    user-select: none;
+  }
+  :root[data-theme="dawn"] .plai-logo-outline .plai-logo-a {
+    -webkit-text-stroke-color: transparent;
+  }
+  :root[data-theme="dawn"] .plai-logo-letters {
+    color: var(--logo-knockout, hsl(var(--background)));
+  }
+
+  /* Quietest readable text (inactive nav tabs etc.) — follows the theme */
   .text-muted-dim {
-    color: hsl(210 25% 20%);
+    color: hsl(var(--muted-foreground));
   }
 
   .animate-logo-glow {

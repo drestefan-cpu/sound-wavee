@@ -62,10 +62,10 @@ function extractYouTubeVideoId(url: string): string | null {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const card: React.CSSProperties = {
-  background: "rgba(15,21,32,0.7)",
+  background: "hsl(var(--card) / 0.7)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid hsl(var(--foreground) / 0.08)",
   borderRadius: 24,
   padding: 20,
   maxWidth: 440,
@@ -173,7 +173,7 @@ const SharePage = () => {
   };
 
   return (
-    <div style={{ position: "relative", height: "100dvh", overflow: "hidden", background: "#080B12" }}>
+    <div style={{ position: "relative", height: "100dvh", overflow: "hidden", background: "hsl(var(--background))" }}>
       {/* Starfield */}
       <div style={{ position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none" }}>
         <Starfield />
@@ -211,21 +211,21 @@ const SharePage = () => {
                 autoFocus
                 style={{
                   width: "100%",
-                  background: "rgba(255,255,255,0.05)",
-                  border: `1px solid ${error ? "#ef4444" : "rgba(255,255,255,0.08)"}`,
+                  background: "hsl(var(--foreground) / 0.05)",
+                  border: `1px solid ${error ? "#ef4444" : "hsl(var(--foreground) / 0.08)"}`,
                   borderRadius: 12,
                   padding: 12,
-                  color: "#F0EBE3",
+                  color: "hsl(var(--foreground))",
                   fontSize: 14,
                   outline: "none",
                   boxSizing: "border-box",
                   fontFamily: "inherit",
                 }}
                 onFocus={(e) => {
-                  if (!error) e.target.style.borderColor = "#FF2D78";
+                  if (!error) e.target.style.borderColor = "hsl(var(--primary))";
                 }}
                 onBlur={(e) => {
-                  if (!error) e.target.style.borderColor = "rgba(255,255,255,0.08)";
+                  if (!error) e.target.style.borderColor = "hsl(var(--foreground) / 0.08)";
                 }}
               />
 
@@ -250,11 +250,11 @@ const SharePage = () => {
                       width: 20,
                       height: 20,
                       borderRadius: "50%",
-                      border: "2px solid rgba(255,45,120,0.3)",
-                      borderTopColor: "#FF2D78",
+                      border: "2px solid hsl(var(--primary) / 0.3)",
+                      borderTopColor: "hsl(var(--primary))",
                     }}
                   />
-                  <span style={{ fontSize: 14, color: "#4a6a8a" }}>finding your song...</span>
+                  <span style={{ fontSize: 14, color: "hsl(var(--muted-foreground))" }}>finding your song...</span>
                 </div>
               ) : (
                 <button
@@ -263,7 +263,7 @@ const SharePage = () => {
                   style={{
                     marginTop: 12,
                     width: "100%",
-                    background: inputValue.trim() ? "#FF2D78" : "rgba(255,45,120,0.3)",
+                    background: inputValue.trim() ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.3)",
                     borderRadius: 100,
                     padding: "11px 0",
                     fontSize: 14,
@@ -296,14 +296,14 @@ const SharePage = () => {
                       width: 56,
                       height: 56,
                       borderRadius: 12,
-                      background: "rgba(26,37,53,0.8)",
+                      background: "hsl(var(--secondary) / 0.8)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
                     }}
                   >
-                    <Music style={{ width: 28, height: 28, color: "#4a6a8a" }} />
+                    <Music style={{ width: 28, height: 28, color: "hsl(var(--muted-foreground))" }} />
                   </div>
                 )}
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -311,7 +311,7 @@ const SharePage = () => {
                     style={{
                       fontSize: 15,
                       fontWeight: 500,
-                      color: "#F0EBE3",
+                      color: "hsl(var(--foreground))",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -322,7 +322,7 @@ const SharePage = () => {
                   <p
                     style={{
                       fontSize: 13,
-                      color: "#4a6a8a",
+                      color: "hsl(var(--muted-foreground))",
                       marginTop: 2,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -338,14 +338,14 @@ const SharePage = () => {
               </div>
 
               {/* Divider */}
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", margin: "14px 0" }} />
+              <div style={{ borderTop: "1px solid hsl(var(--foreground) / 0.08)", margin: "14px 0" }} />
 
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "hsl(var(--foreground) / 0.05)",
+                  border: "1px solid hsl(var(--foreground) / 0.08)",
                   borderRadius: 100,
                   padding: "8px 14px",
                 }}
@@ -353,7 +353,7 @@ const SharePage = () => {
                 <span
                   style={{
                     fontSize: 13,
-                    color: "#FF2D78",
+                    color: "hsl(var(--primary))",
                     flex: 1,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -367,7 +367,7 @@ const SharePage = () => {
                   style={{
                     fontSize: 11,
                     fontWeight: 500,
-                    color: "rgba(240,235,227,0.6)",
+                    color: "hsl(var(--foreground) / 0.6)",
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -386,7 +386,7 @@ const SharePage = () => {
                   onClick={handleCopy}
                   style={{
                     flex: 1,
-                    background: "#FF2D78",
+                    background: "hsl(var(--primary))",
                     borderRadius: 100,
                     padding: "11px 0",
                     fontSize: 14,
@@ -408,8 +408,8 @@ const SharePage = () => {
                       borderRadius: 100,
                       padding: "11px 0",
                       fontSize: 14,
-                      color: "#F0EBE3",
-                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "hsl(var(--foreground))",
+                      border: "1px solid hsl(var(--foreground) / 0.12)",
                       cursor: "pointer",
                       fontFamily: "inherit",
                     }}
@@ -425,7 +425,7 @@ const SharePage = () => {
                   onClick={handleReset}
                   style={{
                     fontSize: 12,
-                    color: "#4a6a8a",
+                    color: "hsl(var(--muted-foreground))",
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -457,16 +457,16 @@ const PlatformPills = ({ track }: { track: TrackResult }) => {
   pills.push({
     label: "Tidal",
     href: links.tidal,
-    bg: "rgba(255,255,255,0.06)",
-    color: "#F0EBE3",
-    border: "1px solid rgba(255,255,255,0.1)",
+    bg: "hsl(var(--foreground) / 0.06)",
+    color: "hsl(var(--foreground))",
+    border: "1px solid hsl(var(--foreground) / 0.1)",
   });
   pills.push({
     label: "Amazon",
     href: links.amazon,
-    bg: "rgba(255,255,255,0.06)",
-    color: "#F0EBE3",
-    border: "1px solid rgba(255,255,255,0.1)",
+    bg: "hsl(var(--foreground) / 0.06)",
+    color: "hsl(var(--foreground))",
+    border: "1px solid hsl(var(--foreground) / 0.1)",
   });
 
   return (

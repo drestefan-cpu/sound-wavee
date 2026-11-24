@@ -9,6 +9,7 @@ import { PlatformProvider } from "@/contexts/PlatformContext";
 import { SpotifyPlayerProvider } from "@/contexts/SpotifyPlayerContext";
 import Starfield from "@/components/Starfield";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import MiniPlayer from "@/components/MiniPlayer";
 import Landing from "./pages/Landing";
 import Feed from "./pages/Feed";
@@ -31,14 +32,18 @@ import SharePage from "./pages/SharePage";
 
 const queryClient = new QueryClient();
 
+// Toasts follow the app theme (Night = dark, Dawn = light)
+const ThemedToaster = () => {
+  const { theme } = useTheme();
+  return <Sonner position="bottom-center" duration={3500} theme={theme === "dawn" ? "light" : "dark"} />;
+};
+
 const App = () => (
   <ErrorBoundary>
+  <ThemeProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Sonner
-        position="bottom-center"
-        duration={3500}
-      />
+      <ThemedToaster />
       <BrowserRouter>
         <AuthProvider>
           <PlatformProvider>
@@ -75,6 +80,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ThemeProvider>
   </ErrorBoundary>
 );
 

@@ -559,7 +559,7 @@ const Profile = () => {
     return followers.slice(0, 5).map((f, idx, arr) => ({
       id: f.id,
       username: f.username,
-      color: f.profile_color || "#FF2D78",
+      color: f.profile_color || "hsl(var(--primary))",
       mood: getMoodBySlug(f.current_mood)?.emoji ?? null,
       size: 8 + seededRandom(f.id + "s") * 8,
       orbitDelay: -((idx / arr.length) * 160),
@@ -872,7 +872,7 @@ const Profile = () => {
   return (
     <div
       className="min-h-screen pb-20"
-      style={{ background: `linear-gradient(180deg, #080B1240 0%, hsl(218 32% 5%) 300px)` }}
+      style={{ background: `linear-gradient(180deg, hsl(var(--background) / 0.25) 0%, hsl(var(--background)) 300px)` }}
     >
       <PullToRefreshIndicator {...pullToRefresh} />
       <PageHeader
@@ -994,7 +994,7 @@ const Profile = () => {
                       )}
                       <span
                         className="absolute top-full mt-0.5 left-1/2 -translate-x-1/2 text-[8px] transition-opacity duration-300 whitespace-nowrap"
-                        style={{ color: "#F0EBE3", opacity: 1 }}
+                        style={{ color: "hsl(var(--foreground))", opacity: 1 }}
                       >
                         @{m.username || "·"}
                       </span>
@@ -1003,7 +1003,7 @@ const Profile = () => {
                   {activeMoonId !== m.id && (
                     <span
                       className="pointer-events-none absolute top-full mt-0.5 left-1/2 -translate-x-1/2 text-[8px] transition-opacity duration-300 whitespace-nowrap"
-                      style={{ color: "#F0EBE3", opacity: !moonsFaded ? 1 : 0 }}
+                      style={{ color: "hsl(var(--foreground))", opacity: !moonsFaded ? 1 : 0 }}
                     >
                       @{m.username || "·"}
                     </span>
@@ -1101,11 +1101,11 @@ const Profile = () => {
                 <RefreshCw className={`h-4 w-4 text-muted-foreground ${syncing ? "animate-spin" : ""}`} />
                 <p className="text-[10px] text-muted-foreground mt-0.5">{syncing ? "..." : "sync"}</p>
                 {syncResult ? (
-                  <p className="text-[9px] mt-0.5 transition-opacity duration-500" style={{ color: "#4a6a8a" }}>
+                  <p className="text-[9px] mt-0.5 transition-opacity duration-500" style={{ color: "hsl(var(--muted-foreground))" }}>
                     {syncResult}
                   </p>
                 ) : profile.last_synced_at ? (
-                  <p className="text-[9px] mt-0.5" style={{ color: "#4a6a8a" }}>
+                  <p className="text-[9px] mt-0.5" style={{ color: "hsl(var(--muted-foreground))" }}>
                     {(() => {
                       const mins = Math.round((Date.now() - new Date(profile.last_synced_at).getTime()) / 60000);
                       if (mins < 1) return "just now";
@@ -1351,7 +1351,7 @@ const Profile = () => {
                   >
                     <div
                       className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0"
-                      style={{ backgroundColor: "#FF2D78" }}
+                      style={{ backgroundColor: "hsl(var(--primary))" }}
                     >
                       {p.avatar_url ? (
                         <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -1531,7 +1531,7 @@ const Profile = () => {
                 value={`https://onplai.lovable.app/profile/${profile?.username || profile?.id}`}
                 size={180}
                 bgColor="transparent"
-                fgColor="#F0EBE3"
+                fgColor="hsl(var(--foreground))"
               />
             </div>
             <p className="text-sm text-foreground mb-1">@{profile?.username || "user"}</p>

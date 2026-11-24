@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
+import { useTheme, type ThemePreference } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, LogOut, Radar } from "lucide-react";
@@ -32,8 +33,15 @@ const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
 const APIKEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
 
+const APPEARANCE_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
+  { value: "night", label: "night", icon: "☾" },
+  { value: "dawn", label: "dawn", icon: "☀︎" },
+  { value: "system", label: "match my phone", icon: "◐" },
+];
+
 const SettingsPage = () => {
   const { user, loading, signOut } = useAuth();
+  const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const { preferredPlatform, setPreferredPlatform } = usePlatform();
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -45,7 +53,7 @@ const SettingsPage = () => {
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [statusSaved, setStatusSaved] = useState(false);
-  const [profileColor, setProfileColor] = useState("#080B12");
+  const [profileColor, setProfileColor] = useState("hsl(var(--background))");
   const [showAbout, setShowAbout] = useState(false);
   const [showDeveloperNotes, setShowDeveloperNotes] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
@@ -89,7 +97,7 @@ const SettingsPage = () => {
         setUsername(data.username || "");
         setIsPublic((data as any).public !== false);
         setStatus((data as any).status || "");
-        setProfileColor((data as any).profile_color || "#080B12");
+        setProfileColor((data as any).profile_color || "hsl(var(--background))");
         setTidalConnected(!!(data as any).tidal_access_token);
         setYoutubeConnected(!!(data as any).youtube_access_token);
         setAppleConnected(!!(data as any).apple_music_user_token);
@@ -493,6 +501,39 @@ const SettingsPage = () => {
           <span className="text-[10px] text-muted-foreground mt-1 block">
             {status.length}/80 · shown on your profile
           </span>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">appearance</h3>
+          <div role="radiogroup" aria-label="appearance" className="grid grid-cols-3 gap-2">
+            {APPEARANCE_OPTIONS.map((opt) => {
+              const selected = themePreference === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setThemePreference(opt.value)}
+                  className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-3 text-xs transition-colors duration-150 ${
+                    selected
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                  style={{ touchAction: "manipulation" }}
+                >
+                  <span className="text-base leading-none" aria-hidden="true">{opt.icon}</span>
+                  <span className="font-medium">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            {themePreference === "system"
+              ? "follows your phone — dawn in light mode, night in dark mode"
+              : themePreference === "dawn"
+                ? "the same sky at first light"
+                : "the night sky"}
+          </p>
         </div>
 
         <div className="border-t border-border pt-6">

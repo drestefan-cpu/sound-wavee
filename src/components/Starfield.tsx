@@ -27,7 +27,15 @@ const Starfield = () => {
           .star-dot { animation: none !important; }
         }
       `}</style>
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+        style={{ opacity: "var(--star-opacity)" }}
+      >
+        {/* Horizon glow — transparent at Night, a faint pink first-light glow at Dawn */}
+        <div
+          className="absolute inset-0"
+          style={{ background: "radial-gradient(120% 50% at 50% 110%, var(--sky-glow), transparent 70%)" }}
+        />
         {stars.map((s) => (
           <div
             key={s.id}

@@ -115,7 +115,7 @@ const SongShare = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#080B12]">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
@@ -125,8 +125,8 @@ const SongShare = () => {
 
   if (!track) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#080B12]">
-        <p className="text-sm" style={{ color: "rgba(240,235,227,0.4)" }}>song not found</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <p className="text-sm" style={{ color: "hsl(var(--foreground) / 0.4)" }}>song not found</p>
         <a href="https://onplai.lovable.app" className="mt-3 text-xs text-primary">
           go to PLAI →
         </a>
@@ -162,7 +162,7 @@ const SongShare = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ position: "relative", height: "100dvh", overflow: "hidden", background: "#080B12" }}>
+    <div style={{ position: "relative", height: "100dvh", overflow: "hidden", background: "hsl(var(--background))" }}>
 
       {/* Background: blurred album art */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden" }}>
@@ -175,17 +175,18 @@ const SongShare = () => {
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              filter: "blur(40px) brightness(0.3) saturate(1.2)",
+              filter: "var(--art-backdrop-filter)",
               transform: "scale(1.1)",
             }}
           />
         ) : (
-          <div style={{ width: "100%", height: "100%", background: "#080B12" }} />
+          <div style={{ width: "100%", height: "100%", background: "hsl(var(--background))" }} />
         )}
         <div style={{
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(to bottom, rgba(8,11,18,0.3) 0%, rgba(8,11,18,0.7) 100%)",
+          background:
+            "linear-gradient(to bottom, hsl(var(--background) / var(--art-overlay-top)) 0%, hsl(var(--background) / var(--art-overlay-bottom)) 100%)",
         }} />
       </div>
 
@@ -215,7 +216,7 @@ const SongShare = () => {
                 alignItems: "center",
                 gap: 8,
                 marginBottom: 20,
-                color: "rgba(240,235,227,0.7)",
+                color: "hsl(var(--foreground) / 0.7)",
                 fontSize: 12,
                 textDecoration: "none",
               }}
@@ -229,9 +230,9 @@ const SongShare = () => {
               ) : (
                 <div style={{
                   width: 28, height: 28, borderRadius: "50%",
-                  background: "rgba(255,45,120,0.2)",
+                  background: "hsl(var(--primary) / 0.2)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 700, color: "#FF2D78",
+                  fontSize: 11, fontWeight: 700, color: "hsl(var(--primary))",
                 }}>
                   {(sharerName[0] || "?").toUpperCase()}
                 </div>
@@ -259,24 +260,24 @@ const SongShare = () => {
             <div style={{
               width: 180, height: 180,
               borderRadius: 16,
-              background: "rgba(26,37,53,0.8)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "hsl(var(--secondary) / 0.8)",
+              border: "1px solid hsl(var(--foreground) / 0.06)",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <Music style={{ width: 48, height: 48, color: "#4a6a8a" }} />
+              <Music style={{ width: 48, height: 48, color: "hsl(var(--muted-foreground))" }} />
             </div>
           )}
 
           {/* Track info */}
           <div style={{ marginTop: 16, textAlign: "center", width: "100%" }}>
-            <p style={{ fontSize: 20, fontWeight: 500, color: "#F0EBE3", lineHeight: 1.3 }}>
+            <p style={{ fontSize: 20, fontWeight: 500, color: "hsl(var(--foreground))", lineHeight: 1.3 }}>
               {track.title}
             </p>
-            <p style={{ fontSize: 14, marginTop: 4, color: "rgba(240,235,227,0.7)" }}>
+            <p style={{ fontSize: 14, marginTop: 4, color: "hsl(var(--foreground) / 0.7)" }}>
               {track.artist}
             </p>
             {track.album && (
-              <p style={{ fontSize: 12, marginTop: 2, color: "rgba(240,235,227,0.4)" }}>
+              <p style={{ fontSize: 12, marginTop: 2, color: "hsl(var(--foreground) / 0.4)" }}>
                 {track.album}
               </p>
             )}
@@ -354,18 +355,18 @@ const SongShare = () => {
               display: "flex",
               alignItems: "center",
               gap: 8,
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "hsl(var(--foreground) / 0.05)",
+              border: "1px solid hsl(var(--foreground) / 0.08)",
               borderRadius: 100,
               padding: "10px 16px",
               cursor: "pointer",
               width: "100%",
             }}
           >
-            <LinkIcon style={{ width: 13, height: 13, color: "rgba(240,235,227,0.4)", flexShrink: 0 }} />
+            <LinkIcon style={{ width: 13, height: 13, color: "hsl(var(--foreground) / 0.4)", flexShrink: 0 }} />
             <span style={{
               fontSize: 11,
-              color: "rgba(240,235,227,0.5)",
+              color: "hsl(var(--foreground) / 0.5)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -373,7 +374,7 @@ const SongShare = () => {
             }}>
               {displayUrl}
             </span>
-            <span style={{ fontSize: 11, fontWeight: 500, color: "#FF2D78", flexShrink: 0, marginLeft: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 500, color: "hsl(var(--primary))", flexShrink: 0, marginLeft: 8 }}>
               copy
             </span>
           </div>
@@ -383,24 +384,24 @@ const SongShare = () => {
             {sharerName && sharer?.username ? (
               <Link
                 to={`/profile/${sharer.username}`}
-                style={{ fontSize: 12, color: "rgba(240,235,227,0.4)", textDecoration: "none" }}
+                style={{ fontSize: 12, color: "hsl(var(--foreground) / 0.4)", textDecoration: "none" }}
               >
                 see what {sharerName} is listening to on PLAI →
               </Link>
             ) : (
               <a
                 href="https://onplai.lovable.app"
-                style={{ fontSize: 12, color: "rgba(240,235,227,0.4)", textDecoration: "none" }}
+                style={{ fontSize: 12, color: "hsl(var(--foreground) / 0.4)", textDecoration: "none" }}
               >
                 find music with friends on PLAI →
               </a>
             )}
             <div style={{ marginTop: 12, opacity: 0.3 }}>
-              <PlaiLogo className="text-sm" glow={false} />
+              <PlaiLogo className="text-sm" glow={false} surface="card" />
             </div>
             <a
               href="https://onplai.lovable.app"
-              style={{ fontSize: "0.75rem", color: "rgba(240,235,227,0.3)", textDecoration: "none", display: "block", marginTop: 8 }}
+              style={{ fontSize: "0.75rem", color: "hsl(var(--foreground) / 0.3)", textDecoration: "none", display: "block", marginTop: 8 }}
             >
               open in PLAI →
             </a>
@@ -441,9 +442,9 @@ function btnStyleGlass(): React.CSSProperties {
     gap: 10,
     height: 48,
     borderRadius: 100,
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    color: "#F0EBE3",
+    background: "hsl(var(--foreground) / 0.08)",
+    border: "1px solid hsl(var(--foreground) / 0.12)",
+    color: "hsl(var(--foreground))",
     fontSize: 13,
     fontWeight: 500,
     textDecoration: "none",

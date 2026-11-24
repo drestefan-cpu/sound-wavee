@@ -24,7 +24,7 @@ class ErrorBoundary extends Component<Props, State> {
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#080B12] px-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
         <p className="text-lg font-medium text-foreground">something went wrong</p>
         <p className="text-sm text-muted-foreground">try reloading — if it keeps happening, let us know</p>
         <div className="flex gap-3">

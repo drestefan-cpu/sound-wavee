@@ -88,11 +88,11 @@ const Admin = () => {
 
   const catColor = (cat: string) => {
     switch (cat) {
-      case "core": return "#FF2D78";
-      case "main": return "#4a6a8a";
+      case "core": return "hsl(var(--primary))";
+      case "main": return "hsl(var(--muted-foreground))";
       case "positive": return "#1a9e75";
       case "language": return "#9B59B6";
-      default: return "#4a6a8a";
+      default: return "hsl(var(--muted-foreground))";
     }
   };
 

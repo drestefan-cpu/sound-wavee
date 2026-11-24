@@ -112,8 +112,8 @@ const TaglineSpace = () => {
           className="mt-5 text-sm italic text-center transition-all duration-500 ease-in-out max-w-[240px]"
           style={{
             opacity: fading ? 0 : 1,
-            color: glowing ? "hsl(340 100% 59%)" : "hsl(210 30% 40%)",
-            textShadow: glowing ? "0 0 12px hsl(340 100% 59% / 0.4)" : "none",
+            color: glowing ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+            textShadow: glowing ? "0 0 12px hsl(var(--primary) / 0.4)" : "none",
             transition: "opacity 0.4s ease, color 1.2s ease, text-shadow 1.2s ease",
           }}
         >

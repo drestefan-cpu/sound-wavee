@@ -34,7 +34,7 @@ const ShareTarget = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#080B12]">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       <p className="mt-4 text-sm text-muted-foreground">opening PLAI...</p>
     </div>

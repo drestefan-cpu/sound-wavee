@@ -7,7 +7,7 @@ import EmojiReactions from "@/components/EmojiReactions";
 import type { TrendingTrack } from "@/lib/trending";
 
 const getPlaceholderColor = (position: number) => {
-  return position % 2 === 1 ? '#FF2D78' : '#1a2535';
+  return position % 2 === 1 ? 'hsl(var(--primary))' : 'hsl(var(--secondary))';
 };
 
 const TrendingCard = ({ track, onSave, isSaved }: { track: TrendingTrack; onSave?: (track: TrendingTrack) => void; isSaved?: boolean }) => {

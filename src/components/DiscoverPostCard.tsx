@@ -59,7 +59,7 @@ const DiscoverPostCard = ({ post, onOpen }: DiscoverPostCardProps) => {
           <p className="line-clamp-2 text-sm font-medium text-foreground">{post.title}</p>
           {post.excerpt && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{post.excerpt}</p>}
           <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="truncate text-[11px]" style={{ color: "#2a3a4a" }}>
+            <span className="truncate text-[11px]" style={{ color: "hsl(var(--muted-foreground))" }}>
               {post.author_name || "PLAI"}
             </span>
             {post.post_type === "external" ? (

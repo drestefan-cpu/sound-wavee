@@ -170,7 +170,7 @@ const TrackDetailModal = ({
         <h3 className="text-lg font-medium text-foreground truncate">{track.title}</h3>
         <p className="text-sm text-muted-foreground truncate">{track.artist}</p>
         {track.album && (
-          <p className="text-xs truncate mt-0.5" style={{ color: "#2a3a4a" }}>
+          <p className="text-xs truncate mt-0.5" style={{ color: "hsl(var(--muted-foreground))" }}>
             {track.album}
           </p>
         )}
@@ -201,9 +201,9 @@ const TrackDetailModal = ({
             >
               <div
                 className="h-8 w-8 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: "#1a2535" }}
+                style={{ backgroundColor: "hsl(var(--secondary))" }}
               >
-                <ExternalLink className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+                <ExternalLink className="h-4 w-4" style={{ color: "hsl(var(--muted-foreground))" }} />
               </div>
               <span className="text-[10px] text-muted-foreground">{platformLabel[preferredPlatform] ?? "spotify"}</span>
             </button>
@@ -216,9 +216,9 @@ const TrackDetailModal = ({
             >
               <div
                 className="h-8 w-8 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: "#1a2535" }}
+                style={{ backgroundColor: "hsl(var(--secondary))" }}
               >
-                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" style={{ color: "#4a6a8a" }}>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" style={{ color: "hsl(var(--muted-foreground))" }}>
                   <path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z" />
                 </svg>
               </div>
@@ -232,9 +232,9 @@ const TrackDetailModal = ({
           >
             <div
               className="h-8 w-8 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: "#1a2535" }}
+              style={{ backgroundColor: "hsl(var(--secondary))" }}
             >
-              <Send className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+              <Send className="h-4 w-4" style={{ color: "hsl(var(--muted-foreground))" }} />
             </div>
             <span className="text-[10px] text-muted-foreground">recommend</span>
           </button>
@@ -282,9 +282,9 @@ const TrackDetailModal = ({
             >
               <div
                 className="h-8 w-8 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: "#1a2535" }}
+                style={{ backgroundColor: "hsl(var(--secondary))" }}
               >
-                <Share2 className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+                <Share2 className="h-4 w-4" style={{ color: "hsl(var(--muted-foreground))" }} />
 
               </div>
               <span className="text-[10px] text-muted-foreground">share</span>

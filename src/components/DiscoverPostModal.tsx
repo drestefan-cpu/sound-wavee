@@ -37,7 +37,7 @@ const MiniStarfield = () => {
             width: star.size,
             height: star.size,
             opacity: star.opacity,
-            backgroundColor: "#F0EBE3",
+            backgroundColor: "hsl(var(--foreground))",
           }}
         />
       ))}
@@ -201,7 +201,7 @@ const DiscoverPostModal = ({ post, onClose }: DiscoverPostModalProps) => {
     <div
       className="fixed inset-0 z-50 overflow-y-auto"
       style={{
-        backgroundColor: "#080B12",
+        backgroundColor: "hsl(var(--background))",
         overscrollBehavior: "contain",
         WebkitOverflowScrolling: "touch",
       }}
@@ -233,7 +233,7 @@ const DiscoverPostModal = ({ post, onClose }: DiscoverPostModalProps) => {
           fontFamily: "'DM Sans', sans-serif",
           fontWeight: 300,
           lineHeight: 1.8,
-          color: "#F0EBE3",
+          color: "hsl(var(--foreground))",
           paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 64px), 80px)",
           paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 112px), 112px)",
         }}

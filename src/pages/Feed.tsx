@@ -901,7 +901,7 @@ const Feed = () => {
           className="flex items-center gap-1.5 text-xs text-muted-foreground"
         >
           <span className="h-2 w-2 rounded-full bg-primary animate-pulse-live opacity-50" />
-          <span style={{ color: "#4a6a8a" }}>syncing...</span>
+          <span style={{ color: "hsl(var(--muted-foreground))" }}>syncing...</span>
         </button>
       );
     }
@@ -912,8 +912,8 @@ const Feed = () => {
           style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           className="flex items-center gap-1.5 text-xs transition-all duration-200"
         >
-          <span className="h-2 w-2 rounded-full animate-pulse-live" style={{ backgroundColor: "#F0EBE3" }} />
-          <span style={{ color: "#F0EBE3", fontWeight: 500 }}>{pendingItems.length} new</span>
+          <span className="h-2 w-2 rounded-full animate-pulse-live" style={{ backgroundColor: "hsl(var(--foreground))" }} />
+          <span style={{ color: "hsl(var(--foreground))", fontWeight: 500 }}>{pendingItems.length} new</span>
         </button>
       );
     }
@@ -949,7 +949,7 @@ const Feed = () => {
                 userSelect: "none",
                 display: "inline-block",
                 borderRadius: 4,
-                background: logoFlash ? "rgba(255,45,120,0.15)" : "transparent",
+                background: logoFlash ? "hsl(var(--primary) / 0.15)" : "transparent",
                 transition: "background 0.15s ease",
                 padding: "1px 2px",
               }}
@@ -1087,10 +1087,10 @@ const Feed = () => {
                       }
                       subtitle={
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="inline-flex items-center rounded-full bg-card border px-2 py-0.5 text-[10px] font-medium flex-shrink-0" style={{ color: "#2a3a4a", borderColor: "#2a3a4a" }}>
+                          <span className="inline-flex items-center rounded-full bg-card border px-2 py-0.5 text-[10px] font-medium flex-shrink-0" style={{ color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--muted-foreground))" }}>
                             {PLATFORM_LABELS[getTrackPlatform(track?.spotify_track_id)]}
                           </span>
-                          <span className="truncate text-[11px]" style={{ color: "#2a3a4a" }}>
+                          <span className="truncate text-[11px]" style={{ color: "hsl(var(--muted-foreground))" }}>
                             {formatTimestamp(item.liked_at)}
                           </span>
                         </div>
