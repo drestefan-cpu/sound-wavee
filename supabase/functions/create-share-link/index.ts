@@ -417,6 +417,11 @@ serve(async (req) => {
   shareUrl = sharer_username ? `${base}?from=${sharer_username.toLowerCase()}` : base
   shortUrl = `https://onplai.lovable.app/s/${shortId}`
 
+  } catch(dbErr: any) {
+    console.log('DB_ERR', String(dbErr), dbErr?.message, dbErr?.stack?.slice(0,300))
+    return fail('could not create share link')
+  }
+
   return ok({
     success: true,
     share_url: shareUrl,
