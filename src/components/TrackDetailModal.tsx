@@ -253,7 +253,7 @@ const TrackDetailModal = ({
                   ? `https://open.spotify.com/track/${sid}`
                   : null;
 
-                const shareUrl = `https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/og-song?id=${track.trackDbId}${sharerUsername ? "&from=" + sharerUsername.toLowerCase() : ""}`;
+                const shareUrl = `https://onplai.lovable.app/song/${track.trackDbId}${sharerUsername ? "?from=" + sharerUsername.toLowerCase() : ""}`;
 
                 if (platformUrl) {
                   try {
