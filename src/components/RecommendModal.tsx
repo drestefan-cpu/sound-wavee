@@ -1,17 +1,21 @@
 import { useState, useEffect } from "react";
-import { X, Send } from "lucide-react";
+import { X, Send, Share2, Link as LinkIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { followArtistForTrack } from "@/lib/followedArtists";
+import { songShareUrl } from "@/lib/shareLinks";
 
 interface RecommendModalProps {
   trackId: string;
   trackTitle: string;
+  trackArtist?: string;
+  /** Current user's username — shared links show "<username> shared this" */
+  sharerUsername?: string;
   onClose: () => void;
 }
 
-const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) => {
+const RecommendModal = ({ trackId, trackTitle, trackArtist, sharerUsername, onClose }: RecommendModalProps) => {
   const { user } = useAuth();
   const [followers, setFollowers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +34,26 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
     };
     load();
   }, [user]);
+
+  // PLAI song page link (rich preview with album art in iMessage etc.)
+  const shareUrl = songShareUrl(trackId, { from: sharerUsername });
+  const shareTitle = trackArtist ? `${trackTitle} — ${trackArtist}` : trackTitle;
+
+  const handleCopyLink = () => {
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => toast("link copied"))
+      .catch(() => toast.error("couldn't copy — try again"));
+  };
+
+  // Opens the phone's share sheet; on computers without one, copies the link instead
+  const handleNativeShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: shareTitle, url: shareUrl }).catch(() => {}); // cancelled
+    } else {
+      handleCopyLink();
+    }
+  };
 
   const handleSend = async (toUserId: string) => {
     if (!user) return;
@@ -65,6 +89,25 @@ const RecommendModal = ({ trackId, trackTitle, onClose }: RecommendModalProps) =
             <X className="h-5 w-5" />
           </button>
         </div>
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          <button
+            onClick={handleNativeShare}
+            className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/60"
+            style={{ touchAction: "manipulation" }}
+          >
+            <Share2 className="h-4 w-4" />
+            share
+          </button>
+          <button
+            onClick={handleCopyLink}
+            className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/60"
+            style={{ touchAction: "manipulation" }}
+          >
+            <LinkIcon className="h-4 w-4" />
+            copy link
+          </button>
+        </div>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">or send to a friend on PLAI</p>
         <div className="mb-3">
           <input
             value={message}

@@ -146,6 +146,8 @@ const TrackDetailModal = ({
       <RecommendModal
         trackId={track.trackDbId || track.id}
         trackTitle={track.title}
+        trackArtist={track.artist}
+        sharerUsername={sharerUsername}
         onClose={() => setShowRecommend(false)}
       />
     )}

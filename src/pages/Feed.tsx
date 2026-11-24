@@ -210,7 +210,7 @@ const Feed = () => {
 
   const taglineRef = useRef<HomeTaglineRef>(null);
   const [logoFlash, setLogoFlash] = useState(false);
-  const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string } | null>(null);
+  const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string; artist?: string } | null>(null);
 
   const [useMockReleases, setUseMockReleases] = useState(() => localStorage.getItem(RELEASES_MOCK_KEY) === "1");
   const [showReleasesDebug, setShowReleasesDebug] = useState(() => localStorage.getItem(RELEASES_DEBUG_KEY) === "1");
@@ -1063,7 +1063,7 @@ const Feed = () => {
                           return next;
                         })
                       }
-                      onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title })}
+                      onShare={() => setRecommendTrack({ id: item.track_id, title: track?.title, artist: track?.artist })}
                       sharerUsername={currentUsername ?? undefined}
                       header={
                         <div className="mb-2 flex items-center gap-3">
@@ -1246,7 +1246,7 @@ const Feed = () => {
                                   toast("sharing will unlock once this release is synced");
                                   return;
                                 }
-                                setRecommendTrack({ id: track.trackDbId, title: track.title });
+                                setRecommendTrack({ id: track.trackDbId, title: track.title, artist: track.artist });
                               }}
                               subtitle={
                                 <div>
@@ -1345,6 +1345,8 @@ const Feed = () => {
         <RecommendModal
           trackId={recommendTrack.id}
           trackTitle={recommendTrack.title}
+          trackArtist={recommendTrack.artist}
+          sharerUsername={currentUsername ?? undefined}
           onClose={() => setRecommendTrack(null)}
         />
       )}
