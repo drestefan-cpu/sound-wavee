@@ -304,6 +304,22 @@ serve(async (req) => {
 
   if (!title) return fail("could not find track info from that link — try a direct track URL")
 
+  // ── Resolve Spotify ID via ISRC for non-Spotify links (Apple, Tidal, Deezer) ──
+  if (!spotify_track_id && isrc) {
+    try {
+      const token = await getSpotifyClientToken()
+      if (token) {
+        const res = await fetch(`https://api.spotify.com/v1/search?q=isrc:${encodeURIComponent(isrc)}&type=track&limit=1`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          spotify_track_id = data.tracks?.items?.[0]?.id || null
+        }
+      }
+    } catch {}
+  }
+
   console.log("BEFORE_DB_CHECK", "title", title, "artist", artist, "apple_music_id", apple_music_id)
   // ── Check if track exists in DB ───────────────────────────────────────────────
   let existingTrack: any = null
@@ -347,7 +363,8 @@ serve(async (req) => {
     if (!existingTrack.short_id) updates.short_id = shortId
     if (apple_music_id && !existingTrack.apple_music_id) updates.apple_music_id = apple_music_id
     if (youtube_video_id && !existingTrack.youtube_video_id) updates.youtube_video_id = youtube_video_id
-    if (spotify_track_id && !existingTrack.spotify_track_id) updates.spotify_track_id = spotify_track_id
+    // Replace a missing or "share:" placeholder Spotify ID with the real one
+    if (spotify_track_id && (!existingTrack.spotify_track_id || existingTrack.spotify_track_id.startsWith("share:"))) updates.spotify_track_id = spotify_track_id
     if (isrc && !existingTrack.isrc) updates.isrc = isrc
     if (album_art_url && !existingTrack.album_art_url) updates.album_art_url = album_art_url
     if (Object.keys(updates).length > 0) {

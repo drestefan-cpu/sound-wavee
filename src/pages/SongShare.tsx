@@ -139,7 +139,7 @@ const SongShare = () => {
   const isApple = !!sid && sid.startsWith("apple:");
   const isYouTubeSentinel = !!sid && sid.startsWith("yt:");
   const showSpotify = !!sid && !isApple && !isYouTubeSentinel && !sid.startsWith("share:");
-  const appleMusicId = isApple ? sid!.slice(6) : null;
+  const appleMusicId = isApple ? sid!.slice(6) : (track.apple_music_id ?? null);
   const ytVideoId = track.youtube_video_id || (isYouTubeSentinel ? sid!.slice(3) : null);
   const appleMusicUrl = appleMusicId
     ? `https://music.apple.com/us/song/${appleMusicId}`
