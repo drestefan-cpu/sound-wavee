@@ -188,6 +188,20 @@
     color: var(--logo-knockout, hsl(var(--background)));
   }
 
+  /* ── Settings at Dawn: let headings lead, keep fields and save buttons quiet ──
+     (On a light sky, bright filled inputs and solid pink buttons outweighed the section headings.) */
+  :root[data-theme="dawn"] .settings-field {
+    background-color: transparent;
+  }
+  :root[data-theme="dawn"] .settings-save {
+    background-color: transparent;
+    color: hsl(var(--primary));
+    box-shadow: inset 0 0 0 1.5px hsl(var(--primary));
+  }
+  :root[data-theme="dawn"] .settings-save:hover {
+    background-color: hsl(var(--primary) / 0.08);
+  }
+
   /* Quietest readable text (inactive nav tabs etc.) — follows the theme */
   .text-muted-dim {
     color: hsl(var(--muted-foreground));

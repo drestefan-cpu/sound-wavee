@@ -52,7 +52,7 @@ const SettingsPage = () => {
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [statusSaved, setStatusSaved] = useState(false);
-  const [profileColor, setProfileColor] = useState("hsl(var(--background))");
+  const [profileColor, setProfileColor] = useState("#FF2D78");
   const [showAbout, setShowAbout] = useState(false);
   const [showDeveloperNotes, setShowDeveloperNotes] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
@@ -96,7 +96,7 @@ const SettingsPage = () => {
         setUsername(data.username || "");
         setIsPublic((data as any).public !== false);
         setStatus((data as any).status || "");
-        setProfileColor((data as any).profile_color || "hsl(var(--background))");
+        setProfileColor((data as any).profile_color || "#FF2D78");
         setTidalConnected(!!(data as any).tidal_access_token);
         setYoutubeConnected(!!(data as any).youtube_access_token);
         setAppleConnected(!!(data as any).apple_music_user_token);
@@ -398,18 +398,18 @@ const SettingsPage = () => {
 
         {/* Display name — separate save handler */}
         <div>
-          <label className="mb-1.5 block text-sm text-muted-foreground">display name</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">display name</label>
           <div className="flex gap-2">
             <Input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSaveDisplayName()}
-              className="bg-card border-border"
+              className="settings-field bg-card border-border"
             />
             <button
               onClick={handleSaveDisplayName}
               disabled={displayNameSaving}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+              className="settings-save rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
               style={{ touchAction: "manipulation" }}
             >
               {displayNameSaving ? "saving..." : "save"}
@@ -419,18 +419,18 @@ const SettingsPage = () => {
 
         {/* Username — separate save handler */}
         <div>
-          <label className="mb-1.5 block text-sm text-muted-foreground">username</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">username</label>
           <div className="flex gap-2">
             <Input
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
               onKeyDown={(e) => e.key === "Enter" && handleSaveUsername()}
-              className="bg-card border-border"
+              className="settings-field bg-card border-border"
             />
             <button
               onClick={handleSaveUsername}
               disabled={usernameSaving}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+              className="settings-save rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
               style={{ touchAction: "manipulation" }}
             >
               {usernameSaving ? "saving..." : "save"}
@@ -440,7 +440,7 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <label className="mb-1.5 block text-sm text-muted-foreground">profile photo</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">profile photo</label>
           <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
               {avatarUrl ? (
@@ -455,7 +455,7 @@ const SettingsPage = () => {
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
               placeholder="paste an image URL"
-              className="bg-card border-border"
+              className="settings-field bg-card border-border"
             />
           </div>
           <button
@@ -471,7 +471,7 @@ const SettingsPage = () => {
               else toast.success("photo saved ✓");
             }}
             disabled={avatarSaving}
-            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+            className="settings-save rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
             style={{ touchAction: "manipulation" }}
           >
             {avatarSaving ? "saving..." : "save"}
@@ -479,20 +479,20 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <label className="mb-1.5 block text-sm text-muted-foreground">status</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">status</label>
           <div className="flex gap-2">
             <Input
               value={status}
               onChange={(e) => setStatus(e.target.value.slice(0, 80))}
               onKeyDown={(e) => e.key === "Enter" && handleSaveStatus()}
               placeholder="on rotation"
-              className="bg-card border-border"
+              className="settings-field bg-card border-border"
               maxLength={80}
             />
             <button
               onClick={handleSaveStatus}
               disabled={saving}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+              className="settings-save rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
               style={{ touchAction: "manipulation" }}
             >
               {saving ? "saving..." : statusSaved ? "saved ✓" : "save"}
@@ -504,7 +504,7 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">appearance</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">appearance</h3>
           <div role="radiogroup" aria-label="appearance" className="grid grid-cols-3 gap-2">
             {APPEARANCE_OPTIONS.map((opt) => {
               const selected = themePreference === opt.value;
@@ -537,8 +537,8 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">moon appearance</h3>
-          <label className="mb-1.5 block text-sm text-muted-foreground">moon colour</label>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">moon appearance</h3>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">moon colour</label>
           <p className="text-[10px] text-muted-foreground mb-2">
             sets the colour of your moon dot in your friends' libraries — only visible to those you follow
           </p>
@@ -552,7 +552,7 @@ const SettingsPage = () => {
             <span className="text-xs text-muted-foreground">{profileColor}</span>
             <button
               onClick={() => handleSave("profile_color", profileColor)}
-              className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
+              className="settings-save rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
               style={{ touchAction: "manipulation" }}
             >
               save
@@ -561,7 +561,7 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">current mood</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">current mood</h3>
           <p className="text-[10px] text-muted-foreground mb-3">
             sets your vibe — shown as an emoji next to your name in friends' libraries. Only visible to those you follow.
           </p>
@@ -600,7 +600,7 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">
             preferred platform
           </h3>
           <p className="text-[10px] text-muted-foreground mb-2">track links and play buttons open in this app</p>
@@ -623,7 +623,7 @@ const SettingsPage = () => {
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">
             connected platforms
           </h3>
           <div className="space-y-4">
@@ -762,7 +762,7 @@ const SettingsPage = () => {
         {/* Tools */}
         {hasRadarAccess && (
           <div className="border-t border-border pt-6">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">tools</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground">tools</p>
             <Link
               to="/radar"
               className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
@@ -774,7 +774,7 @@ const SettingsPage = () => {
         )}
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">privacy</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">privacy</h3>
           <label className="flex items-center justify-between">
             <div>
               <p className="text-sm text-foreground">public profile</p>
@@ -795,7 +795,7 @@ const SettingsPage = () => {
           </label>
           {usesPinLogin && (
           <div className="mt-6">
-            <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">quick login PIN</h4>
             <p className="text-xs text-muted-foreground mb-2">set a 6-digit PIN to sign in with your username on another device</p>
             <div className="flex gap-2">
               <Input
@@ -805,12 +805,12 @@ const SettingsPage = () => {
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="••••••"
-                className="bg-card border-border w-32 text-center tracking-[0.3em]"
+                className="settings-field bg-card border-border w-32 text-center tracking-[0.3em]"
               />
               <button
                 onClick={handleSavePin}
                 disabled={pinSaving || pin.length !== 6}
-                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
+                className="settings-save rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
                 style={{ touchAction: "manipulation" }}
               >
                 {pinSaving ? "saving..." : "save"}
@@ -828,7 +828,7 @@ const SettingsPage = () => {
             style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           >
             <div>
-              <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">push notifications</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">push notifications</h3>
               <p className="text-[10px] text-muted-foreground mt-1">choose which notifications you'd like to receive</p>
             </div>
             <ChevronDown
