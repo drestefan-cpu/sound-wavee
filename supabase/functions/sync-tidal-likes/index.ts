@@ -1,17 +1,43 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+// Syncs a user's TIDAL favourite tracks using the current TIDAL API (v2, JSON:API):
+//   1. GET /userCollectionTracks/me/relationships/items  → track ids + addedAt (newest first)
+//   2. GET /tracks?filter[id]=…&include=artists,albums   → title, ISRC, artist names, album ids
+//   3. GET /albums?filter[id]=…&include=coverArt         → album title + cover art URL
+// Spec: https://tidal-music.github.io/tidal-api-reference/tidal-api-oas.json
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
+
+const API = "https://openapi.tidal.com/v2"
+const COUNTRY = "US"
+const LOOKBACK_DAYS = 365
+const MAX_PAGES = 15
+const BATCH = 20 // TIDAL's filter[id] limit
+
+type Favourite = { id: string; addedAt: string }
+type TrackInfo = { id: string; title: string; isrc: string | null; artist: string; album: string | null; albumArtUrl: string | null }
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+
+const chunk = <T,>(arr: T[], size: number): T[][] => {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
+
+const generateShortId = () => Math.random().toString(36).slice(2, 8)
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {
     const { user_id } = await req.json()
-    if (!user_id) return new Response(JSON.stringify({ error: "user_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    if (!user_id) return json({ error: "user_id required" }, 400)
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -24,116 +50,271 @@ serve(async (req) => {
       .eq("id", user_id)
       .single()
 
-    if (!profile?.tidal_access_token) {
-      return new Response(JSON.stringify({ error: "No Tidal token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } })
-    }
+    if (!profile?.tidal_access_token) return json({ error: "No Tidal token" }, 401)
 
-    let accessToken = profile.tidal_access_token
+    let accessToken: string = profile.tidal_access_token
 
-    let tidalRes = await fetch("https://openapi.tidal.com/v2/users/me/favorites/tracks?limit=50", {
-      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.api+json" }
-    })
-
-    if (tidalRes.status === 401 && profile.tidal_refresh_token) {
-      const clientId = Deno.env.get("TIDAL_CLIENT_ID") || ""
-      const refreshRes = await fetch("https://auth.tidal.com/v1/oauth2/token", {
+    // ── Token refresh (TIDAL access tokens are short-lived) ──────────────────
+    let refreshAttempted = false
+    const refreshAccessToken = async (): Promise<boolean> => {
+      if (refreshAttempted || !profile.tidal_refresh_token) return false
+      refreshAttempted = true
+      const clientId = Deno.env.get("TIDAL_CLIENT_ID")!
+      const clientSecret = Deno.env.get("TIDAL_CLIENT_SECRET")!
+      const res = await fetch("https://auth.tidal.com/v1/oauth2/token", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+        },
         body: new URLSearchParams({
           grant_type: "refresh_token",
           refresh_token: profile.tidal_refresh_token,
           client_id: clientId,
-        })
+        }),
       })
-      const refreshData = await refreshRes.json()
-      if (refreshData.access_token) {
-        accessToken = refreshData.access_token
-        await supabaseAdmin.from("profiles").update({ tidal_access_token: accessToken }).eq("id", user_id)
-        tidalRes = await fetch("https://openapi.tidal.com/v2/users/me/favorites/tracks?limit=50", {
-          headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.api+json" }
-        })
+      const data = await res.json().catch(() => ({}))
+      if (!data.access_token) {
+        console.error("Tidal token refresh failed:", res.status, data.error, data.error_description)
+        return false
       }
+      accessToken = data.access_token
+      await supabaseAdmin.from("profiles").update({
+        tidal_access_token: accessToken,
+        ...(data.refresh_token ? { tidal_refresh_token: data.refresh_token } : {}),
+      }).eq("id", user_id)
+      return true
     }
 
-    if (!tidalRes.ok) {
-      const errText = await tidalRes.text()
-      return new Response(JSON.stringify({ error: "Tidal API failed", detail: errText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    class TokenRejected extends Error {}
+
+    const tidalGet = async (url: string): Promise<any> => {
+      const doFetch = () =>
+        fetch(url, { headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.api+json" } })
+      let res = await doFetch()
+      if (res.status === 401 && await refreshAccessToken()) res = await doFetch()
+      if (res.status === 401 || res.status === 403) throw new TokenRejected(`Tidal rejected token (${res.status})`)
+      if (!res.ok) {
+        const detail = await res.text()
+        throw new Error(`Tidal API ${res.status} for ${url.replace(API, "")}: ${detail.slice(0, 300)}`)
+      }
+      return res.json()
     }
 
-    const tidalData = await tidalRes.json()
-    let syncedCount = 0
+    const buildUrl = (path: string, params: Record<string, string | string[]>) => {
+      const u = new URL(`${API}${path}`)
+      for (const [k, v] of Object.entries(params)) {
+        for (const value of Array.isArray(v) ? v : [v]) u.searchParams.append(k, value)
+      }
+      return u.toString()
+    }
 
-    const { data: exclusionRows } = await supabaseAdmin
-      .from("collection_exclusions")
-      .select("track_id, created_at")
-      .eq("user_id", user_id)
+    try {
+      // ── Step 1: favourite track ids, newest first ───────────────────────────
+      const cutoff = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000)
+      const favourites: Favourite[] = []
+      let nextUrl: string | null = buildUrl("/userCollectionTracks/me/relationships/items", {
+        sort: "-addedAt",
+        locale: "en-US",
+      })
+      let pages = 0
+      let reachedCutoff = false
 
-    const excludedAtByTrackId = new Map<string, string>(
-      (exclusionRows || []).map((row: any) => [row.track_id, row.created_at])
-    )
-
-    for (const item of tidalData.data || []) {
-      const track = item.attributes
-      if (!track) continue
-
-      const { data: existing } = await supabaseAdmin
-        .from("tracks")
-        .select("id")
-        .eq("tidal_track_id", item.id)
-        .maybeSingle()
-
-      let trackId: string
-      if (existing) {
-        trackId = existing.id
-      } else {
-        const { data: inserted } = await supabaseAdmin.from("tracks").insert({
-          tidal_track_id: item.id,
-          spotify_track_id: `tidal_${item.id}`,
-          title: track.title || "Unknown",
-          artist: track.artists?.map((a: any) => a.name).join(", ") || "Unknown",
-          album: track.album?.title || null,
-          album_art_url: track.album?.imageCover?.[0]?.url || null,
-        }).select("id").single()
-        if (!inserted) continue
-        trackId = inserted.id
+      while (nextUrl && !reachedCutoff && pages < MAX_PAGES) {
+        const page = await tidalGet(nextUrl)
+        pages++
+        for (const item of (page.data || []) as any[]) {
+          if (item.type !== "tracks" || !item.id) continue
+          const addedAt: string = item.meta?.addedAt || new Date().toISOString()
+          if (new Date(addedAt) < cutoff) { reachedCutoff = true; break }
+          favourites.push({ id: String(item.id), addedAt })
+        }
+        const next: string | undefined = page.links?.next
+        nextUrl = next ? (next.startsWith("http") ? next : `${API}${next}`) : null
       }
 
-      // A removed song stays removed unless it was re-liked on Tidal after the removal
-      const excludedAt = excludedAtByTrackId.get(trackId)
-      if (excludedAt) {
-        const relikedAfterRemoval = !!track.dateAdded && new Date(track.dateAdded) > new Date(excludedAt)
-        if (!relikedAfterRemoval) continue
-        await supabaseAdmin
-          .from("collection_exclusions")
-          .delete()
-          .eq("user_id", user_id)
-          .eq("track_id", trackId)
-        excludedAtByTrackId.delete(trackId)
+      if (favourites.length === 0) {
+        await supabaseAdmin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", user_id)
+        return json({ success: true, count: 0 })
       }
 
-      const { data: existingLike } = await supabaseAdmin
-        .from("likes")
-        .select("id")
+      // ── Step 2: track details (title, ISRC, artists, album id) ──────────────
+      const trackInfo = new Map<string, TrackInfo>()
+      const albumIdByTrackId = new Map<string, string>()
+
+      for (const ids of chunk(favourites.map((f) => f.id), BATCH)) {
+        const doc = await tidalGet(buildUrl("/tracks", {
+          "filter[id]": ids,
+          include: ["artists", "albums"],
+          countryCode: COUNTRY,
+        }))
+        const included = new Map<string, any>()
+        for (const inc of (doc.included || []) as any[]) included.set(`${inc.type}:${inc.id}`, inc)
+
+        for (const t of (doc.data || []) as any[]) {
+          const artistNames = ((t.relationships?.artists?.data || []) as any[])
+            .map((a) => included.get(`artists:${a.id}`)?.attributes?.name)
+            .filter(Boolean)
+          const albumRef = t.relationships?.albums?.data?.[0]
+          const album = albumRef ? included.get(`albums:${albumRef.id}`) : null
+          if (albumRef?.id) albumIdByTrackId.set(String(t.id), String(albumRef.id))
+          const baseTitle: string = t.attributes?.title || "Unknown"
+          const version: string | undefined = t.attributes?.version
+          trackInfo.set(String(t.id), {
+            id: String(t.id),
+            title: version ? `${baseTitle} (${version})` : baseTitle,
+            isrc: t.attributes?.isrc || null,
+            artist: artistNames.join(", ") || "Unknown",
+            album: album?.attributes?.title || null,
+            albumArtUrl: null,
+          })
+        }
+      }
+
+      // ── Step 3: album cover art ─────────────────────────────────────────────
+      const albumIds = [...new Set(albumIdByTrackId.values())]
+      const coverByAlbumId = new Map<string, string>()
+      for (const ids of chunk(albumIds, BATCH)) {
+        try {
+          const doc = await tidalGet(buildUrl("/albums", { "filter[id]": ids, include: ["coverArt"], countryCode: COUNTRY }))
+          const artworks = new Map<string, any>()
+          for (const inc of (doc.included || []) as any[]) if (inc.type === "artworks") artworks.set(String(inc.id), inc)
+          for (const al of (doc.data || []) as any[]) {
+            const artId = al.relationships?.coverArt?.data?.[0]?.id
+            const files: any[] = artId ? artworks.get(String(artId))?.attributes?.files || [] : []
+            // Pick the file closest to 640px wide
+            const best = files
+              .filter((f) => f?.href)
+              .sort((a, b) => Math.abs((a.meta?.width ?? 640) - 640) - Math.abs((b.meta?.width ?? 640) - 640))[0]
+            if (best) coverByAlbumId.set(String(al.id), best.href)
+          }
+        } catch (err) {
+          if (err instanceof TokenRejected) throw err
+          console.error("Tidal album art fetch failed (continuing without art):", String(err))
+        }
+      }
+      for (const [trackId, albumId] of albumIdByTrackId) {
+        const info = trackInfo.get(trackId)
+        if (info) info.albumArtUrl = coverByAlbumId.get(albumId) || null
+      }
+
+      // ── Step 4: match against tracks PLAI already has (Tidal id, then ISRC) ──
+      const trackIdByTidalId = new Map<string, string>()
+      const tidalIds = [...trackInfo.keys()]
+
+      for (const ids of chunk(tidalIds, 100)) {
+        const { data, error } = await supabaseAdmin.from("tracks").select("id, tidal_track_id").in("tidal_track_id", ids)
+        if (error) throw error
+        for (const row of data || []) trackIdByTidalId.set(row.tidal_track_id, row.id)
+      }
+
+      const needIsrc = [...trackInfo.values()].filter((t) => !trackIdByTidalId.has(t.id) && t.isrc)
+      const isrcRows = new Map<string, { id: string; tidal_track_id: string | null }>()
+      for (const isrcs of chunk([...new Set(needIsrc.map((t) => t.isrc!))], 100)) {
+        const { data, error } = await supabaseAdmin.from("tracks").select("id, isrc, tidal_track_id").in("isrc", isrcs)
+        if (error) throw error
+        for (const row of data || []) {
+          const current = isrcRows.get(row.isrc)
+          if (!current || (current.tidal_track_id && !row.tidal_track_id)) isrcRows.set(row.isrc, row)
+        }
+      }
+      for (const t of needIsrc) {
+        const row = isrcRows.get(t.isrc!)
+        if (!row) continue
+        trackIdByTidalId.set(t.id, row.id)
+        if (!row.tidal_track_id) {
+          await supabaseAdmin.from("tracks").update({ tidal_track_id: t.id }).eq("id", row.id)
+          row.tidal_track_id = t.id
+        }
+      }
+
+      // ── Step 5: insert tracks PLAI has never seen ───────────────────────────
+      const toInsert = [...trackInfo.values()]
+        .filter((t) => !trackIdByTidalId.has(t.id))
+        .map((t) => ({
+          spotify_track_id: `tidal_${t.id}`,
+          tidal_track_id: t.id,
+          title: t.title,
+          artist: t.artist,
+          album: t.album,
+          album_art_url: t.albumArtUrl,
+          isrc: t.isrc,
+          short_id: generateShortId(),
+        }))
+
+      for (const rows of chunk(toInsert, 100)) {
+        const { data, error } = await supabaseAdmin
+          .from("tracks")
+          .upsert(rows, { onConflict: "spotify_track_id" })
+          .select("id, tidal_track_id")
+        if (!error) {
+          for (const row of data || []) trackIdByTidalId.set(row.tidal_track_id, row.id)
+          continue
+        }
+        console.error("Batch track insert failed, retrying individually:", error.message)
+        for (const row of rows) {
+          const { data: one, error: oneErr } = await supabaseAdmin
+            .from("tracks")
+            .upsert(row, { onConflict: "spotify_track_id" })
+            .select("id, tidal_track_id")
+            .single()
+          if (oneErr) console.error(`Track insert failed for tidal_${row.tidal_track_id}:`, oneErr.message)
+          else trackIdByTidalId.set(one.tidal_track_id, one.id)
+        }
+      }
+
+      // ── Step 6: record likes (removed songs stay removed unless re-favourited) ─
+      const likeByTrackId = new Map<string, string>()
+      for (const f of favourites) {
+        const trackId = trackIdByTidalId.get(f.id)
+        if (!trackId) continue
+        const existing = likeByTrackId.get(trackId)
+        if (!existing || new Date(f.addedAt) > new Date(existing)) likeByTrackId.set(trackId, f.addedAt)
+      }
+
+      const { data: exclusionRows } = await supabaseAdmin
+        .from("collection_exclusions")
+        .select("track_id, created_at")
         .eq("user_id", user_id)
-        .eq("track_id", trackId)
-        .maybeSingle()
+      const excludedAtByTrackId = new Map<string, string>(
+        (exclusionRows || []).map((row: any) => [row.track_id, row.created_at])
+      )
 
-      if (!existingLike) {
-        await supabaseAdmin.from("likes").insert({
-          user_id,
-          track_id: trackId,
-          liked_at: track.dateAdded || new Date().toISOString(),
-        })
+      const likedTrackIds: string[] = []
+      const relikedTrackIds: string[] = []
+      for (const [trackId, likedAt] of likeByTrackId) {
+        const excludedAt = excludedAtByTrackId.get(trackId)
+        if (!excludedAt) {
+          likedTrackIds.push(trackId)
+        } else if (new Date(likedAt) > new Date(excludedAt)) {
+          likedTrackIds.push(trackId)
+          relikedTrackIds.push(trackId)
+        }
       }
-      syncedCount++
+
+      for (const ids of chunk(relikedTrackIds, 100)) {
+        await supabaseAdmin.from("collection_exclusions").delete().eq("user_id", user_id).in("track_id", ids)
+      }
+
+      const likeRows = likedTrackIds.map((track_id) => ({ user_id, track_id, liked_at: likeByTrackId.get(track_id)! }))
+      for (const rows of chunk(likeRows, 200)) {
+        const { error } = await supabaseAdmin.from("likes").upsert(rows, { onConflict: "user_id,track_id" })
+        if (error) throw error
+      }
+
+      await supabaseAdmin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", user_id)
+
+      return json({ success: true, count: likeRows.length })
+    } catch (err) {
+      if (err instanceof TokenRejected) {
+        // Refresh failed or TIDAL revoked access: clear the token so Settings shows "connect" again
+        await supabaseAdmin.from("profiles").update({ tidal_access_token: null }).eq("id", user_id)
+        return json({ error: "Tidal connection expired — please reconnect in settings", reconnect: true }, 401)
+      }
+      throw err
     }
-
-    await supabaseAdmin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", user_id)
-
-    return new Response(JSON.stringify({ count: syncedCount, success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    })
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    console.error("sync-tidal-likes error:", err)
+    return json({ error: String((err as any)?.message ?? err) }, 500)
   }
 })
