@@ -50,8 +50,8 @@ async function generateDeveloperToken(): Promise<string> {
 
 // How far back to read the Apple library "recently added" list, and the page cap (25 items per page).
 // Likes are never deleted by this function, so older songs stay in PLAI after they fall outside this window.
-const LOOKBACK_DAYS = 180
-const MAX_PAGES = 8
+const LOOKBACK_DAYS = 365 // last 12 months, same as the other platforms
+const MAX_PAGES = 16 // 25 items per page — room for a busy 12 months
 
 type TrackToUpsert = {
   catalogId: string

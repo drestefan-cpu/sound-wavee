@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { requireCaller } from "../_shared/auth.ts"
 
-// Syncs a user's Spotify Liked Songs.
-// First sync reads up to MAX_PAGES × 50 songs. Later syncs stop as soon as they reach
-// songs liked before the newest Spotify like already in PLAI, so they're quick.
+// Syncs a user's Spotify Liked Songs from the last 12 months (same window as the other platforms).
+// The first sync reads back to the 12-month cutoff (capped at MAX_PAGES × 50 songs). Later syncs
+// stop as soon as they reach songs liked before the newest Spotify like already in PLAI.
 // Writes are batched (one upsert per 100 tracks/likes) instead of 3–4 queries per song.
 
 const corsHeaders = {
@@ -13,7 +13,8 @@ const corsHeaders = {
 }
 
 const PAGE_SIZE = 50 // Spotify's maximum for /me/tracks
-const MAX_PAGES = 20 // up to 1,000 songs per sync
+const MAX_PAGES = 10 // safety cap: up to 500 songs per sync
+const LOOKBACK_DAYS = 365 // only import songs liked in the last 12 months
 const CAUGHT_UP_MARGIN_MS = 24 * 60 * 60 * 1000 // re-check one day before the newest known like
 
 const json = (body: unknown, status = 200) =>
@@ -107,6 +108,8 @@ serve(async (req) => {
     // don't stop early — read back as far as MAX_PAGES allows.
     const backfilled = !!profile.spotify_backfilled_at
     const caughtUpBefore = backfilled && newestKnown ? newestKnown - CAUGHT_UP_MARGIN_MS : null
+    const cutoff = Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000
+    let reachedCutoff = false
 
     // ── Step 1: read Liked Songs, newest first ──────────────────────────────
     const items: { track: any; addedAt: string }[] = []
@@ -114,7 +117,7 @@ serve(async (req) => {
     let pages = 0
     let caughtUp = false
 
-    while (nextUrl && !caughtUp && pages < MAX_PAGES) {
+    while (nextUrl && !caughtUp && !reachedCutoff && pages < MAX_PAGES) {
       const res = await spotifyGet(nextUrl)
       if (res.status === 401) return json({ error: "Spotify connection expired — please sign in again", reconnect: true }, 401)
       if (!res.ok) {
@@ -125,6 +128,11 @@ serve(async (req) => {
       pages++
       for (const item of (data.items || []) as any[]) {
         if (!item.track?.id) continue
+        // Liked Songs are newest first, so everything after this point is older than 12 months
+        if (item.added_at && new Date(item.added_at).getTime() < cutoff) {
+          reachedCutoff = true
+          break
+        }
         if (caughtUpBefore && item.added_at && new Date(item.added_at).getTime() < caughtUpBefore) {
           caughtUp = true
           break
@@ -206,13 +214,13 @@ serve(async (req) => {
 
     const now = new Date().toISOString()
     // Mark the history as read once we've reached the end of Liked Songs (or the page cap)
-    const reachedEnd = !nextUrl || pages >= MAX_PAGES
+    const reachedEnd = !nextUrl || reachedCutoff || pages >= MAX_PAGES
     await supabaseAdmin.from("profiles").update({
       last_synced_at: now,
       ...(!backfilled && reachedEnd ? { spotify_backfilled_at: now } : {}),
     }).eq("id", user_id)
 
-    return json({ count: likeRows.length, success: true, stats: { pages, read: items.length, caughtUp, backfill: !backfilled } })
+    return json({ count: likeRows.length, success: true, stats: { pages, read: items.length, caughtUp, reachedCutoff, backfill: !backfilled } })
   } catch (err) {
     console.error("sync-spotify-likes error:", err)
     return json({ error: String((err as any)?.message ?? err) }, 500)
