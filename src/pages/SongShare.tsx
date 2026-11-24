@@ -4,6 +4,7 @@ import { Music, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId } from "@/lib/trackLinks";
+import { songShareUrl } from "@/lib/shareLinks";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
 
@@ -148,12 +149,15 @@ const SongShare = () => {
     : `https://www.youtube.com/results?search_query=${q}`;
   const sharerName = sharer?.display_name || sharer?.username || null;
 
+  // Share the preview-service link so iMessage etc. show album art
+  const publicShareUrl = songShareUrl(track.id, { shortId: track.short_id, from: fromParam });
+
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    navigator.clipboard.writeText(publicShareUrl).catch(() => {});
     toast("link copied");
   };
 
-  const displayUrl = window.location.href.replace(/^https?:\/\//, "");
+  const displayUrl = publicShareUrl.replace(/^https?:\/\//, "");
 
   // ── Render ────────────────────────────────────────────────────────────────
 

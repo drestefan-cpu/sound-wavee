@@ -412,9 +412,10 @@ serve(async (req) => {
   }
 
   // ── Build share URLs ──────────────────────────────────────────────────────────
-  const base = `https://onplai.lovable.app/song/${trackId}`
+  // Share links go through the share-preview service (rich iMessage previews), which forwards to the app
+  const base = `https://plai.delaneyprojects.xyz/song/${trackId}`
   shareUrl = sharer_username ? `${base}?from=${sharer_username.toLowerCase()}` : base
-  shortUrl = `https://onplai.lovable.app/s/${shortId}`
+  shortUrl = `https://plai.delaneyprojects.xyz/s/${shortId}`
 
   } catch(dbErr: any) {
     return fail('could not create share link')

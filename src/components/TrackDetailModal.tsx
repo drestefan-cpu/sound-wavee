@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { isYouTubeSentinel, extractYouTubeVideoId, getRealSpotifyId, getAppleMusicId } from "@/lib/trackLinks";
 import { toast } from "sonner";
+import { songShareUrl } from "@/lib/shareLinks";
 
 interface TrackDetailModalProps {
   track: UnifiedTrackData;
@@ -241,7 +242,7 @@ const TrackDetailModal = ({
           {track.trackDbId && (
             <button
               onClick={() => {
-                const shareUrl = `https://onplai.lovable.app/song/${track.trackDbId}${sharerUsername ? "?from=" + sharerUsername.toLowerCase() : ""}`;
+                const shareUrl = songShareUrl(track.trackDbId!, { from: sharerUsername });
 
                 // Open the share sheet immediately — iOS rejects navigator.share if it's called after an await
                 if (navigator.share) {
