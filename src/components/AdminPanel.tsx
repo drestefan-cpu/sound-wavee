@@ -48,7 +48,7 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
   };
 
   const loadPicks = async () => {
-    const { data } = await supabase.from("plai_picks").select("*").order("position");
+    const { data } = await supabase.from("plai_picks" as any).select("*").order("position");
     setPicks(data || []);
   };
 
@@ -116,14 +116,14 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
   // Picks
   const togglePickActive = async (id: string, active: boolean) => {
     await supabase
-      .from("plai_picks")
+      .from("plai_picks" as any)
       .update({ active: !active } as any)
       .eq("id", id);
     setPicks((prev) => prev.map((p) => (p.id === id ? { ...p, active: !active } : p)));
   };
 
   const deletePick = async (id: string) => {
-    await supabase.from("plai_picks").delete().eq("id", id);
+    await supabase.from("plai_picks" as any).delete().eq("id", id);
     setPicks((prev) => prev.filter((p) => p.id !== id));
   };
 
@@ -131,7 +131,7 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
     if (!newPick.title.trim()) return;
     const position = picks.length + 1;
     const { data } = await supabase
-      .from("plai_picks")
+      .from("plai_picks" as any)
       .insert({ ...newPick, position } as any)
       .select()
       .single();
