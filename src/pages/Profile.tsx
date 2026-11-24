@@ -33,7 +33,7 @@ type TabType = "finds" | "collection" | "activity" | "foryou" | "friends";
 /** Songs loaded per page in the collection tab ("show more" loads the next page) */
 const COLLECTION_PAGE_SIZE = 100;
 const COLLECTION_SELECT =
-  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)";
+  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, preview_url)";
 type ActivityFilterType = "all" | "follows" | "reactions" | "saves" | "recommendations";
 
 type ProfileSnapshot = {
@@ -237,7 +237,7 @@ const Profile = () => {
       supabase
         .from("likes")
         .select(
-          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)",
+          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, preview_url)",
         )
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
@@ -266,7 +266,7 @@ const Profile = () => {
           supabase
             .from("likes")
             .select(
-              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)",
+              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, preview_url)",
             )
             .eq("user_id", profile.id)
             .order("liked_at", { ascending: false })
@@ -595,7 +595,7 @@ const Profile = () => {
       supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", profile.id).single(),
       supabase
         .from("likes")
-        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)")
+        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, preview_url)")
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
         .order("id", { ascending: true })
@@ -1200,6 +1200,7 @@ const Profile = () => {
                     albumArtUrl: s.tracks?.album_art_url,
                     spotifyTrackId: s.tracks?.spotify_track_id,
                     appleMusicId: s.tracks?.apple_music_id,
+                    spotifyLinkId: s.tracks?.spotify_link_id,
                     trackDbId: s.track_id,
                   }}
                   isSaved={isSaved(s.track_id)}
@@ -1348,6 +1349,7 @@ const Profile = () => {
                     albumArtUrl: rec.tracks?.album_art_url,
                     spotifyTrackId: rec.tracks?.spotify_track_id,
                     appleMusicId: rec.tracks?.apple_music_id,
+                    spotifyLinkId: rec.tracks?.spotify_link_id,
                     trackDbId: rec.track_id,
                   }}
                   isSaved={isSaved(rec.track_id)}
@@ -1461,6 +1463,7 @@ const Profile = () => {
                           albumArtUrl: h.tracks?.album_art_url,
                           spotifyTrackId: h.tracks?.spotify_track_id,
                           appleMusicId: h.tracks?.apple_music_id,
+                          spotifyLinkId: h.tracks?.spotify_link_id,
                           trackDbId: h.track_id,
                         }}
                         isSaved={isSaved(h.track_id)}
@@ -1511,6 +1514,7 @@ const Profile = () => {
                             albumArtUrl: like.tracks?.album_art_url,
                             spotifyTrackId: like.tracks?.spotify_track_id,
                             appleMusicId: like.tracks?.apple_music_id,
+                            spotifyLinkId: like.tracks?.spotify_link_id,
                             likeId: like.id,
                             trackDbId: like.track_id,
                           }}

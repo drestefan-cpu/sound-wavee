@@ -14,6 +14,29 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_releases: {
         Row: {
           album: string | null
@@ -418,11 +441,13 @@ export type Database = {
           login_pin: string | null
           mood_set_at: string | null
           onboarding_complete: boolean | null
+          plai_playlist_id: string | null
           platform: string | null
           preferred_platform: string | null
           profile_color: string | null
           public: boolean | null
           spotify_access_token: string | null
+          spotify_backfilled_at: string | null
           spotify_id: string | null
           spotify_refresh_token: string | null
           status: string | null
@@ -451,11 +476,13 @@ export type Database = {
           login_pin?: string | null
           mood_set_at?: string | null
           onboarding_complete?: boolean | null
+          plai_playlist_id?: string | null
           platform?: string | null
           preferred_platform?: string | null
           profile_color?: string | null
           public?: boolean | null
           spotify_access_token?: string | null
+          spotify_backfilled_at?: string | null
           spotify_id?: string | null
           spotify_refresh_token?: string | null
           status?: string | null
@@ -484,11 +511,13 @@ export type Database = {
           login_pin?: string | null
           mood_set_at?: string | null
           onboarding_complete?: boolean | null
+          plai_playlist_id?: string | null
           platform?: string | null
           preferred_platform?: string | null
           profile_color?: string | null
           public?: boolean | null
           spotify_access_token?: string | null
+          spotify_backfilled_at?: string | null
           spotify_id?: string | null
           spotify_refresh_token?: string | null
           status?: string | null
@@ -1133,6 +1162,7 @@ export type Database = {
           isrc: string | null
           preview_url: string | null
           short_id: string | null
+          spotify_link_id: string | null
           spotify_track_id: string
           tidal_track_id: string | null
           title: string | null
@@ -1149,6 +1179,7 @@ export type Database = {
           isrc?: string | null
           preview_url?: string | null
           short_id?: string | null
+          spotify_link_id?: string | null
           spotify_track_id: string
           tidal_track_id?: string | null
           title?: string | null
@@ -1165,6 +1196,7 @@ export type Database = {
           isrc?: string | null
           preview_url?: string | null
           short_id?: string | null
+          spotify_link_id?: string | null
           spotify_track_id?: string
           tidal_track_id?: string | null
           title?: string | null
@@ -1380,11 +1412,13 @@ export type Database = {
           login_pin: string | null
           mood_set_at: string | null
           onboarding_complete: boolean | null
+          plai_playlist_id: string | null
           platform: string | null
           preferred_platform: string | null
           profile_color: string | null
           public: boolean | null
           spotify_access_token: string | null
+          spotify_backfilled_at: string | null
           spotify_id: string | null
           spotify_refresh_token: string | null
           status: string | null
@@ -1407,6 +1441,8 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      is_admin: { Args: never; Returns: boolean }
+      redeem_radar_invite: { Args: { p_code: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

@@ -118,7 +118,7 @@ const TrackDetailModal = ({
 
   const getPlatformUrl = () => {
     const q = encodeURIComponent(`${track.title} ${track.artist}`);
-    const realSpotifyId = getRealSpotifyId(track.spotifyTrackId);
+    const realSpotifyId = getRealSpotifyId(track.spotifyTrackId, track.spotifyLinkId);
     const appleId = getAppleMusicId(track.spotifyTrackId, track.appleMusicId);
     switch (preferredPlatform) {
       case "apple_music":
@@ -258,7 +258,7 @@ const TrackDetailModal = ({
                 // Background: let create-share-link backfill Apple/YouTube IDs and short_id for this track
                 const sid = track.spotifyTrackId;
                 const appleId = getAppleMusicId(sid, track.appleMusicId);
-                const spotifyId = getRealSpotifyId(sid);
+                const spotifyId = getRealSpotifyId(sid, track.spotifyLinkId);
                 const ytId = extractYouTubeVideoId(sid);
                 const platformUrl = spotifyId
                   ? `https://open.spotify.com/track/${spotifyId}`

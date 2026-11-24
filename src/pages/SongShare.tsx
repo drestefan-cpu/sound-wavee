@@ -17,6 +17,7 @@ interface TrackRow {
   album_art_url: string | null;
   spotify_track_id: string | null;
   apple_music_id: string | null;
+  spotify_link_id: string | null;
   youtube_video_id: string | null;
   isrc: string | null;
   short_id: string | null;
@@ -88,7 +89,7 @@ const SongShare = () => {
 
       const trackPromise = supabase
         .from("tracks")
-        .select("id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, youtube_video_id, isrc, short_id")
+        .select("id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, youtube_video_id, isrc, short_id")
         .eq("id", trackId)
         .maybeSingle();
 
@@ -139,7 +140,9 @@ const SongShare = () => {
 
   const q = encodeURIComponent(`${track.title} ${track.artist}`);
   const sid = track.spotify_track_id;
-  const showSpotify = !!getRealSpotifyId(sid ?? undefined);
+  // Real Spotify ID, including Tidal/Apple songs matched to Spotify by ISRC
+  const spotifyId = getRealSpotifyId(sid ?? undefined, track.spotify_link_id);
+  const showSpotify = !!spotifyId;
   const appleMusicId = getAppleMusicId(sid ?? undefined, track.apple_music_id);
   const ytVideoId = track.youtube_video_id || extractYouTubeVideoId(sid ?? undefined);
   const appleMusicUrl = appleMusicId
@@ -289,7 +292,7 @@ const SongShare = () => {
 
             {showSpotify && (
               <a
-                href={`https://open.spotify.com/track/${track.spotify_track_id}`}
+                href={`https://open.spotify.com/track/${spotifyId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={btnStyle("#1DB954", "white")}

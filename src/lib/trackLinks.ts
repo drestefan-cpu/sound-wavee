@@ -26,11 +26,14 @@ export function getTrackPlatform(spotifyTrackId?: string | null): TrackPlatform 
   return "spotify";
 }
 
-/** Returns the stored ID only if it's a real Spotify track ID (not a yt:/apple:/tidal_/share: placeholder) */
-export function getRealSpotifyId(spotifyTrackId?: string): string | undefined {
-  if (!spotifyTrackId) return undefined;
-  if (/^(yt:|apple:|tidal_|share:)/.test(spotifyTrackId)) return undefined;
-  return spotifyTrackId;
+/**
+ * The real Spotify track ID for a song: the stored ID if it's a Spotify one, otherwise the ID found
+ * by ISRC lookup for songs from other platforms (spotify_link_id). Never returns a placeholder
+ * like "tidal_…" — opening those in Spotify fails.
+ */
+export function getRealSpotifyId(spotifyTrackId?: string, spotifyLinkId?: string | null): string | undefined {
+  if (spotifyTrackId && !/^(yt:|apple:|tidal_|share:)/.test(spotifyTrackId)) return spotifyTrackId;
+  return spotifyLinkId || undefined;
 }
 
 /** Apple Music catalog ID from the apple_music_id column, or from an "apple:" sentinel */
@@ -46,9 +49,10 @@ export function getTrackUrl(
   title?: string,
   artist?: string,
   appleMusicId?: string | null,
+  spotifyLinkId?: string | null,
 ): string {
   const query = encodeURIComponent(`${title || ""} ${artist || ""}`.trim());
-  const realSpotifyId = getRealSpotifyId(spotifyTrackId);
+  const realSpotifyId = getRealSpotifyId(spotifyTrackId, spotifyLinkId);
   const ytVideoId = extractYouTubeVideoId(spotifyTrackId);
   const appleId = getAppleMusicId(spotifyTrackId, appleMusicId);
 

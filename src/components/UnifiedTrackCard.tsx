@@ -15,6 +15,7 @@ export interface UnifiedTrackData {
   albumArtUrl?: string | null;
   spotifyTrackId?: string;
   appleMusicId?: string | null;
+  spotifyLinkId?: string | null;
   likeId?: string;
   localOnly?: boolean;
   initialReactions?: { emoji: string; count: number }[];
@@ -75,7 +76,7 @@ const UnifiedTrackCard = ({
 
   const trackDbId = track.trackDbId || track.id;
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
-  const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist, track.appleMusicId);
+  const trackUrl = getTrackUrl(preferredPlatform, track.spotifyTrackId, track.title, track.artist, track.appleMusicId, track.spotifyLinkId);
   const isCurrentlyPlaying = false;
   const isOwnTrack = !!sourceUserId && sourceUserId === user?.id;
 
@@ -90,31 +91,13 @@ const UnifiedTrackCard = ({
     }
   };
 
+  // Opens the song in the user's preferred app: the exact track when its ID is known
+  // (including Tidal/Apple songs matched to Spotify by ISRC), otherwise a search.
+  // Uses the same link as the arrow button so it can never open a broken Spotify address.
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-
-    if (track.spotifyTrackId && !isYouTubeSentinel(track.spotifyTrackId) && preferredPlatform === "spotify") {
-      openUrl(`https://open.spotify.com/track/${track.spotifyTrackId}`);
-      return;
-    }
-
-    const query = encodeURIComponent(`${track.title} ${track.artist}`);
-    const searchUrl = (() => {
-      switch (preferredPlatform) {
-        case "spotify":
-          return `https://open.spotify.com/search/${query}`;
-        case "apple_music":
-          return `https://music.apple.com/search?term=${query}`;
-        case "youtube_music":
-          return `https://music.youtube.com/search?q=${query}`;
-        case "tidal":
-          return `https://tidal.com/search?q=${query}`;
-        default:
-          return `https://open.spotify.com/search/${query}`;
-      }
-    })();
-    openUrl(searchUrl);
+    openUrl(trackUrl);
   };
 
   const handleShare = (e: React.MouseEvent) => {
