@@ -1,0 +1,6 @@
+{
+  "name": "plai-share-preview",
+  "private": true,
+  "type": "module",
+  "description": "Link-preview pages for PLAI share links (deployed separately on Vercel, root directory: share-preview)"
+}

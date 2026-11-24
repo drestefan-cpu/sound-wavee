@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/s/:short", "destination": "/api/preview?short=:short" },
+    { "source": "/song/:id", "destination": "/api/preview?id=:id" }
+  ],
+  "redirects": [
+    { "source": "/", "destination": "https://onplai.lovable.app", "permanent": false }
+  ]
+}
