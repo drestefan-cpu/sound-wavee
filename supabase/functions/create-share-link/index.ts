@@ -433,4 +433,3 @@ serve(async (req) => {
       isrc,
     }
   })
-})
