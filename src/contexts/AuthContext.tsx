@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AuthContextType {
   session: Session | null;
@@ -94,9 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
         if (profile?.apple_music_user_token && profile?.sync_apple_music !== false) {
-          await supabase.functions.invoke("sync-apple-music-likes", {
+          const { error: appleError } = await supabase.functions.invoke("sync-apple-music-likes", {
             body: { user_id: userId },
           });
+          // 401 here means Apple rejected the saved token — the function has cleared it
+          if ((appleError as any)?.context?.status === 401) {
+            toast("your Apple Music connection expired — reconnect it in settings", { duration: 6000 });
+          }
         }
       }
     } catch (e) {
