@@ -307,6 +307,10 @@ serve(async (req) => {
   console.log("BEFORE_DB_CHECK", "title", title, "artist", artist, "apple_music_id", apple_music_id)
   // ── Check if track exists in DB ───────────────────────────────────────────────
   let existingTrack: any = null
+  let trackId: string
+  let shortId: string
+  let shareUrl: string
+  let shortUrl: string
   try {
 
   console.log("DB_CHECK_START isrc:", isrc, "apple_music_id:", apple_music_id)
@@ -336,9 +340,6 @@ serve(async (req) => {
   } catch(e: any) { console.log("DB_LOOKUP_ERR", String(e), e?.message) }
 
   // ── Create or update track ────────────────────────────────────────────────────
-  let trackId: string
-  let shortId: string
-
   if (existingTrack) {
     trackId = existingTrack.id
     shortId = existingTrack.short_id || generateShortId()
@@ -361,7 +362,8 @@ serve(async (req) => {
       album,
       album_art_url,
       isrc,
-      spotify_track_id,
+      // spotify_track_id is NOT NULL UNIQUE — use a unique placeholder for non-Spotify shares
+      spotify_track_id: spotify_track_id ?? `share:${crypto.randomUUID()}`,
       apple_music_id,
       youtube_video_id,
       short_id: shortId,
@@ -393,7 +395,6 @@ serve(async (req) => {
 
     if (!youtube_video_id) {
       try {
-        console.log("YT_VIDEO_ID", videoId)
     const ytKey = Deno.env.get("YOUTUBE_API_KEY")
         if (ytKey && title) {
           const q = encodeURIComponent(`${title} ${artist || ""} official`)
@@ -413,8 +414,8 @@ serve(async (req) => {
 
   // ── Build share URLs ──────────────────────────────────────────────────────────
   const base = `https://onplai.lovable.app/song/${trackId}`
-  const shareUrl = sharer_username ? `${base}?from=${sharer_username.toLowerCase()}` : base
-  const shortUrl = `https://onplai.lovable.app/s/${shortId}`
+  shareUrl = sharer_username ? `${base}?from=${sharer_username.toLowerCase()}` : base
+  shortUrl = `https://onplai.lovable.app/s/${shortId}`
 
   return ok({
     success: true,
