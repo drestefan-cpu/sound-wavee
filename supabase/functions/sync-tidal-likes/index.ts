@@ -17,6 +17,8 @@ const COUNTRY = "US"
 const LOOKBACK_DAYS = 365
 const MAX_PAGES = 15
 const BATCH = 20 // TIDAL's filter[id] limit
+const MIN_REQUEST_GAP_MS = 600 // pace requests to stay under TIDAL's rate limit
+const MAX_429_RETRIES = 4
 
 type Favourite = { id: string; addedAt: string }
 type TrackInfo = { id: string; title: string; isrc: string | null; artist: string; album: string | null; albumArtUrl: string | null }
@@ -87,11 +89,30 @@ serve(async (req) => {
     }
 
     class TokenRejected extends Error {}
+    class RateLimited extends Error {}
 
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    let lastRequestAt = 0
+
+    // TIDAL rate-limits aggressively (HTTP 429). Space requests out, and on 429 wait
+    // (honouring Retry-After) and retry a few times before giving up.
     const tidalGet = async (url: string): Promise<any> => {
-      const doFetch = () =>
-        fetch(url, { headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.api+json" } })
+      const doFetch = async () => {
+        const wait = MIN_REQUEST_GAP_MS - (Date.now() - lastRequestAt)
+        if (wait > 0) await sleep(wait)
+        lastRequestAt = Date.now()
+        return fetch(url, { headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.api+json" } })
+      }
       let res = await doFetch()
+      for (let attempt = 1; res.status === 429 && attempt <= MAX_429_RETRIES; attempt++) {
+        const retryAfter = Number(res.headers.get("Retry-After"))
+        const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
+          ? Math.min(retryAfter * 1000, 15_000)
+          : Math.min(1500 * 2 ** (attempt - 1), 15_000)
+        await sleep(delayMs)
+        res = await doFetch()
+      }
+      if (res.status === 429) throw new RateLimited(`Tidal rate limit for ${url.replace(API, "")}`)
       if (res.status === 401 && await refreshAccessToken()) res = await doFetch()
       if (res.status === 401 || res.status === 403) throw new TokenRejected(`Tidal rejected token (${res.status})`)
       if (!res.ok) {
@@ -124,8 +145,17 @@ serve(async (req) => {
       let oldestSeen: string | null = null
       const typesSeen = new Set<string>()
 
+      let rateLimitedEarly = false
       while (nextUrl && !reachedCutoff && pages < MAX_PAGES) {
-        const page = await tidalGet(nextUrl)
+        let page: any
+        try {
+          page = await tidalGet(nextUrl)
+        } catch (err) {
+          // Still rate-limited after retries: keep the favourites collected so far.
+          // The next sync picks up the rest (likes are upserted, so nothing duplicates).
+          if (err instanceof RateLimited && favourites.length > 0) { rateLimitedEarly = true; break }
+          throw err
+        }
         pages++
         for (const item of (page.data || []) as any[]) {
           itemsSeen++
@@ -150,11 +180,18 @@ serve(async (req) => {
       const albumIdByTrackId = new Map<string, string>()
 
       for (const ids of chunk(favourites.map((f) => f.id), BATCH)) {
-        const doc = await tidalGet(buildUrl("/tracks", {
-          "filter[id]": ids,
-          include: ["artists", "albums"],
-          countryCode: COUNTRY,
-        }))
+        let doc: any
+        try {
+          doc = await tidalGet(buildUrl("/tracks", {
+            "filter[id]": ids,
+            include: ["artists", "albums"],
+            countryCode: COUNTRY,
+          }))
+        } catch (err) {
+          // Rate-limited: save what we have; the next sync fills in the rest
+          if (err instanceof RateLimited && trackInfo.size > 0) { rateLimitedEarly = true; break }
+          throw err
+        }
         const included = new Map<string, any>()
         for (const inc of (doc.included || []) as any[]) included.set(`${inc.type}:${inc.id}`, inc)
 
@@ -198,6 +235,7 @@ serve(async (req) => {
         } catch (err) {
           if (err instanceof TokenRejected) throw err
           console.error("Tidal album art fetch failed (continuing without art):", String(err))
+          if (err instanceof RateLimited) { rateLimitedEarly = true; break } // stop hammering; art fills in later
         }
       }
       for (const [trackId, albumId] of albumIdByTrackId) {
@@ -314,7 +352,7 @@ serve(async (req) => {
       return json({
         success: true,
         count: likeRows.length,
-        stats: { pages, itemsSeen, favourites: favourites.length, withDetails: trackInfo.size, withArt: coverByAlbumId.size, oldestSeen },
+        stats: { pages, itemsSeen, favourites: favourites.length, withDetails: trackInfo.size, withArt: coverByAlbumId.size, oldestSeen, partial: rateLimitedEarly },
       })
     } catch (err) {
       if (err instanceof TokenRejected) {
