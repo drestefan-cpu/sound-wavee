@@ -35,7 +35,7 @@ serve(async (req) => {
 
   if (!trackId) {
     return new Response(defaultOG, {
-      headers: { ...corsHeaders, "Content-Type": "text/html" }
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" }
     })
   }
 
@@ -53,7 +53,7 @@ serve(async (req) => {
 
     if (!track) {
       return new Response(defaultOG, {
-        headers: { ...corsHeaders, "Content-Type": "text/html" }
+        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" }
       })
     }
 
@@ -80,12 +80,12 @@ serve(async (req) => {
 </html>`
 
     return new Response(html, {
-      headers: { ...corsHeaders, "Content-Type": "text/html" }
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" }
     })
 
   } catch (err) {
     return new Response(defaultOG, {
-      headers: { ...corsHeaders, "Content-Type": "text/html" }
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" }
     })
   }
 })
