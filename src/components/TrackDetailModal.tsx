@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 
-const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
 import { Heart, ExternalLink, Send, X, Share2 } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
@@ -9,6 +8,9 @@ import { usePlatform } from "@/contexts/PlatformContext";
 import { isYouTubeSentinel, extractYouTubeVideoId, getRealSpotifyId, getAppleMusicId } from "@/lib/trackLinks";
 import { toast } from "sonner";
 import { songShareUrl } from "@/lib/shareLinks";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+
+const ANON_KEY = SUPABASE_PUBLISHABLE_KEY;
 
 interface TrackDetailModalProps {
   track: UnifiedTrackData;
@@ -266,7 +268,7 @@ const TrackDetailModal = ({
                   ? `https://www.youtube.com/watch?v=${ytId}`
                   : null;
                 if (platformUrl) {
-                  fetch("https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/create-share-link", {
+                  fetch(`${SUPABASE_URL}/functions/v1/create-share-link`, {
                     method: "POST",
                     keepalive: true,
                     headers: {

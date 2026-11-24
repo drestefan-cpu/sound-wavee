@@ -14,6 +14,7 @@ import AboutPlai from "@/components/AboutPlai";
 import AdminPanel from "@/components/AdminPanel";
 import DeveloperNotes from "@/components/DeveloperNotes";
 import { MOODS, getMoodBySlug } from "@/lib/moods";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
 interface NotifSettings {
   push_follows: boolean;
@@ -29,9 +30,7 @@ const platformOptions = [
   { value: "tidal", label: "Tidal" },
 ];
 
-const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
-const APIKEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+const APIKEY = SUPABASE_PUBLISHABLE_KEY;
 
 const APPEARANCE_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
   { value: "night", label: "night", icon: "☾" },
@@ -326,12 +325,12 @@ const SettingsPage = () => {
 
   const connectYouTube = async () => {
     try {
-      const response = await fetch("https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/youtube-auth-url", {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/youtube-auth-url`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           apikey:
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
+            SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           redirect_uri: window.location.origin + "/auth/youtube/callback",

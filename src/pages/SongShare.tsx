@@ -7,6 +7,7 @@ import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId } from "@/lib/
 import { songShareUrl } from "@/lib/shareLinks";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
 interface TrackRow {
   id: string;
@@ -40,12 +41,12 @@ const SongShare = () => {
   // Share analytics — fire and forget
   useEffect(() => {
     if (!track?.id) return;
-    fetch("https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/log-share-open", {
+    fetch(`${SUPABASE_URL}/functions/v1/log-share-open`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE",
+        "apikey": SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
       },
       body: JSON.stringify({
         track_id: track.id,

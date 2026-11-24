@@ -5,9 +5,9 @@ import { Music } from "lucide-react";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
 import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId as extractSentinelVideoId } from "@/lib/trackLinks";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+const ANON_KEY = SUPABASE_PUBLISHABLE_KEY;
 
 interface TrackResult {
   title: string;
@@ -93,7 +93,7 @@ const SharePage = () => {
     setError(null);
     try {
       const res = await fetch(
-        "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/create-share-link",
+        `${SUPABASE_URL}/functions/v1/create-share-link`,
         {
           method: "POST",
           headers: {

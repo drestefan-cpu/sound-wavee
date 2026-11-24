@@ -6,10 +6,9 @@ import PlaiLogo from "@/components/PlaiLogo";
 import Starfield from "@/components/Starfield";
 import { getRandomTagline } from "@/lib/taglines";
 import { supabase } from "@/integrations/supabase/client";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
-const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
-const APIKEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+const APIKEY = SUPABASE_PUBLISHABLE_KEY;
 
 const Landing = () => {
   const { user, loading, signInWithSpotify } = useAuth();
