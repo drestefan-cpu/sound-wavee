@@ -8,6 +8,7 @@ import { SavedTracksProvider } from "@/contexts/SavedTracksContext";
 import { PlatformProvider } from "@/contexts/PlatformContext";
 import { SpotifyPlayerProvider } from "@/contexts/SpotifyPlayerContext";
 import Starfield from "@/components/Starfield";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import MiniPlayer from "@/components/MiniPlayer";
 import Landing from "./pages/Landing";
 import Feed from "./pages/Feed";
@@ -31,6 +32,7 @@ import SharePage from "./pages/SharePage";
 const queryClient = new QueryClient();
 
 const App = () => (
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Sonner
@@ -73,6 +75,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

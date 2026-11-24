@@ -15,7 +15,11 @@ const Radar = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Logged out: stop the spinner once auth has finished loading so the redirect below can run
+      if (!loading) setChecking(false);
+      return;
+    }
     const check = async () => {
       const { data } = await (supabase
         .from("radar_access" as any)
@@ -26,7 +30,7 @@ const Radar = () => {
       setChecking(false);
     };
     check();
-  }, [user]);
+  }, [user, loading]);
 
   const handleSubmit = async () => {
     if (!user || !code.trim()) return;
