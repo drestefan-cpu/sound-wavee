@@ -57,7 +57,6 @@ const TrackDetailModal = ({
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
   const [artError, setArtError] = useState(false);
-  const [shareLoading, setShareLoading] = useState(false);
   const { user } = useAuth();
   const { preferredPlatform } = usePlatform();
 
@@ -241,54 +240,41 @@ const TrackDetailModal = ({
 
           {track.trackDbId && (
             <button
-              onClick={async () => {
-                if (shareLoading) return;
-                setShareLoading(true);
-
-                const sid = track.spotifyTrackId;
-                const platformUrl = sid?.startsWith("yt:")
-                  ? `https://www.youtube.com/watch?v=${sid.replace("yt:", "")}`
-                  : sid?.startsWith("apple:")
-                  ? `https://music.apple.com/us/song/${sid.replace("apple:", "")}`
-                  : sid
-                  ? `https://open.spotify.com/track/${sid}`
-                  : null;
-
+              onClick={() => {
                 const shareUrl = `https://onplai.lovable.app/song/${track.trackDbId}${sharerUsername ? "?from=" + sharerUsername.toLowerCase() : ""}`;
 
-                if (platformUrl) {
-                  try {
-                    const controller = new AbortController();
-                    const timer = setTimeout(() => controller.abort(), 3000);
-                    await fetch(
-                      "https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/create-share-link",
-                      {
-                        method: "POST",
-                        signal: controller.signal,
-                        headers: {
-                          "Content-Type": "application/json",
-                          apikey: ANON_KEY,
-                          Authorization: `Bearer ${ANON_KEY}`,
-                        },
-                        body: JSON.stringify({
-                          url: platformUrl,
-                          sharer_username: sharerUsername || undefined,
-                        }),
-                      }
-                    );
-                    clearTimeout(timer);
-                  } catch {
-                    // non-fatal
-                  }
+                // Open the share sheet immediately — iOS rejects navigator.share if it's called after an await
+                if (navigator.share) {
+                  navigator
+                    .share({ title: `${track.title} — ${track.artist}`, url: shareUrl })
+                    .catch(() => {}); // user cancelled or share unavailable
+                } else {
+                  navigator.clipboard.writeText(shareUrl).then(() => toast("link copied")).catch(() => {});
                 }
 
-                setShareLoading(false);
-
-                if (navigator.share) {
-                  navigator.share({ title: `${track.title} — ${track.artist}`, url: shareUrl });
-                } else {
-                  navigator.clipboard.writeText(shareUrl);
-                  toast("link copied");
+                // Background: let create-share-link backfill Apple/YouTube IDs and short_id for this track
+                const sid = track.spotifyTrackId;
+                const appleId = getAppleMusicId(sid, track.appleMusicId);
+                const spotifyId = getRealSpotifyId(sid);
+                const ytId = extractYouTubeVideoId(sid);
+                const platformUrl = spotifyId
+                  ? `https://open.spotify.com/track/${spotifyId}`
+                  : appleId
+                  ? `https://music.apple.com/us/song/${appleId}`
+                  : ytId
+                  ? `https://www.youtube.com/watch?v=${ytId}`
+                  : null;
+                if (platformUrl) {
+                  fetch("https://sylwprldxdgbsncwyhfk.supabase.co/functions/v1/create-share-link", {
+                    method: "POST",
+                    keepalive: true,
+                    headers: {
+                      "Content-Type": "application/json",
+                      apikey: ANON_KEY,
+                      Authorization: `Bearer ${ANON_KEY}`,
+                    },
+                    body: JSON.stringify({ url: platformUrl, sharer_username: sharerUsername || undefined }),
+                  }).catch(() => {});
                 }
               }}
               className="flex flex-col items-center gap-1 transition-all duration-200 hover:scale-105"
@@ -297,20 +283,8 @@ const TrackDetailModal = ({
                 className="h-8 w-8 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: "#1a2535" }}
               >
-                {shareLoading ? (
-                  <div
-                    className="animate-spin"
-                    style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: "50%",
-                      border: "2px solid rgba(74,106,138,0.3)",
-                      borderTopColor: "#4a6a8a",
-                    }}
-                  />
-                ) : (
-                  <Share2 className="h-4 w-4" style={{ color: "#4a6a8a" }} />
-                )}
+                <Share2 className="h-4 w-4" style={{ color: "#4a6a8a" }} />
+
               </div>
               <span className="text-[10px] text-muted-foreground">share</span>
             </button>
