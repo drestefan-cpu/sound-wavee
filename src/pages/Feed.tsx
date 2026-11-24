@@ -9,6 +9,7 @@ import { Search } from "lucide-react";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
+import NotificationBell from "@/components/NotificationBell";
 import HomeTagline, { HomeTaglineRef } from "@/components/HomeTagline";
 import UserCard from "@/components/UserCard";
 import RecommendModal from "@/components/RecommendModal";
@@ -957,7 +958,10 @@ const Feed = () => {
             </div>
             <HomeTagline ref={taglineRef} />
           </div>
-          <LiveIndicator />
+          <div className="flex items-center gap-2">
+            <LiveIndicator />
+            <NotificationBell />
+          </div>
         </div>
       </header>
 

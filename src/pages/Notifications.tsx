@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
-import { Bell, UserPlus, Heart, Disc, Send } from "lucide-react";
+import { Bell, UserPlus, Heart, Disc, Send, Music } from "lucide-react";
 
 interface Notification {
   id: string;
@@ -21,6 +21,7 @@ const ICONS: Record<string, any> = {
   reaction: Heart,
   save: Disc,
   recommendation: Send,
+  new_music: Music,
 };
 
 const typeLabel = (type: string, data: any) => {
@@ -33,6 +34,10 @@ const typeLabel = (type: string, data: any) => {
       return "saved your song";
     case "recommendation":
       return "recommended you a song";
+    case "new_music": {
+      const count = Number(data?.count) || 1;
+      return count === 1 ? "added a new song" : `added ${count} new songs`;
+    }
     default:
       return "did something";
   }
@@ -127,13 +132,23 @@ const Notifications = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-foreground leading-snug">
-                      <span className="font-medium">{actorName}</span>{" "}
+                      {n.data?.actor_username ? (
+                        <Link to={`/profile/${n.data.actor_username}`} className="font-medium hover:underline">
+                          {actorName}
+                        </Link>
+                      ) : (
+                        <span className="font-medium">{actorName}</span>
+                      )}{" "}
                       <span className="text-muted-foreground">{typeLabel(n.type, n.data)}</span>
                     </p>
                     {trackInfo && (
                       <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
+                        {n.type === "new_music" && Number(n.data?.count) > 1 ? "latest: " : ""}
                         {n.data.track_title} — {n.data.track_artist}
                       </p>
+                    )}
+                    {n.type === "recommendation" && n.data?.message && (
+                      <p className="text-xs text-foreground/80 mt-1 italic truncate">“{n.data.message}”</p>
                     )}
                   </div>
                   <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 mt-1">

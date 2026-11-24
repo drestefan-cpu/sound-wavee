@@ -271,6 +271,100 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          read: boolean
+          track_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          read?: boolean
+          track_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          read?: boolean
+          track_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plai_picks: {
+        Row: {
+          active: boolean | null
+          album: string | null
+          album_art_url: string | null
+          artist: string
+          id: string
+          note: string | null
+          position: number
+          spotify_track_id: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          album?: string | null
+          album_art_url?: string | null
+          artist: string
+          id?: string
+          note?: string | null
+          position: number
+          spotify_track_id?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          album?: string | null
+          album_art_url?: string | null
+          artist?: string
+          id?: string
+          note?: string | null
+          position?: number
+          spotify_track_id?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profile_views: {
         Row: {
           id: string
@@ -1146,6 +1240,42 @@ export type Database = {
           },
         ]
       }
+      user_notify_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          id?: string
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notify_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notify_follows_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       feed_likes: {
@@ -1224,6 +1354,16 @@ export type Database = {
       }
     }
     Functions: {
+      create_notification: {
+        Args: {
+          p_actor_id: string
+          p_extra?: Json
+          p_track_id: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       delete_apple_music_likes: { Args: { p_user_id: string }; Returns: number }
       get_my_profile: {
         Args: never
