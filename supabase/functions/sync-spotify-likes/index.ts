@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { requireCaller } from "../_shared/auth.ts"
 
 // Syncs a user's Spotify Liked Songs.
 // First sync reads up to MAX_PAGES × 50 songs. Later syncs stop as soon as they reach
@@ -29,13 +30,17 @@ const generateShortId = () => Math.random().toString(36).slice(2, 8)
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
   try {
-    const { user_id } = await req.json()
-    if (!user_id) return json({ error: "user_id required" }, 400)
+    const body = await req.json().catch(() => ({}))
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
+
+    // Only act on the signed-in caller's own account (see _shared/auth.ts)
+    const caller = await requireCaller(req, supabaseAdmin, body.user_id)
+    if (!caller.ok) return caller.response
+    const user_id = caller.userId
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")

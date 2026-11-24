@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { requireCaller } from "../_shared/auth.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,13 +87,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders })
 
   try {
-    const { user_id } = await req.json()
-    if (!user_id) return json({ error: "user_id required" }, 400)
+    const body = await req.json().catch(() => ({}))
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
+
+    // Only act on the signed-in caller's own account (see _shared/auth.ts)
+    const caller = await requireCaller(req, supabaseAdmin, body.user_id)
+    if (!caller.ok) return caller.response
+    const user_id = caller.userId
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -124,7 +129,7 @@ serve(async (req) => {
     let pageCount = 0
 
     while (nextUrl && !stopFetching && pageCount < MAX_PAGES) {
-      const res = await fetch(nextUrl, { headers: authHeaders })
+      const res: Response = await fetch(nextUrl, { headers: authHeaders })
       if (isTokenRejected(res.status)) return await expireToken()
       if (!res.ok) {
         const detail = await res.text()
@@ -132,7 +137,7 @@ serve(async (req) => {
         return json({ error: "Apple Music API failed", status: res.status }, 502)
       }
 
-      const data = await res.json()
+      const data: any = await res.json()
       const items: any[] = data.data || []
       pageCount++
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireCaller } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +10,14 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { code, code_verifier, redirect_uri, user_id } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { code, code_verifier, redirect_uri } = body;
+
+    // Only connect Tidal to the signed-in caller's own account (see _shared/auth.ts)
+    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const caller = await requireCaller(req, supabaseAdmin, body.user_id);
+    if (!caller.ok) return caller.response;
+    const user_id = caller.userId;
 
     const clientId = Deno.env.get("TIDAL_CLIENT_ID")!;
     const clientSecret = Deno.env.get("TIDAL_CLIENT_SECRET")!;
@@ -39,8 +47,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     await supabaseAdmin
       .from("profiles")

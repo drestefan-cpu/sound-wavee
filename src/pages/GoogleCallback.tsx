@@ -27,14 +27,11 @@ const GoogleCallback = () => {
         setStatusText("connecting YouTube Music…");
         await supabase
           .from("profiles")
-          .upsert(
-            {
-              id: session.user.id,
-              youtube_access_token: session.provider_token,
-              ...(session.provider_refresh_token ? { youtube_refresh_token: session.provider_refresh_token } : {}),
-            } as any,
-            { onConflict: "id" },
-          );
+          .update({
+            youtube_access_token: session.provider_token,
+            ...(session.provider_refresh_token ? { youtube_refresh_token: session.provider_refresh_token } : {}),
+          } as any)
+          .eq("id", session.user.id);
       }
 
       setStatusText("syncing your liked music…");

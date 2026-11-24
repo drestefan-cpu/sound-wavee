@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Pencil, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import PlaiLogo from "./PlaiLogo";
 import { Input } from "@/components/ui/input";
 
-const ADMIN_PIN = "1234";
 
 const MiniStarfield = () => {
   const stars = Array.from({ length: 50 }, (_, i) => ({
@@ -43,10 +43,9 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("plai-admin") === "1");
+  const { isAdmin: authed, checked: adminChecked } = useIsAdmin();
   const [editMode, setEditMode] = useState(false);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
-  const [pin, setPin] = useState("");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,23 +78,12 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
     };
   }, []);
 
-  const handlePinSubmit = () => {
-    if (pin === ADMIN_PIN) {
-      sessionStorage.setItem("plai-admin", "1");
-      setAuthed(true);
-      setEditMode(true);
-      setShowPinPrompt(false);
-      setPin("");
-      return;
-    }
-    toast.error("incorrect PIN");
-  };
 
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     const { data, error } = await supabase.functions.invoke("save-developer-notes", {
-      body: { pin: ADMIN_PIN, content: draft, user_id: user.id },
+      body: { content: draft },
     });
 
     setSaving(false);
@@ -178,23 +166,9 @@ const DeveloperNotes = ({ onClose }: { onClose: () => void }) => {
 
         {showPinPrompt && (
           <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-4 mb-6 text-center">
-            <p className="text-xs text-muted-foreground mb-3">enter admin PIN</p>
-            <Input
-              type="password"
-              inputMode="numeric"
-              maxLength={4}
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="••••"
-              className="bg-background border-border text-center tracking-[0.3em] w-24 mx-auto mb-3"
-            />
-            <button
-              onClick={handlePinSubmit}
-              disabled={pin.length !== 4}
-              className="rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            >
-              enter
-            </button>
+            <p className="text-xs text-muted-foreground">
+              {adminChecked ? "only admins can edit developer notes" : "checking access…"}
+            </p>
           </div>
         )}
 

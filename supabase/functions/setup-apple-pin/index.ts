@@ -24,12 +24,21 @@ serve(async (req) => {
     )
     const { data: { user }, error: userError } = await userClient.auth.getUser()
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
+    // 6 digits = 1,000,000 combinations (4 digits was only 10,000 — too easy to guess)
     const { pin } = await req.json()
-    if (!pin || !/^\d{4}$/.test(String(pin))) {
-      return new Response(JSON.stringify({ error: 'PIN must be exactly 4 digits' }), { status: 400, headers: corsHeaders })
+    if (!pin || !/^\d{6}$/.test(String(pin))) {
+      return new Response(JSON.stringify({ error: 'PIN must be exactly 6 digits' }), { status: 400, headers: corsHeaders })
+    }
+
+    // Accounts with a real email sign in with Spotify/Google — never replace their email with a device one
+    if (user.email && !user.email.endsWith('@plai.device')) {
+      return new Response(
+        JSON.stringify({ error: 'Your account signs in with Spotify or Google, so it doesn\'t need a PIN' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
     // Admin client — sets email + password on the user, bypassing email confirmation

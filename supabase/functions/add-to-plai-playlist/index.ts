@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { requireCaller } from "../_shared/auth.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,9 +11,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {
-    const { user_id, track_id } = await req.json()
-    if (!user_id || !track_id) {
-      return new Response(JSON.stringify({ error: "user_id and track_id required" }), {
+    const body = await req.json().catch(() => ({}))
+    const { track_id } = body
+    if (!track_id) {
+      return new Response(JSON.stringify({ error: "track_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
@@ -21,6 +23,11 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
+
+    // Only act on the signed-in caller's own account (see _shared/auth.ts)
+    const caller = await requireCaller(req, supabaseAdmin, body.user_id)
+    if (!caller.ok) return caller.response
+    const user_id = caller.userId
 
     // Look up Spotify track ID and user's Spotify token in parallel
     const [trackRes, profileRes] = await Promise.all([

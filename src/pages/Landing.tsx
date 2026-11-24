@@ -116,7 +116,8 @@ const Landing = () => {
       // 6. Store user token in profiles
       const { error: upsertError } = await supabase
         .from("profiles")
-        .upsert({ id: userId, apple_music_user_token: userToken } as any, { onConflict: "id" });
+        .update({ apple_music_user_token: userToken } as any)
+        .eq("id", userId);
       if (upsertError) throw new Error("Could not save Apple Music token");
 
       // 7. Trigger sync — fire and forget
@@ -159,8 +160,8 @@ const Landing = () => {
       toast.error("username must be at least 2 characters");
       return;
     }
-    if (!/^\d{4}$/.test(onboardingPin)) {
-      toast.error("PIN must be exactly 4 digits");
+    if (!/^\d{6}$/.test(onboardingPin)) {
+      toast.error("PIN must be exactly 6 digits");
       return;
     }
     if (!anonUserId) return;
@@ -196,7 +197,7 @@ const Landing = () => {
 
   const handlePinLogin = async () => {
     const cleanUsername = pinUsername.toLowerCase().trim();
-    if (!cleanUsername || !/^\d{4}$/.test(pinValue)) return;
+    if (!cleanUsername || !/^(\d{4}|\d{6})$/.test(pinValue)) return; // 4 = older PINs, 6 = new
 
     setPinLoading(true);
     try {
@@ -448,16 +449,16 @@ const Landing = () => {
             <input
               type="password"
               inputMode="numeric"
-              maxLength={4}
+              maxLength={6}
               value={onboardingPin}
-              onChange={(e) => setOnboardingPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="4-digit PIN"
+              onChange={(e) => setOnboardingPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="6-digit PIN"
               className="w-full rounded-2xl bg-card border border-border px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors text-center tracking-[0.5em]"
               style={{ touchAction: "manipulation" }}
             />
             <button
               onClick={handleAppleOnboarding}
-              disabled={onboardingLoading || onboardingUsername.length < 2 || onboardingPin.length !== 4}
+              disabled={onboardingLoading || onboardingUsername.length < 2 || onboardingPin.length !== 6}
               className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
               style={{ touchAction: "manipulation" }}
             >
@@ -495,16 +496,16 @@ const Landing = () => {
             <input
               type="password"
               inputMode="numeric"
-              maxLength={4}
+              maxLength={6}
               value={pinValue}
-              onChange={(e) => setPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              onChange={(e) => setPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="PIN"
               className="w-full rounded-2xl bg-card border border-border px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors text-center tracking-[0.5em]"
               style={{ touchAction: "manipulation" }}
             />
             <button
               onClick={handlePinLogin}
-              disabled={pinLoading || !pinUsername.trim() || pinValue.length !== 4}
+              disabled={pinLoading || !pinUsername.trim() || (pinValue.length !== 4 && pinValue.length !== 6)}
               className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
               style={{ touchAction: "manipulation" }}
             >

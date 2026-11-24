@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
+import { PUBLIC_PROFILE_COLUMNS } from "@/lib/profileColumns";
 import { getTrackPlatform, PLATFORM_LABELS } from "@/lib/trackLinks";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
@@ -358,7 +359,7 @@ const Feed = () => {
     async (q?: string) => {
       if (!user) return;
       setPeopleLoading(true);
-      let request = supabase.from("profiles").select("*").neq("id", user.id).limit(30);
+      let request = supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).neq("id", user.id).limit(30);
       if (q && q.trim()) request = request.or(`username.ilike.%${q}%,display_name.ilike.%${q}%`);
       const { data } = await request;
       setPeople(data || []);

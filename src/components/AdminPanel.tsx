@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import { Plus, Trash2, GripVertical, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-const ADMIN_PIN = "1234";
 
 interface AdminPanelProps {
   onClose: () => void;
 }
 
 const AdminPanel = ({ onClose }: AdminPanelProps) => {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("plai-admin") === "1");
-  const [pin, setPin] = useState("");
+  const { isAdmin: authed, checked: adminChecked } = useIsAdmin();
   const [activeTab, setActiveTab] = useState<"taglines" | "picks" | "debug">("taglines");
   const [releasesDebug, setReleasesDebug] = useState(() => localStorage.getItem("plai-releases-debug") === "1");
 
@@ -52,12 +51,6 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
     setPicks(data || []);
   };
 
-  const handlePinSubmit = () => {
-    if (pin === ADMIN_PIN) {
-      sessionStorage.setItem("plai-admin", "1");
-      setAuthed(true);
-    } else toast.error("incorrect PIN");
-  };
 
   // Tagline inline edit
   const saveTaglineText = async (id: string) => {
@@ -169,23 +162,9 @@ const AdminPanel = ({ onClose }: AdminPanelProps) => {
 
         {!authed ? (
           <div className="p-6 text-center">
-            <p className="text-xs text-muted-foreground mb-3">enter admin PIN</p>
-            <Input
-              type="password"
-              inputMode="numeric"
-              maxLength={4}
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="••••"
-              className="bg-background border-border text-center tracking-[0.3em] w-24 mx-auto mb-3"
-            />
-            <button
-              onClick={handlePinSubmit}
-              disabled={pin.length !== 4}
-              className="rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            >
-              enter
-            </button>
+            <p className="text-xs text-muted-foreground">
+              {adminChecked ? "admins only — ask the PLAI owner for access" : "checking access…"}
+            </p>
           </div>
         ) : (
           <div className="p-4">

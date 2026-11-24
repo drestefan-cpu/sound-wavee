@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { optionalCallerId } from "../_shared/auth.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -120,10 +121,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
   if (req.method !== "POST") return fail("POST only")
 
-  let body: { url?: string; user_id?: string; sharer_username?: string }
+  let body: { url?: string; sharer_username?: string }
   try { body = await req.json() } catch { return fail("invalid JSON") }
 
-  const { url, user_id, sharer_username } = body
+  const { url, sharer_username } = body
   if (!url) return fail("url required")
 
   const platform = detectPlatform(url)
@@ -145,8 +146,10 @@ serve(async (req) => {
     if (!match) return fail("paste a Spotify track URL — artist and playlist URLs aren't supported yet")
     const trackId = match[1]
     let token: string | null = null
-    if (user_id) {
-      const { data: profile } = await supabase.from("profiles").select("spotify_access_token").eq("id", user_id).single()
+    // Use the signed-in caller's own Spotify connection if there is one (never another user's)
+    const callerId = await optionalCallerId(req, supabase)
+    if (callerId) {
+      const { data: profile } = await supabase.from("profiles").select("spotify_access_token").eq("id", callerId).single()
       token = profile?.spotify_access_token || null
     }
     if (!token) token = await getSpotifyClientToken()

@@ -37,32 +37,21 @@ const Radar = () => {
     setSubmitting(true);
     setError("");
 
-    const { data: invite } = await (supabase
-      .from("radar_invites" as any)
-      .select("id, used")
-      .eq("code", code.trim().toLowerCase())
-      .maybeSingle() as any);
+    // The database checks the code, marks it used and grants access in one step
+    const { data: granted, error: redeemErr } = await (supabase.rpc as any)("redeem_radar_invite", {
+      p_code: code.trim(),
+    });
 
-    if (!invite || invite.used) {
-      setError("invalid or already used code");
-      setSubmitting(false);
-      return;
-    }
-
-    const { error: accessErr } = await (supabase
-      .from("radar_access" as any)
-      .insert({ user_id: user.id, invite_id: invite.id } as any) as any);
-
-    if (accessErr) {
+    if (redeemErr) {
       setError("something went wrong — try again");
       setSubmitting(false);
       return;
     }
-
-    await (supabase
-      .from("radar_invites" as any)
-      .update({ used: true, used_by: user.id } as any)
-      .eq("id", invite.id) as any);
+    if (!granted) {
+      setError("invalid or already used code");
+      setSubmitting(false);
+      return;
+    }
 
     toast("access granted");
     setHasAccess(true);

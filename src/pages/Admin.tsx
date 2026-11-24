@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-const ADMIN_PIN = "1234";
 
 const Admin = () => {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("plai-admin") === "1");
-  const [pin, setPin] = useState("");
+  const { isAdmin: authed, checked: adminChecked } = useIsAdmin();
   const navigate = useNavigate();
 
   // Taglines state
@@ -39,14 +38,6 @@ const Admin = () => {
     setPicks(data || []);
   };
 
-  const handlePinSubmit = () => {
-    if (pin === ADMIN_PIN) {
-      sessionStorage.setItem("plai-admin", "1");
-      setAuthed(true);
-    } else {
-      toast.error("incorrect PIN");
-    }
-  };
 
   const toggleTaglineActive = async (id: string, active: boolean) => {
     await supabase.from("taglines" as any).update({ active: !active } as any).eq("id", id);
@@ -106,9 +97,10 @@ const Admin = () => {
         }}
       >
         <div className="bg-card border border-border rounded-2xl p-8 max-w-xs w-full text-center">
-          <h1 className="text-lg font-medium text-foreground mb-4">PLAI Admin</h1>
-          <Input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="PIN" className="bg-background border-border text-center tracking-[0.3em] mb-4" />
-          <button onClick={handlePinSubmit} disabled={pin.length !== 4} className="w-full rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">enter</button>
+          <h1 className="text-lg font-medium text-foreground mb-2">PLAI Admin</h1>
+          <p className="text-sm text-muted-foreground">
+            {adminChecked ? "admins only — ask the PLAI owner for access" : "checking access…"}
+          </p>
         </div>
       </div>
     );

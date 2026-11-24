@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { requireCaller } from "../_shared/auth.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -142,8 +143,17 @@ serve(async (req) => {
     return err("invalid JSON")
   }
 
-  const { url, user_id } = body
-  if (!url || !user_id) return err("url and user_id required")
+  const { url } = body
+  if (!url) return err("url required")
+
+  // Use the signed-in caller's own Spotify connection (see _shared/auth.ts)
+  const callerCheck = await requireCaller(
+    req,
+    createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
+    body.user_id,
+  )
+  if (!callerCheck.ok) return callerCheck.response
+  const user_id = callerCheck.userId
 
   const platform = detectPlatform(url)
 

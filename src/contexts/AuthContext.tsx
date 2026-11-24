@@ -52,16 +52,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", userId)
       .single();
 
-    const { error: upsertError } = await supabase.from("profiles").upsert(
-      {
-        id: userId,
+    // The profile row is created automatically at sign-up, so a plain update is enough.
+    // (Private token columns can be written but not read by the app, which rules out upsert.)
+    const { error: upsertError } = await supabase
+      .from("profiles")
+      .update({
         spotify_access_token: providerToken,
-        spotify_refresh_token: providerRefreshToken,
+        ...(providerRefreshToken ? { spotify_refresh_token: providerRefreshToken } : {}),
         display_name: existingProfile?.display_name || metadata?.full_name || metadata?.name,
         avatar_url: existingProfile?.avatar_url || metadata?.avatar_url || metadata?.picture,
-      } as any,
-      { onConflict: "id" },
-    );
+      } as any)
+      .eq("id", userId);
 
     if (upsertError) console.error("Profile upsert failed:", upsertError.message, upsertError);
 
@@ -142,11 +143,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("id", session.user.id)
         .single();
 
-      const { error: upsertError } = await supabase.from("profiles").upsert(
-        {
-          id: session.user.id,
+      const { error: upsertError } = await supabase
+        .from("profiles")
+        .update({
           spotify_access_token: providerToken,
-          spotify_refresh_token: providerRefreshToken,
+          ...(providerRefreshToken ? { spotify_refresh_token: providerRefreshToken } : {}),
           display_name:
             existingProfile?.display_name ||
             session.user.user_metadata?.full_name ||
@@ -156,9 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             existingProfile?.avatar_url ||
             session.user.user_metadata?.avatar_url ||
             session.user.user_metadata?.picture,
-        } as any,
-        { onConflict: "id" },
-      );
+        } as any)
+        .eq("id", session.user.id);
 
       if (upsertError) {
         console.error("Profile upsert failed:", upsertError);

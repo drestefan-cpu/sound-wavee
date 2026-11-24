@@ -184,33 +184,33 @@ const SettingsPage = () => {
     }
   };
 
+  // The PIN becomes this account's password for "sign in with username + PIN" (setup-apple-pin).
+  // It's never stored in the profile.
   const handleSavePin = async () => {
-    if (!user || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      toast.error("PIN must be exactly 4 digits");
+    if (!user || !/^\d{6}$/.test(pin)) {
+      toast.error("PIN must be exactly 6 digits");
       return;
     }
     setPinSaving(true);
-    const { error } = await (supabase.rpc as any)("set_login_pin", {
-      p_user_id: user.id,
-      p_pin: pin,
-    });
+    const { error } = await supabase.functions.invoke("setup-apple-pin", { body: { pin } });
+    setPinSaving(false);
     if (error) {
-      const { error: e2 } = await supabase
-        .from("profiles")
-        .update({ login_pin: pin } as any)
-        .eq("id", user.id);
-      setPinSaving(false);
-      if (e2) toast.error("Failed to save PIN");
-      else {
-        toast.success("PIN saved");
-        setPin("");
+      let message = "couldn't save PIN — try again";
+      try {
+        const body = await (error as any).context?.json?.();
+        if (body?.error) message = body.error;
+      } catch {
+        // keep the generic message
       }
-    } else {
-      setPinSaving(false);
-      toast.success("PIN saved");
-      setPin("");
+      toast.error(message);
+      return;
     }
+    toast.success("PIN saved — use it with your username to sign in on another device");
+    setPin("");
   };
+
+  // Only accounts without Spotify/Google email sign-in use a PIN
+  const usesPinLogin = !!user && (!user.email || user.email.endsWith("@plai.device") || (user as any).is_anonymous);
 
   const connectAppleMusic = async () => {
     if (!user) return;
@@ -246,7 +246,8 @@ const SettingsPage = () => {
 
       const { error: upsertError } = await supabase
         .from("profiles")
-        .upsert({ id: user.id, apple_music_user_token: userToken } as any, { onConflict: "id" });
+        .update({ apple_music_user_token: userToken } as any)
+        .eq("id", user.id);
       if (upsertError) throw new Error("Could not save Apple Music token");
 
       setAppleConnected(true);
@@ -792,22 +793,23 @@ const SettingsPage = () => {
               />
             </button>
           </label>
+          {usesPinLogin && (
           <div className="mt-6">
             <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">quick login PIN</h4>
-            <p className="text-xs text-muted-foreground mb-2">set a 4-digit PIN to sign in quickly next time</p>
+            <p className="text-xs text-muted-foreground mb-2">set a 6-digit PIN to sign in with your username on another device</p>
             <div className="flex gap-2">
               <Input
                 type="password"
                 inputMode="numeric"
-                maxLength={4}
+                maxLength={6}
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
-                className="bg-card border-border w-24 text-center tracking-[0.3em]"
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="••••••"
+                className="bg-card border-border w-32 text-center tracking-[0.3em]"
               />
               <button
                 onClick={handleSavePin}
-                disabled={pinSaving || pin.length !== 4}
+                disabled={pinSaving || pin.length !== 6}
                 className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
                 style={{ touchAction: "manipulation" }}
               >
@@ -815,6 +817,7 @@ const SettingsPage = () => {
               </button>
             </div>
           </div>
+          )}
         </div>
 
         <div className="border-t border-border pt-6">

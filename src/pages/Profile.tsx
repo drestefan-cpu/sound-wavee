@@ -3,6 +3,7 @@ import { useParams, Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
+import { PUBLIC_PROFILE_COLUMNS } from "@/lib/profileColumns";
 import { getTrackPlatform } from "@/lib/trackLinks";
 import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library, Users, Radar } from "lucide-react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -200,7 +201,7 @@ const Profile = () => {
         if (username) {
           const { data: byUsername } = await supabase
             .from("profiles")
-            .select("*")
+            .select(PUBLIC_PROFILE_COLUMNS)
             .eq("username", username)
             .maybeSingle();
           if (!cancelled) {
@@ -208,12 +209,12 @@ const Profile = () => {
               setProfile(byUsername);
               return;
             }
-            const { data: byId } = await supabase.from("profiles").select("*").eq("id", username).maybeSingle();
+            const { data: byId } = await supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", username).maybeSingle();
             setProfile(byId);
             if (!byId) setProfileFailed(true);
           }
         } else if (user) {
-          const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+          const { data } = await supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", user.id).single();
           if (!cancelled) {
             setProfile(data);
             if (!data) setProfileFailed(true);
@@ -521,7 +522,7 @@ const Profile = () => {
         setSyncResult("could not sync — try signing out and back in");
         setTimeout(() => setSyncResult(null), 4000);
       } else {
-        const { data: refreshedProfile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        const { data: refreshedProfile } = await supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", user.id).single();
         if (refreshedProfile) {
           setProfile((prev: any) => ({ ...prev, ...refreshedProfile }));
         }
@@ -591,7 +592,7 @@ const Profile = () => {
     if (!profile) return;
 
     const [profileRes, likesRes, savedRes, fcRes, fgcRes, lcRes, scRes, exclusionsRes, hiddenRes, followerDataRes, ownerHiddenRes, tasteMatchRes, unseenRecsRes, recsRes, saveActivityRes, reactionActivityRes, recActivityRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", profile.id).single(),
+      supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", profile.id).single(),
       supabase
         .from("likes")
         .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, preview_url)")
