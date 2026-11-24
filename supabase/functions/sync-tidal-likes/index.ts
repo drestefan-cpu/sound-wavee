@@ -119,11 +119,18 @@ serve(async (req) => {
       })
       let pages = 0
       let reachedCutoff = false
+      // Lightweight sync stats returned to the caller (no personal data) — useful when debugging
+      let itemsSeen = 0
+      let oldestSeen: string | null = null
+      const typesSeen = new Set<string>()
 
       while (nextUrl && !reachedCutoff && pages < MAX_PAGES) {
         const page = await tidalGet(nextUrl)
         pages++
         for (const item of (page.data || []) as any[]) {
+          itemsSeen++
+          if (item.type) typesSeen.add(String(item.type))
+          if (item.meta?.addedAt) oldestSeen = item.meta.addedAt
           if (item.type !== "tracks" || !item.id) continue
           const addedAt: string = item.meta?.addedAt || new Date().toISOString()
           if (new Date(addedAt) < cutoff) { reachedCutoff = true; break }
@@ -135,7 +142,7 @@ serve(async (req) => {
 
       if (favourites.length === 0) {
         await supabaseAdmin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", user_id)
-        return json({ success: true, count: 0 })
+        return json({ success: true, count: 0, stats: { pages, itemsSeen, typesSeen: [...typesSeen], oldestSeen, reachedCutoff } })
       }
 
       // ── Step 2: track details (title, ISRC, artists, album id) ──────────────
@@ -304,7 +311,11 @@ serve(async (req) => {
 
       await supabaseAdmin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", user_id)
 
-      return json({ success: true, count: likeRows.length })
+      return json({
+        success: true,
+        count: likeRows.length,
+        stats: { pages, itemsSeen, favourites: favourites.length, withDetails: trackInfo.size, withArt: coverByAlbumId.size, oldestSeen },
+      })
     } catch (err) {
       if (err instanceof TokenRejected) {
         // Refresh failed or TIDAL revoked access: clear the token so Settings shows "connect" again
