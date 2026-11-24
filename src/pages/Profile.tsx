@@ -3,6 +3,7 @@ import { useParams, Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getTrackPlatform } from "@/lib/trackLinks";
 import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library, Users, Radar } from "lucide-react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
@@ -819,12 +820,7 @@ const Profile = () => {
   })();
   const filteredHiddenTracks = hiddenTracks.filter((h: any) => !collectionExclusionIds.has(h.track_id));
 
-  const getPlatformFromTrack = (spotifyTrackId?: string | null) => {
-    if (spotifyTrackId?.startsWith("yt:")) return "youtube" as const;
-    if (spotifyTrackId?.startsWith("apple:")) return "apple" as const;
-    if (spotifyTrackId?.startsWith("tidal_")) return "tidal" as const;
-    return "spotify" as const;
-  };
+  const getPlatformFromTrack = getTrackPlatform;
   const availablePlatforms = new Set(filteredLikes.map((l: any) => getPlatformFromTrack(l.tracks?.spotify_track_id)));
   const PLATFORM_ORDER = ["spotify", "youtube", "apple", "tidal"] as const;
   const sortedPlatforms = PLATFORM_ORDER.filter((p) => availablePlatforms.has(p));

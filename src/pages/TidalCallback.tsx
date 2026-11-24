@@ -72,7 +72,6 @@ const TidalCallback = () => {
         } = await supabase.auth.getSession();
         const authToken = session?.access_token || SUPABASE_ANON_KEY;
 
-        console.log("Invoking tidal-exchange-token with userId:", userId);
 
         const response = await fetch(`${SUPABASE_URL}/functions/v1/tidal-exchange-token`, {
           method: "POST",
@@ -90,7 +89,6 @@ const TidalCallback = () => {
         });
 
         const responseText = await response.text();
-        console.log("Edge function response:", response.status, responseText);
 
         localStorage.removeItem("tidal_code_verifier");
         localStorage.removeItem("tidal_user_id");

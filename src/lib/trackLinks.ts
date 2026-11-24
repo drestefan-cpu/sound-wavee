@@ -9,6 +9,23 @@ export function extractYouTubeVideoId(spotifyTrackId?: string): string | null {
   return spotifyTrackId!.slice(3) || null;
 }
 
+export type TrackPlatform = "spotify" | "apple" | "youtube" | "tidal";
+
+export const PLATFORM_LABELS: Record<TrackPlatform, string> = {
+  spotify: "Spotify",
+  apple: "Apple Music",
+  youtube: "YouTube Music",
+  tidal: "Tidal",
+};
+
+/** Which platform a track was synced from, based on the spotify_track_id prefix */
+export function getTrackPlatform(spotifyTrackId?: string | null): TrackPlatform {
+  if (spotifyTrackId?.startsWith("yt:")) return "youtube";
+  if (spotifyTrackId?.startsWith("apple:")) return "apple";
+  if (spotifyTrackId?.startsWith("tidal_")) return "tidal";
+  return "spotify";
+}
+
 /** Returns the stored ID only if it's a real Spotify track ID (not a yt:/apple:/tidal_/share: placeholder) */
 export function getRealSpotifyId(spotifyTrackId?: string): string | undefined {
   if (!spotifyTrackId) return undefined;

@@ -3,6 +3,7 @@ import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Music, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId } from "@/lib/trackLinks";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
 
@@ -136,11 +137,9 @@ const SongShare = () => {
 
   const q = encodeURIComponent(`${track.title} ${track.artist}`);
   const sid = track.spotify_track_id;
-  const isApple = !!sid && sid.startsWith("apple:");
-  const isYouTubeSentinel = !!sid && sid.startsWith("yt:");
-  const showSpotify = !!sid && !isApple && !isYouTubeSentinel && !sid.startsWith("share:");
-  const appleMusicId = isApple ? sid!.slice(6) : (track.apple_music_id ?? null);
-  const ytVideoId = track.youtube_video_id || (isYouTubeSentinel ? sid!.slice(3) : null);
+  const showSpotify = !!getRealSpotifyId(sid ?? undefined);
+  const appleMusicId = getAppleMusicId(sid ?? undefined, track.apple_music_id);
+  const ytVideoId = track.youtube_video_id || extractYouTubeVideoId(sid ?? undefined);
   const appleMusicUrl = appleMusicId
     ? `https://music.apple.com/us/song/${appleMusicId}`
     : `https://music.apple.com/search?term=${q}`;

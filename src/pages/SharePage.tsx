@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Music } from "lucide-react";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
+import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId as extractSentinelVideoId } from "@/lib/trackLinks";
 
 const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
@@ -28,11 +29,9 @@ interface ShareResult {
 function getPlatformLinks(track: TrackResult) {
   const q = encodeURIComponent(`${track.title} ${track.artist}`);
   const sid = track.spotify_track_id;
-  const isApple = !!sid && sid.startsWith("apple:");
-  const isYtSentinel = !!sid && sid.startsWith("yt:");
-  const showSpotify = !!sid && !isApple && !isYtSentinel;
-  const appleMusicId = isApple ? sid!.slice(6) : (track.apple_music_id ?? null);
-  const ytVideoId = track.youtube_video_id ?? (isYtSentinel ? sid!.slice(3) : null);
+  const showSpotify = !!getRealSpotifyId(sid ?? undefined);
+  const appleMusicId = getAppleMusicId(sid ?? undefined, track.apple_music_id);
+  const ytVideoId = track.youtube_video_id ?? extractSentinelVideoId(sid ?? undefined);
 
   return {
     spotify: showSpotify ? `https://open.spotify.com/track/${sid}` : null,

@@ -42,9 +42,6 @@ serve(async (req) => {
     let syncedCount = 0
     let pageToken: string | undefined = undefined
     let pageCount = 0
-    let itemCount = 0
-    let trackUpsertErrors: string[] = []
-    let likeUpsertErrors: string[] = []
 
     // Remove this user's YouTube likes older than 365 days before re-syncing.
     const { data: oldYtLikes, error: cleanupQueryErr } = await supabase
@@ -64,7 +61,6 @@ serve(async (req) => {
         .eq("user_id", user_id)
         .in("track_id", oldIds)
       if (cleanupDeleteErr) console.error("YouTube cleanup delete failed:", cleanupDeleteErr.message)
-      else console.log(`Cleaned up ${oldIds.length} YouTube likes older than 365 days`)
     }
 
     // Clean up any YouTube Shorts already in this user's likes.
@@ -115,7 +111,6 @@ serve(async (req) => {
           .eq("user_id", user_id)
           .in("track_id", shortTrackIds)
         if (shortsDeleteErr) console.error("Shorts cleanup delete failed:", shortsDeleteErr.message)
-        else console.log(`Cleaned up ${shortTrackIds.length} YouTube Shorts from likes`)
       }
     }
 
@@ -167,8 +162,6 @@ serve(async (req) => {
       const ytData = await ytRes.json()
       const items = ytData.items || []
       pageCount++
-      itemCount += items.length
-      console.log(`Page ${pageCount}: ${items.length} items`)
 
       const videoIds = items.map((item: any) => item.contentDetails?.videoId).filter(Boolean)
       if (videoIds.length === 0) break
@@ -181,7 +174,6 @@ serve(async (req) => {
         headers: { Authorization: `Bearer ${accessToken}` }
       })
       const detailsData = await detailsRes.json()
-      console.log(`Got ${detailsData.items?.length} video details`)
 
       const videoMap: Record<string, any> = {}
       for (const v of (detailsData.items || [])) {
@@ -193,7 +185,7 @@ serve(async (req) => {
         if (!videoId) continue
 
         const video = videoMap[videoId]
-        if (!video) { console.log(`No video details for ${videoId}`); continue }
+        if (!video) continue
 
         if (video.snippet?.categoryId !== "10") continue
 
@@ -220,7 +212,6 @@ serve(async (req) => {
           : 999
         if (totalSeconds <= 60) continue
 
-        console.log(`Upserting track: ${title} by ${artist}, videoId: ${videoId}`)
 
         const { data: track, error: trackErr } = await supabase
           .from("tracks")
@@ -236,11 +227,9 @@ serve(async (req) => {
 
         if (trackErr || !track) {
           console.error(`Track upsert error for ${videoId}:`, JSON.stringify(trackErr))
-          trackUpsertErrors.push(`${videoId}: ${trackErr?.message}`)
           continue
         }
 
-        console.log(`Track upserted with id: ${track.id}`)
 
         if (excludedTrackIds.has(track.id)) {
           await supabase
@@ -258,7 +247,6 @@ serve(async (req) => {
 
         if (likeErr) {
           console.error(`Like upsert error:`, JSON.stringify(likeErr))
-          likeUpsertErrors.push(likeErr.message)
           continue
         }
 
@@ -275,8 +263,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      count: syncedCount,
-      debug: { pageCount, itemCount, trackUpsertErrors, likeUpsertErrors }
+      count: syncedCount
     }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
     })

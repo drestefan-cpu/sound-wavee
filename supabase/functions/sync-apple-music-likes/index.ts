@@ -119,8 +119,6 @@ serve(async (req) => {
     let stopFetching = false
     let pageCount = 0
     const maxPages = 5
-    let songLogCount = 0
-    let albumLogCount = 0
 
     // Step 1 — collect recently added songs and albums
     while (nextUrl && !stopFetching && pageCount < maxPages) {
@@ -149,16 +147,6 @@ serve(async (req) => {
 
       for (const item of items) {
         if (item.type === "library-songs") {
-          if (songLogCount < 3) {
-            console.log("SONG_ITEM", JSON.stringify({
-              name: item.attributes?.name,
-              dateAdded: item.attributes?.dateAdded,
-              releaseDate: item.attributes?.releaseDate,
-              catalogId: item.attributes?.playParams?.catalogId,
-              type: item.type
-            }))
-            songLogCount++
-          }
 
           const attrs = item.attributes
           if (!attrs) continue
@@ -180,16 +168,6 @@ serve(async (req) => {
             isrc: attrs.isrc || null,
           })
         } else if (item.type === "library-albums") {
-          if (albumLogCount < 3) {
-            console.log("ALBUM_ITEM", JSON.stringify({
-              name: item.attributes?.name,
-              dateAdded: item.attributes?.dateAdded,
-              releaseDate: item.attributes?.releaseDate,
-              catalogId: item.attributes?.playParams?.catalogId,
-              type: item.type
-            }))
-            albumLogCount++
-          }
 
           const attrs = item.attributes
           if (!attrs) continue

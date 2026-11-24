@@ -65,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: { user_id: userId },
     });
     if (error) console.error("Sync failed:", error.message, error);
-    else console.log("Sync success:", data?.count, "tracks");
   };
 
   const triggerAutoSync = async (userId: string) => {
@@ -79,7 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       const timeSinceSync = now - lastSynced;
       if (!lastSynced || (timeSinceSync > AUTO_SYNC_INTERVAL && timeSinceSync > 60000)) {
-        console.log("Auto-sync: triggering background sync");
         if (profile?.sync_spotify !== false) {
           await supabase.functions.invoke("sync-spotify-likes", {
             body: { user_id: userId },
@@ -127,7 +125,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      console.log("OAuth redirect captured, storing token for:", session.user.id);
 
       // Check existing profile first — never overwrite display_name or avatar_url
       const { data: existingProfile } = await supabase
@@ -159,13 +156,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      console.log("Token stored, starting sync...");
 
       const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
         body: { user_id: session.user.id },
       });
 
-      console.log("Sync result:", data?.count, "tracks, error:", error?.message);
       window.history.replaceState(null, "", window.location.pathname);
     };
 

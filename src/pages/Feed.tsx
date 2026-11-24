@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getTrackPlatform, PLATFORM_LABELS } from "@/lib/trackLinks";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
@@ -1083,7 +1084,7 @@ const Feed = () => {
                       subtitle={
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="inline-flex items-center rounded-full bg-card border px-2 py-0.5 text-[10px] font-medium flex-shrink-0" style={{ color: "#2a3a4a", borderColor: "#2a3a4a" }}>
-                            {track?.spotify_track_id?.startsWith("apple:") ? "Apple Music" : track?.spotify_track_id?.startsWith("yt:") ? "YouTube Music" : track?.spotify_track_id?.startsWith("tidal_") ? "Tidal" : "Spotify"}
+                            {PLATFORM_LABELS[getTrackPlatform(track?.spotify_track_id)]}
                           </span>
                           <span className="truncate text-[11px]" style={{ color: "#2a3a4a" }}>
                             {formatTimestamp(item.liked_at)}
