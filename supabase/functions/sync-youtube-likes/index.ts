@@ -39,9 +39,47 @@ serve(async (req) => {
     let accessToken = profile.youtube_access_token
     const threeSixtyFiveDaysAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
 
+    // Google access tokens expire after ~1 hour. Refresh once with the OAuth client that
+    // issued them (youtube-exchange-token uses YOUTUBE_CLIENT_ID), then retry the request.
+    let refreshAttempted = false
+    const refreshAccessToken = async (): Promise<boolean> => {
+      if (refreshAttempted || !profile.youtube_refresh_token) return false
+      refreshAttempted = true
+      const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: profile.youtube_refresh_token,
+          client_id: Deno.env.get("YOUTUBE_CLIENT_ID") || Deno.env.get("GOOGLE_CLIENT_ID") || "",
+          client_secret: Deno.env.get("YOUTUBE_CLIENT_SECRET") || Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
+        }),
+      })
+      const refreshData = await refreshRes.json()
+      if (!refreshData.access_token) {
+        console.error("YouTube token refresh failed:", refreshData.error, refreshData.error_description)
+        return false
+      }
+      accessToken = refreshData.access_token
+      await supabase.from("profiles").update({
+        youtube_access_token: accessToken,
+        ...(refreshData.refresh_token ? { youtube_refresh_token: refreshData.refresh_token } : {}),
+      } as any).eq("id", user_id)
+      return true
+    }
+
+    const ytFetch = async (url: string): Promise<Response> => {
+      let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+      if (res.status === 401 && await refreshAccessToken()) {
+        res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+      }
+      return res
+    }
+
     let syncedCount = 0
     let pageToken: string | undefined = undefined
     let pageCount = 0
+    let reachedCutoff = false
 
     // Remove this user's YouTube likes older than 365 days before re-syncing.
     const { data: oldYtLikes, error: cleanupQueryErr } = await supabase
@@ -88,7 +126,7 @@ serve(async (req) => {
         const dUrl = new URL("https://www.googleapis.com/youtube/v3/videos")
         dUrl.searchParams.set("id", chunk.join(","))
         dUrl.searchParams.set("part", "contentDetails")
-        const dRes = await fetch(dUrl.toString(), { headers: { Authorization: `Bearer ${accessToken}` } })
+        const dRes = await ytFetch(dUrl.toString())
         if (!dRes.ok) continue
         const dData = await dRes.json()
         for (const video of (dData.items || [])) {
@@ -128,28 +166,7 @@ serve(async (req) => {
       url.searchParams.set("maxResults", "50")
       if (pageToken) url.searchParams.set("pageToken", pageToken)
 
-      const ytRes = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      })
-
-      if (ytRes.status === 401 && (profile as any).youtube_refresh_token) {
-        const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            grant_type: "refresh_token",
-            refresh_token: (profile as any).youtube_refresh_token,
-            client_id: Deno.env.get("GOOGLE_CLIENT_ID") || "",
-            client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
-          })
-        })
-        const refreshData = await refreshRes.json()
-        if (refreshData.access_token) {
-          accessToken = refreshData.access_token
-          await supabase.from("profiles").update({ youtube_access_token: accessToken } as any).eq("id", user_id)
-          continue
-        }
-      }
+      const ytRes = await ytFetch(url.toString())
 
       if (!ytRes.ok) {
         const errText = await ytRes.text()
@@ -170,9 +187,7 @@ serve(async (req) => {
       detailsUrl.searchParams.set("id", videoIds.join(","))
       detailsUrl.searchParams.set("part", "snippet,contentDetails")
 
-      const detailsRes = await fetch(detailsUrl.toString(), {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      })
+      const detailsRes = await ytFetch(detailsUrl.toString())
       const detailsData = await detailsRes.json()
 
       const videoMap: Record<string, any> = {}
@@ -197,7 +212,7 @@ serve(async (req) => {
         // YouTube Liked Videos returns newest-first, so once we hit something
         // older than 365 days everything remaining is older — safe to stop.
         if (likedAt && new Date(likedAt) < threeSixtyFiveDaysAgo) {
-          pageToken = undefined
+          reachedCutoff = true
           break
         }
 
@@ -213,17 +228,32 @@ serve(async (req) => {
         if (totalSeconds <= 60) continue
 
 
-        const { data: track, error: trackErr } = await supabase
+        // Reuse a track that already has this video (e.g. a Spotify song whose YouTube
+        // version was found by create-share-link) — don't overwrite its Spotify ID or title.
+        let track: { id: string } | null = null
+        let trackErr: any = null
+        const { data: existingTrack } = await supabase
           .from("tracks")
-          .upsert({
-            title,
-            artist,
-            album_art_url: albumArt,
-            youtube_video_id: videoId,
-            spotify_track_id: `yt:${videoId}`,
-          }, { onConflict: "youtube_video_id" })
           .select("id")
-          .single()
+          .eq("youtube_video_id", videoId)
+          .maybeSingle()
+        if (existingTrack) {
+          track = existingTrack
+        } else {
+          const inserted = await supabase
+            .from("tracks")
+            .upsert({
+              title,
+              artist,
+              album_art_url: albumArt,
+              youtube_video_id: videoId,
+              spotify_track_id: `yt:${videoId}`,
+            }, { onConflict: "spotify_track_id" })
+            .select("id")
+            .single()
+          track = inserted.data
+          trackErr = inserted.error
+        }
 
         if (trackErr || !track) {
           console.error(`Track upsert error for ${videoId}:`, JSON.stringify(trackErr))
@@ -253,7 +283,7 @@ serve(async (req) => {
         syncedCount++
       }
 
-      pageToken = ytData.nextPageToken
+      pageToken = reachedCutoff ? undefined : ytData.nextPageToken
     } while (pageToken)
 
     await supabase
