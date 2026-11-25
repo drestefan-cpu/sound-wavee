@@ -45,6 +45,9 @@ const SongShare = () => {
   // Share analytics — fire and forget
   useEffect(() => {
     if (!track?.id) return;
+    // (the sharer's username comes from ?from= so they can see their link's opens; their own
+    //  opens are skipped by passing who's viewing, if signed in)
+    supabase.auth.getSession().then(({ data: { session } }) =>
     fetch(`${SUPABASE_URL}/functions/v1/log-share-open`, {
       method: "POST",
       headers: {
@@ -56,8 +59,11 @@ const SongShare = () => {
         track_id: track.id,
         referrer: document.referrer || null,
         user_agent: navigator.userAgent,
+        from: fromParam || undefined,
+        viewer_id: session?.user?.id,
       }),
-    }).catch(() => {});
+    }).catch(() => {}),
+    );
   }, [track?.id]);
 
   // Fill in missing cross-platform links (e.g. a Tidal song's Spotify ID) so every button opens

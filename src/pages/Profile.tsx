@@ -15,6 +15,8 @@ import RecommendModal from "@/components/RecommendModal";
 import PageHeader from "@/components/PageHeader";
 import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
+import ForYouTab from "@/components/profile/ForYouTab";
+import ShareStats from "@/components/profile/ShareStats";
 import FollowersModal from "@/components/FollowersModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
@@ -461,14 +463,6 @@ const Profile = () => {
         ),
       );
       setActivityLoaded(true);
-      if (unseenRecCount > 0) {
-        await supabase
-          .from("recommendations" as any)
-          .update({ seen: true } as any)
-          .eq("to_user_id", user.id)
-          .eq("seen", false);
-        setUnseenRecCount(0);
-      }
     };
     loadActivity();
   }, [isOwnProfile, user, tab]);
@@ -484,6 +478,13 @@ const Profile = () => {
         .limit(50);
       setRecommendations(data || []);
       setRecsLoaded(true);
+      // Opening "for you" marks new recommendations as seen (clears the dot)
+      await supabase
+        .from("recommendations" as any)
+        .update({ seen: true } as any)
+        .eq("to_user_id", user.id)
+        .eq("seen", false);
+      setUnseenRecCount(0);
     };
     loadRecs();
   }, [isOwnProfile, user, tab]);
@@ -904,10 +905,10 @@ const Profile = () => {
 
   const ownTabs = [
     { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
-    { key: "foryou" as TabType, label: "for you", icon: <Sparkle className="h-3 w-3" /> },
+    { key: "foryou" as TabType, label: "for you", icon: <Sparkle className="h-3 w-3" />, badge: unseenRecCount > 0 },
     { key: "collection" as TabType, label: collectionLabel, icon: <Library className="h-3 w-3" /> },
     { key: "friends" as TabType, label: "friends", icon: <Users className="h-3 w-3" /> },
-    { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" />, badge: unseenRecCount > 0 },
+    { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" /> },
   ];
   const otherTabs = [
     { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
@@ -1244,6 +1245,7 @@ const Profile = () => {
           )
         ) : tab === "activity" ? (
           <div className="space-y-1.5">
+            <ShareStats />
             {activityLoaded && activity.length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
                 {(["all", "saves", "reactions", "recommendations"] as ActivityFilterType[]).map((f) => (
@@ -1344,46 +1346,12 @@ const Profile = () => {
             )}
           </div>
         ) : tab === "foryou" ? (
-          <div className="space-y-2">
-            {recsLoaded && recommendations.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                when someone recommends you a song, it'll appear here.
-              </p>
-            ) : !recsLoaded ? (
-              <div className="flex justify-center py-6">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : (
-              recommendations.map((rec: any) => (
-                <UnifiedTrackCard
-                  key={rec.id}
-                  compact
-                  hideReactions
-                  track={{
-                    id: rec.id,
-                    title: rec.tracks?.title || "Unknown",
-                    artist: rec.tracks?.artist || "Unknown",
-                    albumArtUrl: rec.tracks?.album_art_url,
-                    spotifyTrackId: rec.tracks?.spotify_track_id,
-                    appleMusicId: rec.tracks?.apple_music_id,
-                    spotifyLinkId: rec.tracks?.spotify_link_id,
-                    tidalTrackId: rec.tracks?.tidal_track_id,
-                    amazonMusicId: rec.tracks?.amazon_music_id,
-                    shortId: rec.tracks?.short_id,
-                    trackDbId: rec.track_id,
-                  }}
-                  isSaved={isSaved(rec.track_id)}
-                  onToggleSave={() => toggleSave(rec.track_id)}
-                  subtitle={
-                    <p className="text-[10px] text-muted-foreground">
-                      from @{rec.profiles?.username || rec.profiles?.display_name}
-                      {rec.message && <span className="italic"> — "{rec.message}"</span>}
-                    </p>
-                  }
-                />
-              ))
-            )}
-          </div>
+          <ForYouTab
+            received={recommendations}
+            loaded={recsLoaded}
+            onReceivedChange={setRecommendations}
+            myUsername={myUsername ?? undefined}
+          />
         ) : tab === "friends" ? (
           <div className="space-y-2">
             {!friendsLoaded ? (

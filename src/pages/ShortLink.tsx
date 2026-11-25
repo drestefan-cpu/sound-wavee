@@ -14,7 +14,7 @@ const ShortLink = () => {
         .select("id")
         .eq("short_id", shortId)
         .maybeSingle()
-      if (data?.id) navigate(`/song/${data.id}`, { replace: true })
+      if (data?.id) navigate(`/song/${data.id}${window.location.search}`, { replace: true }) // keeps ?from=
       else navigate("/", { replace: true })
     }
     resolve()

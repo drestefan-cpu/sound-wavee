@@ -21,6 +21,7 @@ const ICONS: Record<string, any> = {
   reaction: Heart,
   save: Disc,
   recommendation: Send,
+  rec_reaction: Send,
   new_music: Music,
 };
 
@@ -31,7 +32,9 @@ const typeLabel = (type: string, data: any) => {
     case "reaction":
       return `reacted ${data?.emoji || ""} to your song`;
     case "save":
-      return "saved your song";
+      return data?.context === "recommendation" ? "saved the song you sent" : "saved your song";
+    case "rec_reaction":
+      return `reacted ${data?.emoji || ""} to the song you sent`;
     case "recommendation":
       return "recommended you a song";
     case "new_music": {
