@@ -13,6 +13,7 @@ const PLATFORMS = [
   { fn: "sync-apple-music-likes", column: "apple_music_user_token" },
   { fn: "sync-tidal-likes", column: "tidal_refresh_token" },
   { fn: "sync-youtube-likes", column: "youtube_refresh_token" },
+  { fn: "spotify-playlist", column: "spotify_playlist_id" }, // public-playlist fallback for Spotify
 ] as const
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))

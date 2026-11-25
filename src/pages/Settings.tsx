@@ -1,3 +1,4 @@
+import SpotifyPlaylistSync from "@/components/SpotifyPlaylistSync";
 import PageTip, { resetTips } from "@/components/PageTip";
 import { SETTINGS_TIPS } from "@/lib/tips";
 import { useEffect, useState } from "react";
@@ -61,6 +62,8 @@ const SettingsPage = () => {
   const [showDeveloperNotes, setShowDeveloperNotes] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [tidalConnected, setTidalConnected] = useState(false);
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifyPlaylist, setSpotifyPlaylist] = useState<{ name: string | null; syncedAt: string | null }>({ name: null, syncedAt: null });
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const [appleConnected, setAppleConnected] = useState(false);
   const [syncSpotify, setSyncSpotify] = useState(true);
@@ -102,6 +105,11 @@ const SettingsPage = () => {
         setStatus((data as any).status || "");
         setProfileColor((data as any).profile_color || "#FF2D78");
         setTidalConnected(!!(data as any).tidal_access_token);
+        setSpotifyConnected(!!((data as any).spotify_refresh_token || (data as any).spotify_access_token));
+        setSpotifyPlaylist({
+          name: (data as any).spotify_playlist_name || null,
+          syncedAt: (data as any).spotify_playlist_synced_at || null,
+        });
         setYoutubeConnected(!!(data as any).youtube_access_token);
         setAppleConnected(!!(data as any).apple_music_user_token);
         setSyncSpotify((data as any).sync_spotify !== false);
@@ -676,13 +684,23 @@ const SettingsPage = () => {
           </h3>
           <div className="space-y-4">
 
-            {/* Spotify */}
+            {/* Spotify — connected account, or a public playlist for people Spotify won't let connect */}
             <div>
               <div className="flex items-center gap-3">
-                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span className={`h-2 w-2 rounded-full ${spotifyConnected || spotifyPlaylist.name ? "bg-green-500" : "bg-muted"}`} />
                 <span className="text-sm text-foreground">Spotify</span>
-                <span className="text-xs text-muted-foreground ml-auto">connected</span>
+                <span className="text-xs text-muted-foreground ml-auto">
+                  {spotifyConnected ? "connected" : spotifyPlaylist.name ? "via playlist" : "not connected"}
+                </span>
               </div>
+              {!spotifyConnected && (
+                <SpotifyPlaylistSync
+                  playlistName={spotifyPlaylist.name}
+                  syncedAt={spotifyPlaylist.syncedAt}
+                  onChange={setSpotifyPlaylist}
+                />
+              )}
+              {spotifyConnected && (
               <div className="ml-5 mt-1.5 flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">sync collection</span>
                 <button
@@ -693,6 +711,7 @@ const SettingsPage = () => {
                   <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-150 ${syncSpotify ? "translate-x-5" : "translate-x-1"}`} />
                 </button>
               </div>
+              )}
             </div>
 
             {/* Tidal */}
