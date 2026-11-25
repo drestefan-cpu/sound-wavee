@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Heart, Send, X, Play, Pause, FileText, ArrowUpRight } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
+import Artwork from "@/components/Artwork";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { extractYouTubeVideoId, getTrackUrl } from "@/lib/trackLinks";
@@ -123,7 +124,6 @@ const TrackDetailModal = ({
   sharerUsername,
 }: TrackDetailModalProps) => {
   const [showRecommend, setShowRecommend] = useState(false);
-  const [artError, setArtError] = useState(false);
   const { user } = useAuth();
   const { preferredPlatform } = usePlatform();
   const trackDbId = track.trackDbId || (track.localOnly ? undefined : track.id);
@@ -313,11 +313,11 @@ const TrackDetailModal = ({
 
           {/* cover + preview */}
           <div className="relative mx-auto aspect-square w-[74%] max-w-[300px] overflow-hidden rounded-2xl bg-secondary shadow-lg">
-            {track.albumArtUrl && !artError ? (
-              <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" onError={() => setArtError(true)} />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-4xl text-muted-foreground">♪</div>
-            )}
+            <Artwork
+              src={track.albumArtUrl}
+              eager
+              fallback={<div className="flex h-full w-full items-center justify-center text-4xl text-muted-foreground">♪</div>}
+            />
             {details?.previewUrl && <PreviewButton playing={playing} progress={progress} onClick={togglePreview} />}
           </div>
 

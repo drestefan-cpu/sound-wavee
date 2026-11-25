@@ -8,6 +8,7 @@ import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { useAuth } from "@/contexts/AuthContext";
 import EmojiReactions from "@/components/EmojiReactions";
 import TrackDetailModal from "@/components/TrackDetailModal";
+import Artwork from "@/components/Artwork";
 
 export interface UnifiedTrackData {
   id: string;
@@ -82,7 +83,6 @@ const UnifiedTrackCard = ({
   const { user } = useAuth();
   const [bouncing, setBouncing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  const [artError, setArtError] = useState(false);
 
   const trackDbId = track.trackDbId || track.id;
   const saved = isSavedProp !== undefined ? isSavedProp : isGloballySaved(trackDbId);
@@ -145,18 +145,16 @@ const UnifiedTrackCard = ({
               className="relative flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
               style={{ width: 56, height: 56 }}
             >
-              {track.albumArtUrl && !artError ? (
-                <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" onError={() => setArtError(true)} />
-              ) : placeholderColor ? (
-                <div
-                  className="flex h-full w-full items-center justify-center"
-                  style={{ backgroundColor: placeholderColor }}
-                >
-                  <span className="font-display text-sm text-white">{placeholderText}</span>
-                </div>
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">♪</div>
-              )}
+              <Artwork
+                src={track.albumArtUrl}
+                fallback={
+                  placeholderColor ? (
+                    <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: placeholderColor }}>
+                      <span className="font-display text-sm text-white">{placeholderText}</span>
+                    </div>
+                  ) : undefined
+                }
+                />
               
             </div>
             <div className="min-w-0 flex-1">
@@ -238,18 +236,16 @@ const UnifiedTrackCard = ({
             className="relative flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
             style={{ width: 72, height: 72 }}
           >
-            {track.albumArtUrl && !artError ? (
-              <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" onError={() => setArtError(true)} />
-            ) : placeholderColor ? (
-              <div
-                className="flex h-full w-full items-center justify-center"
-                style={{ backgroundColor: placeholderColor }}
-              >
-                <span className="font-display text-lg text-white">{placeholderText}</span>
-              </div>
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">♪</div>
-            )}
+            <Artwork
+              src={track.albumArtUrl}
+              fallback={
+                placeholderColor ? (
+                  <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: placeholderColor }}>
+                    <span className="font-display text-lg text-white">{placeholderText}</span>
+                  </div>
+                ) : undefined
+              }
+              />
               {rank ? <RankTag rank={rank} /> : null}
           </div>
           <div className="min-w-0 flex-1">

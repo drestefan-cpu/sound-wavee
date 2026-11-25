@@ -1255,7 +1255,8 @@ const Profile = () => {
           )}
         </div>
 
-        <div className="mt-4 flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+        <div className="mt-4 mb-3 overflow-x-auto no-scrollbar">
+          <div className="mx-auto flex w-max gap-1.5">
           {tabList.map((t) => (
             <button
               key={t.key}
@@ -1272,6 +1273,7 @@ const Profile = () => {
               )}
             </button>
           ))}
+          </div>
         </div>
 
         {isOwnProfile && <PageTip id="library" steps={LIBRARY_TIPS} className="mb-3" />}
@@ -1479,9 +1481,12 @@ const Profile = () => {
                       <p className="text-xs text-muted-foreground">@{p.username || "user"}</p>
                     </div>
                     {isOwnProfile && typeof friendMatches.get(p.id) === "number" && (
-                      <span className="shrink-0 text-right" aria-label={`${friendMatches.get(p.id)}% taste match`}>
-                        <span className="block font-display text-base leading-none tabular-nums text-primary">{friendMatches.get(p.id)}%</span>
-                        <span className="text-[9px] text-muted-foreground">match</span>
+                      <span
+                        className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-primary"
+                        aria-label={`${friendMatches.get(p.id)}% taste match`}
+                        title="taste match"
+                      >
+                        {friendMatches.get(p.id)}% match
                       </span>
                     )}
                   </Link>

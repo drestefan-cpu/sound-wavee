@@ -47,9 +47,9 @@ const Ring = ({ score }: { score: number }) => {
           style={{ transition: "stroke-dashoffset 0.6s ease-out" }}
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center font-display text-2xl tabular-nums text-foreground">
+      <span className="absolute inset-0 flex items-center justify-center text-[26px] font-semibold tabular-nums tracking-tight text-foreground">
         {score}
-        <span className="text-sm">%</span>
+        <span className="ml-0.5 text-sm font-medium text-muted-foreground">%</span>
       </span>
     </div>
   );

@@ -43,7 +43,7 @@ const ShareStats = () => {
       <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">your shared links</p>
       <div className="mt-2 flex items-baseline gap-4">
         <p className="text-foreground">
-          <span className="font-display text-2xl tabular-nums">{total_opens}</span>
+          <span className="text-2xl font-semibold tabular-nums tracking-tight">{total_opens}</span>
           <span className="ml-1.5 text-xs text-muted-foreground">{total_opens === 1 ? "open" : "opens"}</span>
         </p>
         {opens_7d > 0 && (
