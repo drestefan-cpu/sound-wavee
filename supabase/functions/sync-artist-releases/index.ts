@@ -1,48 +1,49 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { requireCaller } from "../_shared/auth.ts"
+import { requireCaller, jsonResponse, corsHeaders } from "../_shared/auth.ts"
+import { getSpotifyAppToken } from "../_shared/spotify.ts"
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-}
+// Finds new songs (last 60 days) from the artists a person follows on PLAI and stores them in
+// artist_releases, plus a tracks row for each so they can be saved and shared straight away.
+// Uses the person's own Spotify connection when they have one, otherwise PLAI's app token, so it
+// works for Apple Music, Tidal and YouTube listeners too. Runs at most once every 12 hours per person.
+
+const WINDOW_DAYS = 60
+const MIN_HOURS_BETWEEN_SYNCS = 12
+const TIME_BUDGET_MS = 110_000
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
+  const started = Date.now()
 
   try {
     const body = await req.json().catch(() => ({}))
+    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    )
-
-    // Only act on the signed-in caller's own account (see _shared/auth.ts)
     const caller = await requireCaller(req, supabaseAdmin, body.user_id)
     if (!caller.ok) return caller.response
     const user_id = caller.userId
 
-    // Load user's Spotify tokens
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("spotify_access_token, spotify_refresh_token")
+      .select("spotify_access_token, spotify_refresh_token, releases_synced_at")
       .eq("id", user_id)
       .single()
 
-    if (!profile?.spotify_access_token) {
-      return new Response(JSON.stringify({ error: "No Spotify token found" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+    if (profile?.releases_synced_at && !body.force) {
+      const hours = (Date.now() - new Date(profile.releases_synced_at).getTime()) / 3_600_000
+      if (hours < MIN_HOURS_BETWEEN_SYNCS) return jsonResponse({ skipped: true, reason: "synced recently" })
     }
 
-    let accessToken = profile.spotify_access_token
+    // ── Spotify access: the person's token if connected, else PLAI's app token ──
+    let accessToken: string | null = profile?.spotify_access_token || null
+    let usingUserToken = !!accessToken
+    if (!accessToken) accessToken = await getSpotifyAppToken()
+    if (!accessToken) return jsonResponse({ error: "couldn't reach Spotify" }, 502)
 
-    // Helper: refresh Spotify token if expired
-    const refreshSpotifyToken = async (): Promise<boolean> => {
-      if (!profile.spotify_refresh_token) return false
-      const refreshRes = await fetch("https://accounts.spotify.com/api/token", {
+    const refreshUserToken = async (): Promise<boolean> => {
+      if (!profile?.spotify_refresh_token) return false
+      const res = await fetch("https://accounts.spotify.com/api/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -52,124 +53,147 @@ serve(async (req) => {
           client_secret: Deno.env.get("SPOTIFY_CLIENT_SECRET") || "",
         }),
       })
-      const refreshData = await refreshRes.json()
-      if (refreshData.access_token) {
-        accessToken = refreshData.access_token
-        await supabaseAdmin.from("profiles").update({ spotify_access_token: accessToken }).eq("id", user_id)
-        return true
-      }
-      return false
+      const data = await res.json().catch(() => ({}))
+      if (!data.access_token) return false
+      accessToken = data.access_token
+      await supabaseAdmin.from("profiles").update({ spotify_access_token: data.access_token }).eq("id", user_id)
+      return true
     }
 
-    // Helper: Spotify fetch with auto-refresh
     const spotifyFetch = async (url: string): Promise<any> => {
       let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
       if (res.status === 401) {
-        const refreshed = await refreshSpotifyToken()
-        if (refreshed) {
-          res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+        // Expired: refresh the person's token, or fall back to the app token
+        const ok = usingUserToken ? await refreshUserToken() : false
+        if (!ok) {
+          accessToken = await getSpotifyAppToken()
+          usingUserToken = false
         }
+        if (accessToken) res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+      }
+      if (res.status === 429) {
+        const wait = Math.min(Number(res.headers.get("Retry-After") || "2"), 10)
+        await new Promise((r) => setTimeout(r, wait * 1000))
+        res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
       }
       if (!res.ok) return null
       return res.json()
     }
 
-    // Load user's followed artists from our DB
+    // ── Followed artists ──
     const { data: followedRows } = await supabaseAdmin
       .from("user_followed_artists")
       .select("artist_name")
       .eq("user_id", user_id)
 
-    // Split comma-separated entries (handles legacy multi-artist rows pre-fix)
     const artistNames: string[] = [...new Set(
-      ((followedRows || []) as any[])
-        .flatMap((r: any) =>
-          typeof r.artist_name === "string"
-            ? r.artist_name.split(/\s*,\s*/).map((n: string) => n.trim()).filter(Boolean)
-            : []
-        )
+      ((followedRows || []) as { artist_name: string | null }[]).flatMap((r) =>
+        typeof r.artist_name === "string"
+          ? r.artist_name.split(/\s*,\s*/).map((n) => n.trim()).filter(Boolean)
+          : [],
+      ),
     )]
-
-    if (artistNames.length === 0) {
-      return new Response(JSON.stringify({ synced: 0, message: "no followed artists" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+    // Random order, so if a very long list runs out of time, the next visit covers different artists
+    for (let i = artistNames.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[artistNames[i], artistNames[j]] = [artistNames[j], artistNames[i]]
     }
 
-    // 60-day cutoff
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - 60)
-    const cutoffStr = cutoffDate.toISOString().slice(0, 10)
+    if (artistNames.length === 0) {
+      await supabaseAdmin.from("profiles").update({ releases_synced_at: new Date().toISOString() }).eq("id", user_id)
+      return jsonResponse({ synced: 0, message: "no followed artists" })
+    }
+
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - WINDOW_DAYS)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    const normalize = (s: string) => s.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim()
 
     let syncedCount = 0
+    let artistsChecked = 0
+    let outOfTime = false
 
     for (const artistName of artistNames) {
-      // Search Spotify for the artist
+      if (Date.now() - started > TIME_BUDGET_MS) { outOfTime = true; break }
+      artistsChecked++
+
       const searchData = await spotifyFetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`,
       )
       const artist = searchData?.artists?.items?.[0]
       if (!artist?.id) continue
 
-      // Reject fuzzy mismatches — Spotify returns popularity-ranked results, not exact matches
-      const normalize = (s: string) => s.toLowerCase().trim()
+      // Search is popularity-ranked, not exact: only accept the same (or containing) name
       const searchedNorm = normalize(artistName)
       const returnedNorm = normalize(artist.name)
       if (returnedNorm !== searchedNorm && !returnedNorm.includes(searchedNorm)) continue
+      // Podcast studios and labels have no genre tags (when Spotify provides genres at all)
+      if (Array.isArray(artist.genres) && artist.genres.length === 0 && (artist.popularity ?? 100) < 20) continue
 
-      // Reject non-music entities (podcast studios, labels, etc.) — music artists
-      // always have genre tags; production companies and podcast shows never do
-      if (!artist.genres || artist.genres.length === 0) continue
-
-      // Get artist's recent releases (albums + singles)
       const albumsData = await spotifyFetch(
-        `https://api.spotify.com/v1/artists/${artist.id}/albums?include_groups=album,single&limit=10&market=US`
+        `https://api.spotify.com/v1/artists/${artist.id}/albums?include_groups=album,single&limit=10&market=US`,
       )
       if (!albumsData?.items) continue
 
       for (const album of albumsData.items) {
-        // Skip releases older than 60 days
         if (!album.release_date || album.release_date < cutoffStr) continue
 
-        // Get tracks from this album/single
-        const tracksData = await spotifyFetch(
-          `https://api.spotify.com/v1/albums/${album.id}/tracks?limit=5&market=US`
-        )
+        const tracksData = await spotifyFetch(`https://api.spotify.com/v1/albums/${album.id}/tracks?limit=5&market=US`)
         if (!tracksData?.items) continue
 
+        const albumArt = album.images?.[0]?.url || null
         for (const track of tracksData.items) {
           if (!track?.id) continue
 
-          const { error } = await supabaseAdmin
-            .from("artist_releases")
-            .upsert({
+          const { error } = await supabaseAdmin.from("artist_releases").upsert({
+            spotify_track_id: track.id,
+            title: track.name,
+            artist_name: artistName,
+            album: album.name,
+            album_art_url: albumArt,
+            release_date: album.release_date,
+          }, { onConflict: "spotify_track_id" })
+          if (error) continue
+          syncedCount++
+
+          // Make sure the song exists in PLAI's catalogue so it can be saved and shared
+          const { data: existing } = await supabaseAdmin
+            .from("tracks")
+            .select("id")
+            .or(`spotify_track_id.eq.${track.id},spotify_link_id.eq.${track.id}`)
+            .limit(1)
+            .maybeSingle()
+          if (!existing) {
+            await supabaseAdmin.from("tracks").insert({
               spotify_track_id: track.id,
               title: track.name,
-              artist_name: artistName,
+              artist: (track.artists || []).map((a: { name: string }) => a.name).join(", ") || artistName,
               album: album.name,
-              album_art_url: album.images?.[0]?.url || null,
-              release_date: album.release_date,
-            }, { onConflict: "spotify_track_id" })
-
-          if (!error) syncedCount++
+              album_art_url: albumArt,
+              track_source: "release",
+            })
+          }
         }
       }
     }
 
-    // Delete releases older than 60 days to keep the table clean
-    await supabaseAdmin
-      .from("artist_releases")
-      .delete()
-      .lt("release_date", cutoffStr)
+    // Keep the table to the release window
+    await supabaseAdmin.from("artist_releases").delete().lt("release_date", cutoffStr)
 
-    return new Response(JSON.stringify({ synced: syncedCount, success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Only mark the sync done if every artist was checked; otherwise the next visit continues
+    if (!outOfTime) {
+      await supabaseAdmin.from("profiles").update({ releases_synced_at: new Date().toISOString() }).eq("id", user_id)
+    }
+
+    return jsonResponse({
+      success: true,
+      synced: syncedCount,
+      artistsChecked,
+      artistsTotal: artistNames.length,
+      source: usingUserToken ? "your spotify" : "plai",
     })
-
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
+    console.error("sync-artist-releases failed", err)
+    return jsonResponse({ error: "release sync failed" }, 500)
   }
 })

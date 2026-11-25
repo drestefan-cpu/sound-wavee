@@ -5,6 +5,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import JournalAdmin from "@/components/admin/JournalAdmin";
 
 
 const Admin = () => {
@@ -21,7 +22,7 @@ const Admin = () => {
   const [newPick, setNewPick] = useState({ spotify_track_id: "", title: "", artist: "", album: "", note: "" });
   const [showAddPick, setShowAddPick] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"taglines" | "picks" | "releases">("taglines");
+  const [activeTab, setActiveTab] = useState<"taglines" | "picks" | "journal" | "releases">("taglines");
   const [releasesMock, setReleasesMock] = useState(() => localStorage.getItem("plai-releases-mock") === "1");
 
   useEffect(() => {
@@ -116,10 +117,10 @@ const Admin = () => {
       </header>
 
       <div className="mx-auto max-w-3xl px-4 py-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}>
-        <div className="flex gap-2 mb-6">
-          {(["taglines", "picks", "releases"] as const).map(t => (
+        <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+          {(["taglines", "picks", "journal", "releases"] as const).map(t => (
             <button key={t} onClick={() => setActiveTab(t)} className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${activeTab === t ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}>
-              {t === "taglines" ? "Taglines" : t === "picks" ? "PLAI Picks" : "Releases"}
+              {t === "taglines" ? "Taglines" : t === "picks" ? "PLAI Picks" : t === "journal" ? "Journal" : "Releases"}
             </button>
           ))}
         </div>
@@ -202,6 +203,8 @@ const Admin = () => {
               </div>
             ))}
           </div>
+        ) : activeTab === "journal" ? (
+          <JournalAdmin />
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Controls how the Releases tab renders. Use mock mode when demoing the app.</p>

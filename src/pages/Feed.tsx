@@ -3,24 +3,22 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
-import { PUBLIC_PROFILE_COLUMNS } from "@/lib/profileColumns";
 import { getTrackPlatform, PLATFORM_LABELS } from "@/lib/trackLinks";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import BottomNav from "@/components/BottomNav";
 import PlaiLogo from "@/components/PlaiLogo";
 import NotificationBell from "@/components/NotificationBell";
 import HomeTagline, { HomeTaglineRef } from "@/components/HomeTagline";
-import UserCard from "@/components/UserCard";
 import RecommendModal from "@/components/RecommendModal";
-import { Input } from "@/components/ui/input";
 import { trendingTracks } from "@/lib/trending";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { demoFeedItems, demoUsers } from "@/lib/demoData";
 import DiscoverPostCard, { type DiscoverPost } from "@/components/DiscoverPostCard";
 import DiscoverPostModal from "@/components/DiscoverPostModal";
+import TrendingSection from "@/components/discover/TrendingSection";
+import PeopleSection from "@/components/discover/PeopleSection";
 import { formatTimestamp } from "@/lib/formatTimestamp";
 
 interface FeedItem {
@@ -62,6 +60,7 @@ interface ArtistReleaseItem {
   spotifyTrackId: string;
   albumArtUrl: string | null;
   trackDbId?: string;
+  shortId?: string | null;
   badge?: "today" | "new";
   activityScore?: number;
   likedBy?: {
@@ -74,7 +73,7 @@ interface ArtistReleaseItem {
 
 type LiveState = "live" | "new" | "syncing";
 type FeedTab = "following" | "discover";
-type DiscoverTab = "releases" | "people" | "journal";
+type DiscoverTab = "trending" | "releases" | "people" | "journal";
 
 const artistReleaseFallbackItems: ArtistReleaseItem[] = [
   {
@@ -160,7 +159,6 @@ const artistReleaseFallbackItems: ArtistReleaseItem[] = [
 ];
 
 const RELEASES_MOCK_KEY = "plai-releases-mock";
-const RELEASES_DEBUG_KEY = "plai-releases-debug";
 
 const normalizeArtistName = (value?: string | null) =>
   value?.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase() || "";
@@ -175,18 +173,6 @@ const getArtistBadge = (releaseDate?: string | null): ArtistReleaseItem["badge"]
   return undefined;
 };
 
-// Log search queries silently
-const logSearchQuery = async (userId: string, query: string, resultsCount: number) => {
-  if (!userId || !query.trim()) return;
-  try {
-    await (supabase.from("search_queries" as any).insert({
-      user_id: userId,
-      query: query.trim(),
-      results_count: resultsCount,
-    }) as any);
-  } catch {}
-};
-
 const Feed = () => {
   const { user, loading } = useAuth();
   const { isSaved, toggleSave } = useSavedTracks();
@@ -198,7 +184,7 @@ const Feed = () => {
   );
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [tab, setTab] = useState<FeedTab>("following");
-  const [discoverTab, setDiscoverTab] = useState<DiscoverTab>("releases");
+  const [discoverTab, setDiscoverTab] = useState<DiscoverTab>("trending");
   const [showWelcome, setShowWelcome] = useState(false);
   const [liveState, setLiveState] = useState<LiveState>("live");
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set(cachedHiddenTrackIds || []));
@@ -206,28 +192,17 @@ const Feed = () => {
     () => new Set(cachedCollectionExclusionIds || []),
   );
 
-  const [peopleQuery, setPeopleQuery] = useState("");
-  const [people, setPeople] = useState<any[]>([]);
-  const [peopleLoading, setPeopleLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const taglineRef = useRef<HomeTaglineRef>(null);
   const [logoFlash, setLogoFlash] = useState(false);
   const [recommendTrack, setRecommendTrack] = useState<{ id: string; title: string; artist?: string; shortId?: string | null } | null>(null);
 
-  const [useMockReleases, setUseMockReleases] = useState(() => localStorage.getItem(RELEASES_MOCK_KEY) === "1");
-  const [showReleasesDebug, setShowReleasesDebug] = useState(() => localStorage.getItem(RELEASES_DEBUG_KEY) === "1");
-  const [artistItems, setArtistItems] = useState<ArtistReleaseItem[]>(artistReleaseFallbackItems);
+  // Admin → Releases → "Mock mode" shows demo releases (for demos)
+  const [useMockReleases] = useState(() => localStorage.getItem(RELEASES_MOCK_KEY) === "1");
+  const [artistItems, setArtistItems] = useState<ArtistReleaseItem[]>([]);
   const [artistLoading, setArtistLoading] = useState(true);
-  const [artistFallback, setArtistFallback] = useState(false);
+  const [artistError, setArtistError] = useState(false);
   const [artistEmptyState, setArtistEmptyState] = useState<"no-followed-artists" | "no-releases" | null>(null);
-  const [artistFollowedCount, setArtistFollowedCount] = useState(0);
-  const [artistMatchedCount, setArtistMatchedCount] = useState(0);
-  const [artistHasTestRelease, setArtistHasTestRelease] = useState(false);
-  const [artistFollowedDebug, setArtistFollowedDebug] = useState<{ raw: string; normalized: string }[]>([]);
-  const [artistReleaseDebug, setArtistReleaseDebug] = useState<{ raw: string; normalized: string }[]>([]);
-  const [artistHasDestinFollowed, setArtistHasDestinFollowed] = useState(false);
-  const [artistHasDestinRelease, setArtistHasDestinRelease] = useState(false);
   const [journalPosts, setJournalPosts] = useState<DiscoverPost[]>([]);
   const [journalLoading, setJournalLoading] = useState(false);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
@@ -359,24 +334,6 @@ const Feed = () => {
     init();
   }, [user]);
 
-  const loadPeople = useCallback(
-    async (q?: string) => {
-      if (!user) return;
-      setPeopleLoading(true);
-      let request = supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).neq("id", user.id).limit(30);
-      if (q && q.trim()) request = request.or(`username.ilike.%${q}%,display_name.ilike.%${q}%`);
-      const { data } = await request;
-      setPeople(data || []);
-      setPeopleLoading(false);
-      return data || [];
-    },
-    [user],
-  );
-
-  useEffect(() => {
-    if (tab === "discover" && discoverTab === "people" && people.length === 0 && !peopleLoading) loadPeople();
-  }, [tab, discoverTab, people.length, peopleLoading, loadPeople]);
-
   useEffect(() => {
     const loadJournalPosts = async () => {
       setJournalLoading(true);
@@ -408,19 +365,13 @@ const Feed = () => {
       if (useMockReleases) {
         setArtistItems(artistReleaseFallbackItems);
         setArtistLoading(false);
-        setArtistFallback(false);
+        setArtistError(false);
         setArtistEmptyState(null);
-        setArtistFollowedCount(artistReleaseFallbackItems.length);
-        setArtistMatchedCount(artistReleaseFallbackItems.length);
-        setArtistHasTestRelease(false);
-        setArtistFollowedDebug([]);
-        setArtistReleaseDebug([]);
-        setArtistHasDestinFollowed(false);
-        setArtistHasDestinRelease(false);
         return;
       }
 
-      // Fire-and-forget sync — only when session is confirmed valid
+      // Check for new releases in the background (the server does this at most twice a day,
+      // using PLAI's own Spotify access when this person hasn't connected Spotify)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.access_token) {
           supabase.functions.invoke("sync-artist-releases", { body: { user_id: user.id } }).catch(() => {});
@@ -429,14 +380,7 @@ const Feed = () => {
 
       setArtistLoading(true);
       setArtistEmptyState(null);
-      setArtistFallback(false);
-      setArtistFollowedCount(0);
-      setArtistMatchedCount(0);
-      setArtistHasTestRelease(false);
-      setArtistFollowedDebug([]);
-      setArtistReleaseDebug([]);
-      setArtistHasDestinFollowed(false);
-      setArtistHasDestinRelease(false);
+      setArtistError(false);
 
       try {
         const { data: followedRows, error: followedError } = await (supabase
@@ -453,18 +397,9 @@ const Feed = () => {
               ? row.artist_name.split(/\s*,\s*/).map((n: string) => n.trim()).filter(Boolean)
               : [],
           );
-        setArtistFollowedDebug(
-          followedRawNames.slice(0, 5).map((name: string) => ({
-            raw: name,
-            normalized: normalizeArtistName(name),
-          })),
-        );
-
         const followedNames = [
           ...new Set(followedRawNames.map((name: string) => normalizeArtistName(name)).filter(Boolean)),
         ];
-        setArtistFollowedCount(followedNames.length);
-        setArtistHasDestinFollowed(followedNames.includes(normalizeArtistName("DESTIN CONRAD")));
 
         if (followedNames.length === 0) {
           setArtistItems([]);
@@ -485,33 +420,33 @@ const Feed = () => {
 
         if (releaseError) throw releaseError;
 
-        const releaseArtistNames = ((releaseRows || []) as any[])
-          .map((row: any) => row.artist_name)
-          .filter((value: any) => typeof value === "string" && value.trim().length > 0);
-        setArtistReleaseDebug(
-          releaseArtistNames.slice(0, 5).map((name: string) => ({
-            raw: name,
-            normalized: normalizeArtistName(name),
-          })),
+        // Only releases by artists this person follows
+        const followedSet = new Set(followedNames);
+        const myReleases = ((releaseRows || []) as any[]).filter((row: any) =>
+          followedSet.has(normalizeArtistName(row.artist_name)),
         );
-        setArtistHasDestinRelease(
-          releaseArtistNames.some((name: string) => normalizeArtistName(name) === normalizeArtistName("DESTIN CONRAD")),
-        );
-
-        const releaseSpotifyIds = [
-          ...new Set(((releaseRows || []) as any[]).map((row: any) => row.spotify_track_id).filter(Boolean)),
+        const releaseSpotifyIds: string[] = [
+          ...new Set(myReleases.map((row: any) => row.spotify_track_id).filter(Boolean)),
         ];
 
         const trackIdBySpotifyId = new Map<string, string>();
+        const shortIdByTrackId = new Map<string, string>();
         if (releaseSpotifyIds.length > 0) {
+          // A release's song is in PLAI either under its own Spotify ID, or (for songs first added
+          // from Apple Music / Tidal) with that ID matched in spotify_link_id
+          const idList = releaseSpotifyIds.join(",");
           const { data: trackRows } = await (supabase
             .from("tracks")
-            .select("id, spotify_track_id")
-            .in("spotify_track_id", releaseSpotifyIds) as any);
+            .select("id, spotify_track_id, spotify_link_id, short_id")
+            .or(`spotify_track_id.in.(${idList}),spotify_link_id.in.(${idList})`) as any);
 
           ((trackRows || []) as any[]).forEach((trackRow) => {
-            if (trackRow.spotify_track_id && trackRow.id) {
-              trackIdBySpotifyId.set(trackRow.spotify_track_id, trackRow.id);
+            if (!trackRow.id) return;
+            for (const sid of [trackRow.spotify_track_id, trackRow.spotify_link_id]) {
+              if (sid && releaseSpotifyIds.includes(sid) && !trackIdBySpotifyId.has(sid)) {
+                trackIdBySpotifyId.set(sid, trackRow.id);
+                if (trackRow.short_id) shortIdByTrackId.set(trackRow.id, trackRow.short_id);
+              }
             }
           });
         }
@@ -617,8 +552,7 @@ const Feed = () => {
           }
         }
 
-        const matched = ((releaseRows || []) as any[])
-          .filter((row) => followedNames.includes(normalizeArtistName(row.artist_name)))
+        const matched = myReleases
           .map((row) => {
             const trackDbId = trackIdBySpotifyId.get(row.spotify_track_id);
             const saves = trackDbId ? (saveCountByTrackId.get(trackDbId) || 0) : 0;
@@ -631,13 +565,12 @@ const Feed = () => {
               spotifyTrackId: row.spotify_track_id,
               albumArtUrl: row.album_art_url,
               trackDbId,
+              shortId: trackDbId ? shortIdByTrackId.get(trackDbId) || null : null,
               badge: getArtistBadge(row.release_date),
               activityScore: saves + reactions / 3,
               likedBy: likedByTrackId.get(trackDbId || "") || undefined,
             };
           }) as ArtistReleaseItem[];
-        setArtistMatchedCount(matched.length);
-        setArtistHasTestRelease(matched.some((row) => row.title === "New Drop (Test)"));
 
         if (matched.length === 0) {
           setArtistItems([]);
@@ -649,29 +582,14 @@ const Feed = () => {
         setArtistItems(matched);
         setArtistLoading(false);
       } catch {
-        setArtistItems(artistReleaseFallbackItems);
-        setArtistFallback(true);
-        setArtistMatchedCount(0);
-        setArtistHasTestRelease(false);
-        setArtistReleaseDebug([]);
-        setArtistHasDestinRelease(false);
+        setArtistItems([]);
+        setArtistError(true);
         setArtistLoading(false);
       }
     };
 
     loadArtistReleases();
   }, [user]);
-
-  const handlePeopleSearch = (val: string) => {
-    setPeopleQuery(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      const results = await loadPeople(val);
-      if (val.trim() && user?.id) {
-        logSearchQuery(user.id, val, results?.length ?? 0);
-      }
-    }, 300);
-  };
 
   const openDiscoverPost = (post: DiscoverPost) => {
     if (post.post_type === "external" && post.external_url) {
@@ -820,6 +738,7 @@ const Feed = () => {
   ] as const;
 
   const discoverTabs = [
+    { key: "trending", label: "trending" },
     { key: "releases", label: "releases" },
     { key: "people", label: "people" },
     { key: "journal", label: "journal" },
@@ -1147,72 +1066,35 @@ const Feed = () => {
               ))}
             </div>
 
-            {discoverTab === "releases" ? (
+            {discoverTab === "trending" ? (
+              <TrendingSection onShare={setRecommendTrack} sharerUsername={currentUsername ?? undefined} />
+            ) : discoverTab === "releases" ? (
               <div className="space-y-6">
-                {showReleasesDebug && (
-                  <>
-                    <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
-                      <div>user: {user.id}</div>
-                      <div>followed artists: {artistFollowedCount}</div>
-                      <div>matched releases: {artistMatchedCount}</div>
-                      <div>popular releases: {artistItems.slice(0, 3).length}</div>
-                      <div>has "New Drop (Test)": {artistHasTestRelease ? "yes" : "no"}</div>
-                    </div>
-                    <div className="space-y-2 rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
-                      <div>
-                        <div className="font-medium text-foreground">followed artists debug</div>
-                        {artistFollowedDebug.length > 0 ? (
-                          artistFollowedDebug.map((item, index) => (
-                            <div key={`followed-${index}`}>
-                              raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
-                            </div>
-                          ))
-                        ) : (
-                          <div>none</div>
-                        )}
-                        <div>has DESTIN CONRAD in followed list: {artistHasDestinFollowed ? "yes" : "no"}</div>
-                      </div>
-                      <div>
-                        <div className="font-medium text-foreground">release artists debug</div>
-                        {artistReleaseDebug.length > 0 ? (
-                          artistReleaseDebug.map((item, index) => (
-                            <div key={`release-${index}`}>
-                              raw: "{item.raw}" {"->"} normalized: "{item.normalized}"
-                            </div>
-                          ))
-                        ) : (
-                          <div>none</div>
-                        )}
-                        <div>has DESTIN CONRAD in releases list: {artistHasDestinRelease ? "yes" : "no"}</div>
-                      </div>
-                    </div>
-                  </>
-                )}
                 {artistLoading ? (
                   <div className="flex justify-center py-12">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
                 ) : artistEmptyState === "no-followed-artists" ? (
                   <div className="rounded-xl border border-border bg-card p-5 text-center">
-                    <h3 className="text-sm font-medium text-foreground">Follow more artists to build Discover</h3>
+                    <h3 className="text-sm font-medium text-foreground">No artists followed yet</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Your release feed fills in as you save and share tracks by artists you love.
+                      When you save or share a song, PLAI follows that artist for you, and their new music shows up here.
                     </p>
                   </div>
                 ) : artistEmptyState === "no-releases" ? (
                   <div className="rounded-xl border border-border bg-card p-5 text-center">
-                    <h3 className="text-sm font-medium text-foreground">No releases yet</h3>
+                    <h3 className="text-sm font-medium text-foreground">No new releases right now</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      We found followed artists, but there are no matching seeded releases yet.
+                      None of the artists you follow have put out music in the last 60 days. We check again twice a day.
                     </p>
+                  </div>
+                ) : artistError ? (
+                  <div className="rounded-xl border border-border bg-card p-5 text-center">
+                    <h3 className="text-sm font-medium text-foreground">Couldn't load releases</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">Check your connection and pull down to try again.</p>
                   </div>
                 ) : (
                   <>
-                    {artistFallback && !useMockReleases && (
-                      <div className="rounded-xl border border-border bg-card px-3 py-2 text-[11px] text-muted-foreground">
-                        showing fallback releases while real artist data finishes connecting
-                      </div>
-                    )}
                     {artistSections.map((section) => (
                       <section key={section.key} className="space-y-3">
                         <div className="flex items-end justify-between gap-3">
@@ -1220,7 +1102,6 @@ const Feed = () => {
                             <h3 className="font-display text-lg text-foreground">{section.title}</h3>
                             <p className="text-xs text-muted-foreground">{section.subtitle}</p>
                           </div>
-                          {section.key === "popular" && <span className="text-xs text-muted-foreground">WIP</span>}
                         </div>
                         <div className={section.compact ? "space-y-2" : "space-y-3"}>
                           {section.items.map((track) => (
@@ -1237,6 +1118,7 @@ const Feed = () => {
                                 albumArtUrl: track.albumArtUrl,
                                 likeId: track.trackDbId || track.id,
                                 trackDbId: track.trackDbId,
+                                shortId: track.shortId,
                                 localOnly: !track.trackDbId,
                               }}
                               isSaved={track.trackDbId ? isSaved(track.trackDbId) : false}
@@ -1252,7 +1134,7 @@ const Feed = () => {
                                   toast("sharing will unlock once this release is synced");
                                   return;
                                 }
-                                setRecommendTrack({ id: track.trackDbId, title: track.title, artist: track.artist });
+                                setRecommendTrack({ id: track.trackDbId, title: track.title, artist: track.artist, shortId: track.shortId });
                               }}
                               subtitle={
                                 <div>
@@ -1269,59 +1151,12 @@ const Feed = () => {
                 )}
               </div>
             ) : discoverTab === "people" ? (
-              <div>
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={peopleQuery}
-                    onChange={(e) => handlePeopleSearch(e.target.value)}
-                    placeholder="search users..."
-                    className="bg-card border-border pl-10"
-                  />
-                </div>
-                {peopleLoading ? (
-                  <div className="flex justify-center py-12">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {people.map((u) => (
-                      <UserCard key={u.id} profile={u} showFollow />
-                    ))}
-                    {people.length === 0 &&
-                      !peopleQuery &&
-                      demoUsers.map((u) => (
-                        <div
-                          key={u.id}
-                          className="relative flex items-center gap-3 rounded-xl border border-border bg-card p-3"
-                        >
-                          <span className="absolute right-2 top-2 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-primary">
-                            example
-                          </span>
-                          <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20">
-                            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
-                              {u.display_name[0].toUpperCase()}
-                            </div>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground">{u.display_name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              @{u.username} · {u.genre}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    {people.length === 0 && peopleQuery && (
-                      <p className="py-12 text-center text-sm text-muted-foreground">no users found</p>
-                    )}
-                  </div>
-                )}
-              </div>
+              <PeopleSection userId={user.id} />
             ) : (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-display text-lg text-foreground"></h3>
-                  <p className="text-xs text-muted-foreground">Editorial picks, playlists, and articles from PLAI</p>
+                  <h3 className="font-display text-lg text-foreground">journal</h3>
+                  <p className="text-xs text-muted-foreground">picks, playlists and stories from PLAI</p>
                 </div>
                 {journalLoading ? (
                   <div className="flex justify-center py-12">
@@ -1335,10 +1170,8 @@ const Feed = () => {
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border bg-card p-5 text-center">
-                    <h3 className="text-sm font-medium text-foreground">Journal is empty for now</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Publish internal stories or external links in `discover_posts` to fill this surface.
-                    </p>
+                    <h3 className="text-sm font-medium text-foreground">Nothing in the journal yet</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">New stories and picks from PLAI will appear here.</p>
                   </div>
                 )}
               </div>

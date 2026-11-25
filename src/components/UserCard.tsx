@@ -9,9 +9,11 @@ interface UserCardProps {
     avatar_url: string | null;
   };
   showFollow?: boolean;
+  /** Optional line under the username, e.g. "12 songs in common" */
+  reason?: string | null;
 }
 
-const UserCard = ({ profile, showFollow }: UserCardProps) => {
+const UserCard = ({ profile, showFollow, reason }: UserCardProps) => {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-all duration-150">
       <Link to={`/profile/${profile.username || profile.id}`}>
@@ -32,7 +34,10 @@ const UserCard = ({ profile, showFollow }: UserCardProps) => {
         >
           {profile.display_name || "User"}
         </Link>
-        <p className="text-xs text-muted-foreground">@{profile.username || "user"}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          @{profile.username || "user"}
+          {reason ? <span className="text-primary"> · {reason}</span> : null}
+        </p>
       </div>
       {showFollow && <FollowButton targetUserId={profile.id} />}
     </div>
