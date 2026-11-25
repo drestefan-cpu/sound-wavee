@@ -28,6 +28,7 @@ const platformOptions = [
   { value: "apple_music", label: "Apple Music" },
   { value: "youtube_music", label: "YouTube Music" },
   { value: "tidal", label: "Tidal" },
+  { value: "amazon_music", label: "Amazon Music" },
 ];
 
 const APIKEY = SUPABASE_PUBLISHABLE_KEY;

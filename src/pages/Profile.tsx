@@ -34,7 +34,7 @@ type TabType = "finds" | "collection" | "activity" | "foryou" | "friends";
 /** Songs loaded per page in the collection tab ("show more" loads the next page) */
 const COLLECTION_PAGE_SIZE = 100;
 const COLLECTION_SELECT =
-  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, preview_url)";
+  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, preview_url)";
 type ActivityFilterType = "all" | "follows" | "reactions" | "saves" | "recommendations";
 
 type ProfileSnapshot = {
@@ -251,7 +251,7 @@ const Profile = () => {
       supabase
         .from("likes")
         .select(
-          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, preview_url)",
+          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, preview_url)",
         )
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
@@ -280,7 +280,7 @@ const Profile = () => {
           supabase
             .from("likes")
             .select(
-              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, preview_url)",
+              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, preview_url)",
             )
             .eq("user_id", profile.id)
             .order("liked_at", { ascending: false })
@@ -609,7 +609,7 @@ const Profile = () => {
       supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", profile.id).single(),
       supabase
         .from("likes")
-        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, preview_url)")
+        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, preview_url)")
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
         .order("id", { ascending: true })
@@ -1216,6 +1216,7 @@ const Profile = () => {
                     appleMusicId: s.tracks?.apple_music_id,
                     spotifyLinkId: s.tracks?.spotify_link_id,
                     tidalTrackId: s.tracks?.tidal_track_id,
+                    amazonMusicId: s.tracks?.amazon_music_id,
                     trackDbId: s.track_id,
                   }}
                   isSaved={isSaved(s.track_id)}
@@ -1366,6 +1367,7 @@ const Profile = () => {
                     appleMusicId: rec.tracks?.apple_music_id,
                     spotifyLinkId: rec.tracks?.spotify_link_id,
                     tidalTrackId: rec.tracks?.tidal_track_id,
+                    amazonMusicId: rec.tracks?.amazon_music_id,
                     trackDbId: rec.track_id,
                   }}
                   isSaved={isSaved(rec.track_id)}
@@ -1481,6 +1483,7 @@ const Profile = () => {
                           appleMusicId: h.tracks?.apple_music_id,
                           spotifyLinkId: h.tracks?.spotify_link_id,
                           tidalTrackId: h.tracks?.tidal_track_id,
+                          amazonMusicId: h.tracks?.amazon_music_id,
                           trackDbId: h.track_id,
                         }}
                         isSaved={isSaved(h.track_id)}
@@ -1533,6 +1536,7 @@ const Profile = () => {
                             appleMusicId: like.tracks?.apple_music_id,
                             spotifyLinkId: like.tracks?.spotify_link_id,
                             tidalTrackId: like.tracks?.tidal_track_id,
+                            amazonMusicId: like.tracks?.amazon_music_id,
                             likeId: like.id,
                             trackDbId: like.track_id,
                           }}

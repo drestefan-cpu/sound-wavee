@@ -41,6 +41,11 @@ export function tidalTrackUrl(tidalTrackId: string): string {
   return `https://tidal.com/browse/track/${tidalTrackId}`;
 }
 
+/** Amazon Music: the exact track when its ID (ASIN) is known, otherwise an Amazon Music search */
+export function amazonMusicUrl(amazonMusicId: string | null | undefined, encodedQuery: string): string {
+  return amazonMusicId ? `https://music.amazon.com/tracks/${amazonMusicId}` : `https://music.amazon.com/search/${encodedQuery}`;
+}
+
 /** Apple Music catalog ID from the apple_music_id column, or from an "apple:" sentinel */
 export function getAppleMusicId(spotifyTrackId?: string, appleMusicId?: string | null): string | null {
   if (appleMusicId) return appleMusicId;
@@ -56,6 +61,7 @@ export function getTrackUrl(
   appleMusicId?: string | null,
   spotifyLinkId?: string | null,
   tidalTrackId?: string | null,
+  amazonMusicId?: string | null,
 ): string {
   const query = encodeURIComponent(`${title || ""} ${artist || ""}`.trim());
   const realSpotifyId = getRealSpotifyId(spotifyTrackId, spotifyLinkId);
@@ -78,6 +84,8 @@ export function getTrackUrl(
         : `https://music.youtube.com/search?q=${query}`;
     case "tidal":
       return tidalTrackId ? tidalTrackUrl(tidalTrackId) : `https://tidal.com/search?q=${query}`;
+    case "amazon_music":
+      return amazonMusicUrl(amazonMusicId, query);
     default:
       return realSpotifyId
         ? `https://open.spotify.com/track/${realSpotifyId}`

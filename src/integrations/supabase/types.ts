@@ -1155,6 +1155,7 @@ export type Database = {
         Row: {
           album: string | null
           album_art_url: string | null
+          amazon_music_id: string | null
           apple_music_id: string | null
           artist: string | null
           created_at: string | null
@@ -1172,6 +1173,7 @@ export type Database = {
         Insert: {
           album?: string | null
           album_art_url?: string | null
+          amazon_music_id?: string | null
           apple_music_id?: string | null
           artist?: string | null
           created_at?: string | null
@@ -1189,6 +1191,7 @@ export type Database = {
         Update: {
           album?: string | null
           album_art_url?: string | null
+          amazon_music_id?: string | null
           apple_music_id?: string | null
           artist?: string | null
           created_at?: string | null
@@ -1442,6 +1445,7 @@ export type Database = {
         }
       }
       is_admin: { Args: never; Returns: boolean }
+      rebuild_taste_profiles: { Args: never; Returns: Json }
       redeem_radar_invite: { Args: { p_code: string }; Returns: boolean }
     }
     Enums: {

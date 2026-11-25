@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Music, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId, tidalTrackUrl } from "@/lib/trackLinks";
+import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId, tidalTrackUrl, amazonMusicUrl } from "@/lib/trackLinks";
 import { songShareUrl } from "@/lib/shareLinks";
 import { resolveTrackLinks } from "@/lib/resolveLinks";
 import Starfield from "@/components/Starfield";
@@ -20,6 +20,7 @@ interface TrackRow {
   apple_music_id: string | null;
   spotify_link_id: string | null;
   tidal_track_id: string | null;
+  amazon_music_id: string | null;
   youtube_video_id: string | null;
   isrc: string | null;
   short_id: string | null;
@@ -114,7 +115,7 @@ const SongShare = () => {
 
       const trackPromise = supabase
         .from("tracks")
-        .select("id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, youtube_video_id, isrc, short_id")
+        .select("id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, youtube_video_id, isrc, short_id")
         .eq("id", trackId)
         .maybeSingle();
 
@@ -366,13 +367,13 @@ const SongShare = () => {
             </a>
 
             <a
-              href={`https://music.amazon.com/search/${q}`}
+              href={amazonMusicUrl(track.amazon_music_id, q)}
               target="_blank"
               rel="noopener noreferrer"
               style={btnStyleGlass()}
             >
               <span style={{ fontSize: 15, fontWeight: 700, lineHeight: 1, flexShrink: 0 }}>a</span>
-              Search on Amazon Music
+              {track.amazon_music_id ? "Listen on Amazon Music" : "Search on Amazon Music"}
             </a>
           </div>
 
