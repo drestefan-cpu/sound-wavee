@@ -3,7 +3,7 @@
 //
 //   GET https://plai.delaneyprojects.xyz/new?url=<Spotify / Apple Music / Tidal / YouTube / … link>[&from=<PLAI username>]
 //   → 200 text/plain  https://plai.delaneyprojects.xyz/s/abc123[?from=username]
-//   → 4xx text/plain  "⚠️ couldn't make a PLAI link — <reason>" (the shortcut shows this text as-is)
+//   → 4xx text/plain  "⚠️ couldn't make a PLAI link: <reason>" (the shortcut shows this text as-is)
 //
 // It calls PLAI's create-share-link function with the public app key, so the shortcut itself
 // needs no keys or JSON.
@@ -15,7 +15,7 @@ const SUPABASE_ANON_KEY =
 
 const USERNAME_RE = /^[a-z0-9._-]{1,40}$/i;
 // Every failure starts with this, so it's obvious in the shortcut's menu that no link was made
-const FAIL = "⚠️ couldn't make a PLAI link —";
+const FAIL = "⚠️ couldn't make a PLAI link:";
 
 // Shared text is often "Check out this song! https://…" — pull out the first link
 const firstUrl = (value) => (String(value || "").match(/https?:\/\/[^\s<>"']+/) || [])[0] || null;
