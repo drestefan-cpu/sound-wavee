@@ -1138,7 +1138,7 @@ const Feed = () => {
                           <h3 className="font-display text-lg text-foreground">popular with your friends</h3>
                           <p className="text-xs text-muted-foreground">new songs the people you follow are loving</p>
                         </div>
-                        <div className="space-y-3">{popularReleases.map((track) => renderReleaseTrack(track, false))}</div>
+                        <div className="space-y-2">{popularReleases.map((track) => renderReleaseTrack(track, true))}</div>
                       </section>
                     )}
                     <section className="space-y-3">

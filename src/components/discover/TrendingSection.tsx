@@ -263,13 +263,14 @@ const TrendingSection = ({
           </p>
         </div>
         {trending.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {trending.map((r, i) => {
               const row: TrackRow = { ...r, id: r.track_id };
               return (
                 <UnifiedTrackCard
                   key={r.track_id}
                   rank={i + 1}
+                  compact
                   track={toCard(row)}
                   hideReactions
                   sourceContext="discover_trending"
