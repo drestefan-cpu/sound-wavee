@@ -22,6 +22,7 @@ interface SentRow {
   reaction: string | null;
   seen: boolean;
   saved: boolean;
+  source: "app" | "link";
   to_username: string;
   to_display_name: string | null;
   track_id: string;
@@ -140,6 +141,7 @@ const ForYouTab = ({ received, loaded, onReceivedChange, myUsername }: Props) =>
                         >
                           @{from}
                         </Link>
+                        {rec.source === "link" && <span> · via a link</span>}
                         {rec.message && <span className="italic"> “{rec.message}”</span>}
                       </p>
                       <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
@@ -193,6 +195,7 @@ const ForYouTab = ({ received, loaded, onReceivedChange, myUsername }: Props) =>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5 text-[11px] text-muted-foreground">
                   <span>
                     to <span className="font-medium text-foreground/80">@{r.to_username}</span>
+                    {r.source === "link" && " · opened your link"}
                   </span>
                   {r.saved && (
                     <span className="inline-flex items-center gap-0.5 text-primary">
@@ -200,7 +203,7 @@ const ForYouTab = ({ received, loaded, onReceivedChange, myUsername }: Props) =>
                     </span>
                   )}
                   {r.reaction && <span aria-label={`reacted ${r.reaction}`}>{r.reaction}</span>}
-                  {!r.saved && !r.reaction && <span>{r.seen ? "seen" : "not seen yet"}</span>}
+                  {!r.saved && !r.reaction && r.source !== "link" && <span>{r.seen ? "seen" : "not seen yet"}</span>}
                 </div>
               }
             />

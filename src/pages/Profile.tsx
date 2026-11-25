@@ -105,7 +105,11 @@ const Profile = () => {
   const [findsCount, setFindsCount] = useState(cachedSnapshot?.findsCount ?? 0);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabType>("finds");
+  // ?tab=foryou etc. opens a specific tab (e.g. from "added to your for you" on a shared song)
+  const [tab, setTab] = useState<TabType>(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return (["finds", "foryou", "collection", "friends", "activity"] as string[]).includes(t || "") ? (t as TabType) : "finds";
+  });
   const [collectionFilter, setCollectionFilter] = useState<"timeline" | "hidden">("timeline");
   const [collectionPlatformFilter, setCollectionPlatformFilter] = useState<"all" | "spotify" | "youtube" | "apple" | "tidal">("all");
   const [showFlappy, setShowFlappy] = useState(false);

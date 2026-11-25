@@ -41,14 +41,21 @@ const SongShare = () => {
   const [sharer, setSharer] = useState<SharerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [artError, setArtError] = useState(false);
+  const [addedToForYou, setAddedToForYou] = useState(false);
 
   // Share analytics — fire and forget
   useEffect(() => {
     if (!track?.id) return;
     // (the sharer's username comes from ?from= so they can see their link's opens; their own
     //  opens are skipped by passing who's viewing, if signed in)
-    supabase.auth.getSession().then(({ data: { session } }) =>
-    fetch(`${SUPABASE_URL}/functions/v1/log-share-open`, {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+    // A friend's link opened while signed in → the song goes into this person's "for you"
+    if (session && fromParam) {
+      (supabase as any)
+        .rpc("claim_shared_link", { p_track_id: track.id, p_from_username: fromParam })
+        .then(({ data }: { data: boolean | null }) => data && setAddedToForYou(true));
+    }
+    return fetch(`${SUPABASE_URL}/functions/v1/log-share-open`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -62,8 +69,8 @@ const SongShare = () => {
         from: fromParam || undefined,
         viewer_id: session?.user?.id,
       }),
-    }).catch(() => {}),
-    );
+    }).catch(() => {});
+    });
   }, [track?.id]);
 
   // Fill in missing cross-platform links (e.g. a Tidal song's Spotify ID) so every button opens
@@ -274,6 +281,11 @@ const SongShare = () => {
                 </div>
               )}
               <span>{sharerName} shared this</span>
+            </Link>
+          )}
+          {addedToForYou && (
+            <Link to="/profile?tab=foryou" className="-mt-2 mb-3 block text-center text-[11px] text-primary">
+              added to your for you →
             </Link>
           )}
 

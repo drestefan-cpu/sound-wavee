@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { followArtistForTrack } from "@/lib/followedArtists";
 import { songShareUrl } from "@/lib/shareLinks";
 import { useSheetDrag } from "@/hooks/useSheetDrag";
+import { useMyUsername } from "@/hooks/useMyUsername";
 
 /**
  * The share sheet: share / copy the PLAI link, or send the song to friends on PLAI.
@@ -77,7 +78,9 @@ const RecommendModal = ({ trackId, trackTitle, trackArtist, shortId, sharerUsern
   }, []);
 
   // PLAI song page link (rich preview with album art in iMessage etc.)
-  const shareUrl = songShareUrl(trackId, { shortId, from: sharerUsername });
+  // Always tag the link with who shared it, so a friend who opens it gets it in "for you"
+  const myUsername = useMyUsername();
+  const shareUrl = songShareUrl(trackId, { shortId, from: sharerUsername || myUsername });
   const shareTitle = trackArtist ? `${trackTitle} — ${trackArtist}` : trackTitle;
 
   const handleCopyLink = () => {
