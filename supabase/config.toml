@@ -31,3 +31,6 @@ verify_jwt = false
 
 [functions.spotify-playlist]
 verify_jwt = false
+
+[functions.fill-genres]
+verify_jwt = false

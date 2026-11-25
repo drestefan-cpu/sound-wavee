@@ -55,6 +55,16 @@ async function runAll() {
       await sleep(500)
     }
   }
+  // Genres for any new songs (taste match uses them)
+  try {
+    const res = await fetch(`${url}/functions/v1/fill-genres`, {
+      method: "POST",
+      headers: { "x-cron-secret": Deno.env.get("CRON_SECRET") || "" },
+    })
+    results.push(`genres: ${res.status} ${(await res.text()).slice(0, 80)}`)
+  } catch (e) {
+    results.push(`genres: failed ${String(e).slice(0, 60)}`)
+  }
   console.log("sync-all", results.join(" | "))
   await admin.from("sync_log").delete().lt("created_at", new Date(Date.now() - 14 * 86_400_000).toISOString())
 }

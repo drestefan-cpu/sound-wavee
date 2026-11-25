@@ -122,6 +122,7 @@ const Profile = () => {
   const [savedTracks, setSavedTracks] = useState<any[]>(cachedSnapshot?.savedTracks ?? []);
   const [followerCount, setFollowerCount] = useState(cachedSnapshot?.followerCount ?? 0);
   const [followingCount, setFollowingCount] = useState(cachedSnapshot?.followingCount ?? 0);
+  const [likesExhausted, setLikesExhausted] = useState(false);
   const [likesCount, setLikesCount] = useState(cachedSnapshot?.likesCount ?? 0);
   const [loadingMoreLikes, setLoadingMoreLikes] = useState(false);
   // Envelope button on cards → recommend / share screen
@@ -540,6 +541,9 @@ const Profile = () => {
     loadRecs();
   }, [isOwnProfile, user, tab, findsView]);
 
+  // A different profile starts with "show more" available again
+  useEffect(() => setLikesExhausted(false), [profile?.id]);
+
   // Your taste match with each friend (own library's friends tab)
   useEffect(() => {
     if (!isOwnProfile || tab !== "friends" || friendMatches.size > 0) return;
@@ -931,23 +935,33 @@ const Profile = () => {
   // Real total (all likes minus hidden songs), not just the songs loaded so far
   const hiddenCount = isOwnProfile ? ownHiddenIds.size : profileOwnerHiddenIds.size;
   const visibleCollectionCount = Math.max(filteredLikes.length, likesCount - hiddenCount);
-  const hasMoreLikes = likes.length < likesCount;
+  const hasMoreLikes = !likesExhausted && likes.length < likesCount;
 
+  // New songs can arrive at the top while you browse (background sync), which pushes older songs
+  // down: a page can then start with songs already shown. Skip past those, and stop when the
+  // server has nothing older.
   const loadMoreLikes = async () => {
     if (!profile || loadingMoreLikes) return;
     setLoadingMoreLikes(true);
-    const from = likes.length;
-    const { data } = await supabase
-      .from("likes")
-      .select(COLLECTION_SELECT)
-      .eq("user_id", profile.id)
-      .order("liked_at", { ascending: false })
-      .order("id", { ascending: true })
-      .range(from, from + COLLECTION_PAGE_SIZE - 1);
-    setLikes((prev) => {
-      const seen = new Set(prev.map((l: any) => l.id));
-      return [...prev, ...((data || []) as any[]).filter((l) => !seen.has(l.id))];
-    });
+    const seen = new Set(likes.map((l: any) => l.id));
+    const fresh: any[] = [];
+    let from = likes.length;
+    let reachedEnd = false;
+    for (let tries = 0; tries < 5 && fresh.length === 0 && !reachedEnd; tries++) {
+      const { data } = await supabase
+        .from("likes")
+        .select(COLLECTION_SELECT)
+        .eq("user_id", profile.id)
+        .order("liked_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, from + COLLECTION_PAGE_SIZE - 1);
+      const rows = (data || []) as any[];
+      for (const row of rows) if (!seen.has(row.id)) (fresh.push(row), seen.add(row.id));
+      if (rows.length < COLLECTION_PAGE_SIZE) reachedEnd = true;
+      from += rows.length;
+    }
+    if (fresh.length > 0) setLikes((prev) => [...prev, ...fresh]);
+    if (reachedEnd) setLikesExhausted(true);
     setLoadingMoreLikes(false);
   };
 

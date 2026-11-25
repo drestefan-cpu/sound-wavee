@@ -12,6 +12,7 @@ export interface TasteMatch {
   songs_b: number;
   shared_song_count: number;
   shared_artist_count: number;
+  shared_genres?: string[];
   shared_artists: { name: string; songs: number }[];
   shared_songs: {
     track_id: string;
@@ -107,9 +108,22 @@ const TasteMatchSheet = ({ match, otherName, myUsername, onClose }: Props) => {
             </p>
           )}
           <p className="mt-2 max-w-[18rem] text-xs leading-relaxed text-muted-foreground">
-            Based on the artists you both listen to most, and the songs you both love, on any app.
+            Based on the artists you both listen to most, the genres you share, and the songs you both love, on any app.
           </p>
         </div>
+
+        {match.shared_genres && match.shared_genres.length > 0 && (
+          <section className="mt-6 border-t border-border pt-4">
+            <h3 className="mb-3 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">genres you share</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {match.shared_genres.map((g) => (
+                <span key={g} className="rounded-full bg-primary/15 px-3 py-1 text-xs font-medium text-primary">
+                  {g}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         {match.shared_artists.length > 0 && (
           <section className="mt-6 border-t border-border pt-4">
