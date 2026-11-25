@@ -1,5 +1,8 @@
+import PageTip from "@/components/PageTip";
+import { FRIENDS_TIPS, DISCOVER_TIPS } from "@/lib/tips";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -189,8 +192,19 @@ const Feed = () => {
     () => cachedHiddenTrackIds !== null && cachedCollectionExclusionIds !== null,
   );
   const [followingIds, setFollowingIds] = useState<string[]>([]);
-  const [tab, setTab] = useState<FeedTab>("following");
-  const [discoverTab, setDiscoverTab] = useState<DiscoverTab>("trending");
+  // /feed = friends, /discover = discover (its own bottom-menu button); ?tab= picks a discover section
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tab: FeedTab = location.pathname.startsWith("/discover") ? "discover" : "following";
+  const [discoverTab, setDiscoverTab] = useState<DiscoverTab>(() => {
+    const t = new URLSearchParams(location.search).get("tab");
+    return t === "releases" || t === "people" || t === "journal" ? t : "trending";
+  });
+  useEffect(() => {
+    const t = new URLSearchParams(location.search).get("tab");
+    if (t === "releases" || t === "people" || t === "journal" || t === "trending") setDiscoverTab(t);
+  }, [location.search]);
+  const headerHidden = useHideOnScroll();
   const [showWelcome, setShowWelcome] = useState(false);
   const [liveState, setLiveState] = useState<LiveState>("live");
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set(cachedHiddenTrackIds || []));
@@ -746,11 +760,6 @@ const Feed = () => {
   const showFeedLoading = feedLoading || !filtersReady;
   const showInitialFeedLoading = showFeedLoading && !(items.length > 0 && filtersReady);
 
-  const tabs = [
-    { key: "following", label: "friends" },
-    { key: "discover", label: "discover" },
-  ] as const;
-
   const discoverTabs = [
     { key: "trending", label: "trending" },
     { key: "releases", label: "releases" },
@@ -894,8 +903,8 @@ const Feed = () => {
     <div className="min-h-screen bg-background pb-20">
       <PullToRefreshIndicator {...pullToRefresh} />
       <header
-        className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
+        className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md transition-transform duration-300 ease-out"
+        style={{ paddingTop: "env(safe-area-inset-top)", transform: headerHidden ? "translateY(-100%)" : "translateY(0)" }}
       >
         <div className="mx-auto flex max-w-feed items-center justify-between px-4 py-3">
           <div className="flex flex-col">
@@ -920,27 +929,38 @@ const Feed = () => {
             <HomeTagline ref={taglineRef} />
           </div>
           <div className="flex items-center gap-2">
-            <LiveIndicator />
+            {tab === "following" && <LiveIndicator />}
             <NotificationBell />
           </div>
         </div>
+        {tab === "discover" && (
+          <div className="mx-auto flex max-w-feed gap-2 overflow-x-auto no-scrollbar px-4 pb-3">
+            {discoverTabs.map((subtab) => (
+              <button
+                key={subtab.key}
+                onClick={() => {
+                  setDiscoverTab(subtab.key);
+                  window.scrollTo({ top: 0 });
+                }}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-150 whitespace-nowrap ${
+                  discoverTab === subtab.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border border-border text-muted-foreground"
+                }`}
+              >
+                {subtab.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
-      <div className="mx-auto max-w-feed px-4 pt-3">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 whitespace-nowrap ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <main className="mx-auto max-w-feed px-4 py-4">
+        {tab === "following" ? (
+          <PageTip id="friends" steps={FRIENDS_TIPS} className="mb-4" />
+        ) : (
+          <PageTip id="discover" steps={DISCOVER_TIPS} className="mb-4" />
+        )}
         {tab === "following" ? (
           <>
             {!hasFollowing && !hasContent && !showInitialFeedLoading ? (
@@ -949,10 +969,7 @@ const Feed = () => {
                   <p className="text-sm text-foreground mb-1">this is what your feed looks like</p>
                   <p className="text-xs text-muted-foreground mb-3">follow friends to see the real thing</p>
                   <button
-                    onClick={() => {
-                      setTab("discover");
-                      setDiscoverTab("people");
-                    }}
+                    onClick={() => navigate("/discover?tab=people")}
                     className="inline-block rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
                   >
                     find friends
@@ -1074,10 +1091,7 @@ const Feed = () => {
                 <h2 className="text-lg font-medium text-foreground">your feed is quiet</h2>
                 <p className="text-sm text-muted-foreground">follow some friends to hear what they're loving</p>
                 <button
-                  onClick={() => {
-                    setTab("discover");
-                    setDiscoverTab("people");
-                  }}
+                  onClick={() => navigate("/discover?tab=people")}
                   className="mt-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
                 >
                   find friends
@@ -1087,21 +1101,6 @@ const Feed = () => {
           </>
         ) : (
           <div className="space-y-6">
-            <div className="flex gap-2 overflow-x-auto no-scrollbar">
-              {discoverTabs.map((subtab) => (
-                <button
-                  key={subtab.key}
-                  onClick={() => setDiscoverTab(subtab.key)}
-                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap ${
-                    discoverTab === subtab.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card border border-border text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {subtab.label}
-                </button>
-              ))}
-            </div>
 
             {discoverTab === "trending" ? (
               <TrendingSection onShare={setRecommendTrack} sharerUsername={currentUsername ?? undefined} followingIds={followingIds} />

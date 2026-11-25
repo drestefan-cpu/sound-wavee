@@ -2,7 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const EMOJIS = ["🔥", "😍", "😭", "😂", "🫀", "✨"];
+/** The reaction set used everywhere in PLAI (feed posts and recommendations) */
+export const EMOJIS = ["🔥", "😍", "😭", "😂", "🫀", "✨"];
+
+/** Pill look shared by every reaction row */
+export const reactionPillClass = (reacted: boolean, dim: boolean, compact = false) =>
+  `inline-flex items-center rounded-full transition-all duration-150 ${
+    compact ? "px-1.5 py-0.5 text-[10px] gap-0.5" : "px-2.5 py-1 text-xs gap-1"
+  } ${reacted ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-secondary/80"} ${dim ? "opacity-50" : ""}`;
 
 interface ReactionCount {
   emoji: string;
@@ -79,21 +86,13 @@ const EmojiReactions = ({ likeId, localOnly = false, initialReactions, compact =
     }
   };
 
-  const pillSize = compact
-    ? "px-1.5 py-0.5 text-[10px] gap-0.5"
-    : "px-2.5 py-1 text-xs gap-1";
-
   return (
     <div className="flex flex-wrap gap-1">
       {reactions.map((r) => (
         <button
           key={r.emoji}
           onClick={(e) => { e.stopPropagation(); toggleReaction(r.emoji); }}
-          className={`inline-flex items-center rounded-full transition-all duration-150 ${pillSize} ${
-            r.reacted
-              ? "bg-primary/20 text-primary"
-              : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-          } ${r.count === 0 && !r.reacted ? "opacity-50" : ""}`}
+          className={reactionPillClass(r.reacted, r.count === 0 && !r.reacted, compact)}
         >
           <span>{r.emoji}</span>
           {r.count > 0 && <span>{r.count}</span>}

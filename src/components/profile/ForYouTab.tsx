@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import RecommendModal from "@/components/RecommendModal";
+import { EMOJIS, reactionPillClass } from "@/components/EmojiReactions";
 
 /**
  * Profile → for you.
@@ -13,7 +14,6 @@ import RecommendModal from "@/components/RecommendModal";
  *  sent:     songs you sent, with whether they saved it / how they reacted.
  */
 
-const REPLIES = ["🔥", "❤️", "😍", "🙌", "😭"];
 
 interface SentRow {
   id: string;
@@ -142,18 +142,16 @@ const ForYouTab = ({ received, loaded, onReceivedChange, myUsername }: Props) =>
                         </Link>
                         {rec.message && <span className="italic"> “{rec.message}”</span>}
                       </p>
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        {REPLIES.map((e) => (
+                      <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
+                        {EMOJIS.map((e) => (
                           <button
                             key={e}
                             onClick={() => react(rec, e)}
                             aria-label={`reply ${e}`}
                             aria-pressed={rec.reaction === e}
-                            className={`flex h-7 w-7 items-center justify-center rounded-full text-sm transition-all active:scale-90 ${
-                              rec.reaction === e ? "bg-primary/15 ring-1 ring-primary/40" : rec.reaction ? "opacity-35" : "hover:bg-secondary"
-                            }`}
+                            className={reactionPillClass(rec.reaction === e, rec.reaction !== e, true)}
                           >
-                            {e}
+                            <span>{e}</span>
                           </button>
                         ))}
                       </div>

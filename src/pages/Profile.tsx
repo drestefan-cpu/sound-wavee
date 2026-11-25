@@ -1,3 +1,5 @@
+import PageTip from "@/components/PageTip";
+import { LIBRARY_TIPS } from "@/lib/tips";
 import { APP_URL } from "@/lib/shareLinks";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, Link, Navigate, useNavigate } from "react-router-dom";
@@ -1194,6 +1196,8 @@ const Profile = () => {
             </button>
           ))}
         </div>
+
+        {isOwnProfile && <PageTip id="library" steps={LIBRARY_TIPS} className="mb-3" />}
 
         {!dataLoaded ? (
           <div className="grid grid-cols-3 gap-2">

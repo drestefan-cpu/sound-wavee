@@ -59,6 +59,7 @@ const App = () => (
                 <Route path="/share" element={<SharePage />} />
                 <Route path="/share-target" element={<ShareTarget />} />
                 <Route path="/feed" element={<Feed />} />
+                <Route path="/discover" element={<Feed />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/:username" element={<Profile />} />
                 <Route path="/settings" element={<SettingsPage />} />

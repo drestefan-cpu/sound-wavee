@@ -1,3 +1,5 @@
+import PageTip, { resetTips } from "@/components/PageTip";
+import { SETTINGS_TIPS } from "@/lib/tips";
 import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -381,6 +383,7 @@ const SettingsPage = () => {
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       <main className="mx-auto max-w-feed px-4 py-6 space-y-6">
+        <PageTip id="settings" steps={SETTINGS_TIPS} />
         <div className="flex flex-col gap-1.5">
           <button
             onClick={() => setShowAbout(true)}
@@ -539,6 +542,21 @@ const SettingsPage = () => {
                 ? "the same sky at first light"
                 : "the night sky"}
           </p>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-1">tips</h3>
+          <p className="text-[11px] text-muted-foreground mb-3">the short guides at the top of each page</p>
+          <button
+            onClick={() => {
+              resetTips();
+              toast("tips will show again on each page");
+            }}
+            className="rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary/50"
+            style={{ touchAction: "manipulation" }}
+          >
+            show tips again
+          </button>
         </div>
 
         <div className="border-t border-border pt-6">
