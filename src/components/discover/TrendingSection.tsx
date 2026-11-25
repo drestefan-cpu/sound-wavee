@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
+import { Heart, Smile, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import UnifiedTrackCard, { type UnifiedTrackData } from "@/components/UnifiedTrackCard";
-import FriendAvatars, { loadFriendLikes, type FriendLike } from "@/components/discover/FriendAvatars";
+import UnifiedTrackCard, {
+  type UnifiedTrackData,
+} from "@/components/UnifiedTrackCard";
+import FriendAvatars, {
+  loadFriendLikes,
+  type FriendLike,
+} from "@/components/discover/FriendAvatars";
 
 /**
  * Discover → trending.
@@ -45,7 +51,13 @@ const TRACK_COLUMNS =
 const CHART_MAX_AGE_MS = 12 * 3_600_000;
 const MIN_TRENDING = 5;
 
-let cache: { trending: TrendingRow[]; days: number; chart: TrackRow[]; friends: Map<string, FriendLike[]>; at: number } | null = null;
+let cache: {
+  trending: TrendingRow[];
+  days: number;
+  chart: TrackRow[];
+  friends: Map<string, FriendLike[]>;
+  at: number;
+} | null = null;
 
 const toCard = (t: TrackRow): UnifiedTrackData => ({
   id: t.id,
@@ -62,19 +74,68 @@ const toCard = (t: TrackRow): UnifiedTrackData => ({
   shortId: t.short_id,
 });
 
-const activityLine = (r: TrendingRow) => {
-  const parts: string[] = [];
-  if (r.likers) parts.push(`${r.likers} ${r.likers === 1 ? "person" : "people"} liked`);
-  if (r.saves) parts.push(`${r.saves} ${r.saves === 1 ? "save" : "saves"}`);
-  if (r.reactions) parts.push(`${r.reactions} ${r.reactions === 1 ? "reaction" : "reactions"}`);
-  if (r.opens) parts.push(`${r.opens} link ${r.opens === 1 ? "open" : "opens"}`);
-  return parts.join(" · ");
+/** Activity as small icon + number pairs; the full wording is kept for screen readers. */
+const Activity = ({ r }: { r: TrendingRow }) => {
+  const loved = r.likers + r.saves;
+  const items = [
+    {
+      n: loved,
+      Icon: Heart,
+      label: `${loved} ${loved === 1 ? "person loved" : "people loved"} this`,
+    },
+    {
+      n: r.reactions,
+      Icon: Smile,
+      label: `${r.reactions} ${r.reactions === 1 ? "reaction" : "reactions"}`,
+    },
+    {
+      n: r.opens,
+      Icon: Play,
+      label: `${r.opens} ${r.opens === 1 ? "play" : "plays"} from PLAI links`,
+    },
+  ].filter((i) => i.n > 0);
+  if (items.length === 0) return null;
+  return (
+    <div
+      className="flex items-center gap-3 pt-1 text-[11px] tabular-nums text-muted-foreground"
+      aria-label={items.map((i) => i.label).join(", ")}
+    >
+      {items.map(({ n, Icon, label }) => (
+        <span
+          key={label}
+          className="inline-flex items-center gap-1"
+          title={label}
+          aria-hidden="true"
+        >
+          <Icon className="h-3 w-3" strokeWidth={2.25} />
+          {n}
+        </span>
+      ))}
+    </div>
+  );
 };
 
-const RankBadge = ({ rank }: { rank: number }) => (
-  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-    {rank}
-  </span>
+/** Big rank numeral beside the card: top 3 in the accent colour, the rest in faded ink. */
+const RankedRow = ({
+  rank,
+  size = "lg",
+  children,
+}: {
+  rank: number;
+  size?: "lg" | "sm";
+  children: React.ReactNode;
+}) => (
+  <div className="flex items-center gap-3">
+    <span
+      aria-label={`number ${rank}`}
+      className={`shrink-0 text-right font-display tabular-nums leading-none ${
+        size === "lg" ? "w-7 text-2xl" : "w-6 text-base"
+      } ${rank <= 3 ? "text-primary" : "text-foreground/30"}`}
+    >
+      {rank}
+    </span>
+    <div className="min-w-0 flex-1">{children}</div>
+  </div>
 );
 
 interface TrendingSectionProps {
@@ -84,11 +145,19 @@ interface TrendingSectionProps {
   followingIds: string[];
 }
 
-const TrendingSection = ({ onShare, sharerUsername, followingIds }: TrendingSectionProps) => {
-  const [trending, setTrending] = useState<TrendingRow[]>(cache?.trending || []);
+const TrendingSection = ({
+  onShare,
+  sharerUsername,
+  followingIds,
+}: TrendingSectionProps) => {
+  const [trending, setTrending] = useState<TrendingRow[]>(
+    cache?.trending || [],
+  );
   const [days, setDays] = useState(cache?.days || 7);
   const [chart, setChart] = useState<TrackRow[]>(cache?.chart || []);
-  const [friends, setFriends] = useState<Map<string, FriendLike[]>>(cache?.friends || new Map());
+  const [friends, setFriends] = useState<Map<string, FriendLike[]>>(
+    cache?.friends || new Map(),
+  );
   const [loading, setLoading] = useState(!cache);
 
   useEffect(() => {
@@ -101,22 +170,39 @@ const TrendingSection = ({ onShare, sharerUsername, followingIds }: TrendingSect
         .select(`position, fetched_at, tracks(${TRACK_COLUMNS})`)
         .eq("chart", "apple-us-top-songs")
         .order("position") as any);
-      const rows = (data || []) as { position: number; fetched_at: string; tracks: TrackRow | null }[];
+      const rows = (data || []) as {
+        position: number;
+        fetched_at: string;
+        tracks: TrackRow | null;
+      }[];
       return {
         tracks: rows.map((r) => r.tracks).filter((t): t is TrackRow => !!t),
-        fetchedAt: rows[0]?.fetched_at ? new Date(rows[0].fetched_at).getTime() : 0,
+        fetchedAt: rows[0]?.fetched_at
+          ? new Date(rows[0].fetched_at).getTime()
+          : 0,
       };
     };
 
     // Each part loads on its own, so one failing never blanks the other
-    const loadTrending = async (): Promise<{ rows: TrendingRow[]; days: number }> => {
+    const loadTrending = async (): Promise<{
+      rows: TrendingRow[];
+      days: number;
+    }> => {
       try {
         // (call through the client object — a detached supabase.rpc loses its connection)
-        const rpc = (fn: string, args: Record<string, unknown>) => (supabase as any).rpc(fn, args);
-        const { data: week } = await rpc("trending_tracks", { p_days: 7, p_limit: 10 });
+        const rpc = (fn: string, args: Record<string, unknown>) =>
+          (supabase as any).rpc(fn, args);
+        const { data: week } = await rpc("trending_tracks", {
+          p_days: 7,
+          p_limit: 10,
+        });
         if (week && week.length >= MIN_TRENDING) return { rows: week, days: 7 };
-        const { data: month } = await rpc("trending_tracks", { p_days: 30, p_limit: 10 });
-        if (month && month.length > (week?.length || 0)) return { rows: month, days: 30 };
+        const { data: month } = await rpc("trending_tracks", {
+          p_days: 30,
+          p_limit: 10,
+        });
+        if (month && month.length > (week?.length || 0))
+          return { rows: month, days: 30 };
         return { rows: week || [], days: 7 };
       } catch {
         return { rows: [], days: 7 };
@@ -126,9 +212,14 @@ const TrendingSection = ({ onShare, sharerUsername, followingIds }: TrendingSect
     const loadChartFresh = async (): Promise<TrackRow[]> => {
       try {
         let result = await loadChart();
-        if (result.tracks.length === 0 || Date.now() - result.fetchedAt > CHART_MAX_AGE_MS) {
+        if (
+          result.tracks.length === 0 ||
+          Date.now() - result.fetchedAt > CHART_MAX_AGE_MS
+        ) {
           // Ask the server to refresh the chart (it only calls Apple if the copy is stale)
-          await supabase.functions.invoke("refresh-charts", { body: {} }).catch(() => {});
+          await supabase.functions
+            .invoke("refresh-charts", { body: {} })
+            .catch(() => {});
           result = await loadChart();
         }
         return result.tracks;
@@ -138,11 +229,27 @@ const TrendingSection = ({ onShare, sharerUsername, followingIds }: TrendingSect
     };
 
     const load = async () => {
-      const [t, chartTracks] = await Promise.all([loadTrending(), loadChartFresh()]);
-      const ids = [...new Set([...t.rows.map((r) => r.track_id), ...chartTracks.map((c) => c.id)])];
-      const friendMap = await loadFriendLikes(ids, followingIds).catch(() => new Map<string, FriendLike[]>());
+      const [t, chartTracks] = await Promise.all([
+        loadTrending(),
+        loadChartFresh(),
+      ]);
+      const ids = [
+        ...new Set([
+          ...t.rows.map((r) => r.track_id),
+          ...chartTracks.map((c) => c.id),
+        ]),
+      ];
+      const friendMap = await loadFriendLikes(ids, followingIds).catch(
+        () => new Map<string, FriendLike[]>(),
+      );
       if (cancelled) return;
-      cache = { trending: t.rows, days: t.days, chart: chartTracks, friends: friendMap, at: Date.now() };
+      cache = {
+        trending: t.rows,
+        days: t.days,
+        chart: chartTracks,
+        friends: friendMap,
+        at: Date.now(),
+      };
       setTrending(t.rows);
       setDays(t.days);
       setChart(chartTracks);
@@ -171,37 +278,48 @@ const TrendingSection = ({ onShare, sharerUsername, followingIds }: TrendingSect
     <div className="space-y-8">
       <section className="space-y-3">
         <div>
-          <h3 className="font-display text-lg text-foreground">{days === 7 ? "this week on PLAI" : "this month on PLAI"}</h3>
-          <p className="text-xs text-muted-foreground">the songs people on PLAI are liking, saving and sharing most</p>
+          <h3 className="font-display text-lg text-foreground">
+            {days === 7 ? "this week on PLAI" : "this month on PLAI"}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            the songs people on PLAI are liking, saving and sharing most
+          </p>
         </div>
         {trending.length > 0 ? (
           <div className="space-y-3">
             {trending.map((r, i) => {
               const row: TrackRow = { ...r, id: r.track_id };
               return (
-                <UnifiedTrackCard
-                  key={r.track_id}
-                  track={toCard(row)}
-                  hideReactions
-                  sourceContext="discover_trending"
-                  sharerUsername={sharerUsername}
-                  onShare={() => onShare({ id: r.track_id, title: r.title, artist: r.artist, shortId: r.short_id })}
-                  subtitle={
-                    <div>
-                      <div className="flex items-center gap-2 pt-1">
-                        <RankBadge rank={i + 1} />
-                        <span className="text-[10px] text-muted-foreground">{activityLine(r)}</span>
+                <RankedRow key={r.track_id} rank={i + 1}>
+                  <UnifiedTrackCard
+                    track={toCard(row)}
+                    hideReactions
+                    sourceContext="discover_trending"
+                    sharerUsername={sharerUsername}
+                    onShare={() =>
+                      onShare({
+                        id: r.track_id,
+                        title: r.title,
+                        artist: r.artist,
+                        shortId: r.short_id,
+                      })
+                    }
+                    subtitle={
+                      <div>
+                        <Activity r={r} />
+                        <FriendAvatars friends={friends.get(r.track_id)} />
                       </div>
-                      <FriendAvatars friends={friends.get(r.track_id)} />
-                    </div>
-                  }
-                />
+                    }
+                  />
+                </RankedRow>
               );
             })}
           </div>
         ) : (
           <div className="rounded-xl border border-border bg-card p-5 text-center">
-            <h4 className="text-sm font-medium text-foreground">Nothing trending yet</h4>
+            <h4 className="text-sm font-medium text-foreground">
+              Nothing trending yet
+            </h4>
             <p className="mt-1 text-xs text-muted-foreground">
               Songs show up here as people like, save and share them on PLAI.
             </p>
@@ -212,26 +330,33 @@ const TrendingSection = ({ onShare, sharerUsername, followingIds }: TrendingSect
       {chartRows.length > 0 && (
         <section className="space-y-3">
           <div>
-            <h3 className="font-display text-lg text-foreground">top songs right now</h3>
-            <p className="text-xs text-muted-foreground">the Apple Music US chart, updated twice a day</p>
+            <h3 className="font-display text-lg text-foreground">
+              top songs right now
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              the Apple Music US chart, updated twice a day
+            </p>
           </div>
           <div className="space-y-2">
             {chartRows.map((t) => (
-              <UnifiedTrackCard
-                key={t.id}
-                compact
-                hideReactions
-                track={toCard(t)}
-                sourceContext="discover_chart"
-                sharerUsername={sharerUsername}
-                onShare={() => onShare({ id: t.id, title: t.title, artist: t.artist, shortId: t.short_id })}
-                subtitle={
-                  <div>
-                    <RankBadge rank={chart.indexOf(t) + 1} />
-                    <FriendAvatars friends={friends.get(t.id)} />
-                  </div>
-                }
-              />
+              <RankedRow key={t.id} rank={chart.indexOf(t) + 1} size="sm">
+                <UnifiedTrackCard
+                  compact
+                  hideReactions
+                  track={toCard(t)}
+                  sourceContext="discover_chart"
+                  sharerUsername={sharerUsername}
+                  onShare={() =>
+                    onShare({
+                      id: t.id,
+                      title: t.title,
+                      artist: t.artist,
+                      shortId: t.short_id,
+                    })
+                  }
+                  subtitle={<FriendAvatars friends={friends.get(t.id)} />}
+                />
+              </RankedRow>
             ))}
           </div>
         </section>
