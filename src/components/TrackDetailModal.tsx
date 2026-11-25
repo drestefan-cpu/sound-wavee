@@ -150,6 +150,7 @@ const TrackDetailModal = ({
         trackId={track.trackDbId || track.id}
         trackTitle={track.title}
         trackArtist={track.artist}
+        shortId={track.shortId}
         sharerUsername={sharerUsername}
         onClose={() => setShowRecommend(false)}
       />
@@ -249,7 +250,7 @@ const TrackDetailModal = ({
           {track.trackDbId && (
             <button
               onClick={() => {
-                const shareUrl = songShareUrl(track.trackDbId!, { from: sharerUsername });
+                const shareUrl = songShareUrl(track.trackDbId!, { shortId: track.shortId, from: sharerUsername });
 
                 // Open the share sheet immediately — iOS rejects navigator.share if it's called after an await
                 if (navigator.share) {

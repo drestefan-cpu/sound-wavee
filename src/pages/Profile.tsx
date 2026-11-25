@@ -34,7 +34,7 @@ type TabType = "finds" | "collection" | "activity" | "foryou" | "friends";
 /** Songs loaded per page in the collection tab ("show more" loads the next page) */
 const COLLECTION_PAGE_SIZE = 100;
 const COLLECTION_SELECT =
-  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, preview_url)";
+  "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, short_id, preview_url)";
 type ActivityFilterType = "all" | "follows" | "reactions" | "saves" | "recommendations";
 
 type ProfileSnapshot = {
@@ -85,7 +85,7 @@ const Profile = () => {
   const [likesCount, setLikesCount] = useState(cachedSnapshot?.likesCount ?? 0);
   const [loadingMoreLikes, setLoadingMoreLikes] = useState(false);
   // Envelope button on cards → recommend / share screen
-  const [recommendTrack, setRecommendTrack] = useState<{ id: string; title?: string; artist?: string } | null>(null);
+  const [recommendTrack, setRecommendTrack] = useState<{ id: string; title?: string; artist?: string; shortId?: string | null } | null>(null);
   // Signed-in user's username (shared links say "<username> shared this")
   const [myUsername, setMyUsername] = useState<string | null>(null);
   useEffect(() => {
@@ -251,7 +251,7 @@ const Profile = () => {
       supabase
         .from("likes")
         .select(
-          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, preview_url)",
+          "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, short_id, preview_url)",
         )
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
@@ -280,7 +280,7 @@ const Profile = () => {
           supabase
             .from("likes")
             .select(
-              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, preview_url)",
+              "id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, short_id, preview_url)",
             )
             .eq("user_id", profile.id)
             .order("liked_at", { ascending: false })
@@ -609,7 +609,7 @@ const Profile = () => {
       supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", profile.id).single(),
       supabase
         .from("likes")
-        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, preview_url)")
+        .select("id, liked_at, user_id, track_id, tracks(id, title, artist, album, album_art_url, spotify_track_id, apple_music_id, spotify_link_id, tidal_track_id, amazon_music_id, short_id, preview_url)")
         .eq("user_id", profile.id)
         .order("liked_at", { ascending: false })
         .order("id", { ascending: true })
@@ -1217,11 +1217,12 @@ const Profile = () => {
                     spotifyLinkId: s.tracks?.spotify_link_id,
                     tidalTrackId: s.tracks?.tidal_track_id,
                     amazonMusicId: s.tracks?.amazon_music_id,
+                    shortId: s.tracks?.short_id,
                     trackDbId: s.track_id,
                   }}
                   isSaved={isSaved(s.track_id)}
                   onToggleSave={() => toggleSave(s.track_id, s.source_user_id, "finds")}
-                  onShare={() => setRecommendTrack({ id: s.track_id, title: s.tracks?.title, artist: s.tracks?.artist })}
+                  onShare={() => setRecommendTrack({ id: s.track_id, title: s.tracks?.title, artist: s.tracks?.artist, shortId: s.tracks?.short_id })}
                   subtitle={
                     <p className="text-[10px] text-muted-foreground">
                       {s.source_context === "trending"
@@ -1368,6 +1369,7 @@ const Profile = () => {
                     spotifyLinkId: rec.tracks?.spotify_link_id,
                     tidalTrackId: rec.tracks?.tidal_track_id,
                     amazonMusicId: rec.tracks?.amazon_music_id,
+                    shortId: rec.tracks?.short_id,
                     trackDbId: rec.track_id,
                   }}
                   isSaved={isSaved(rec.track_id)}
@@ -1484,6 +1486,7 @@ const Profile = () => {
                           spotifyLinkId: h.tracks?.spotify_link_id,
                           tidalTrackId: h.tracks?.tidal_track_id,
                           amazonMusicId: h.tracks?.amazon_music_id,
+                          shortId: h.tracks?.short_id,
                           trackDbId: h.track_id,
                         }}
                         isSaved={isSaved(h.track_id)}
@@ -1537,6 +1540,7 @@ const Profile = () => {
                             spotifyLinkId: like.tracks?.spotify_link_id,
                             tidalTrackId: like.tracks?.tidal_track_id,
                             amazonMusicId: like.tracks?.amazon_music_id,
+                            shortId: like.tracks?.short_id,
                             likeId: like.id,
                             trackDbId: like.track_id,
                           }}
@@ -1548,7 +1552,7 @@ const Profile = () => {
                             setLikes(prev => prev.filter(l => l.id !== like.id));
                             setCollectionExclusionIds(prev => new Set(prev).add(like.track_id));
                           } : undefined}
-                          onShare={() => setRecommendTrack({ id: like.track_id, title: like.tracks?.title, artist: like.tracks?.artist })}
+                          onShare={() => setRecommendTrack({ id: like.track_id, title: like.tracks?.title, artist: like.tracks?.artist, shortId: like.tracks?.short_id })}
                         />
                       ))}
                     </div>
@@ -1589,6 +1593,7 @@ const Profile = () => {
           trackId={recommendTrack.id}
           trackTitle={recommendTrack.title || "this song"}
           trackArtist={recommendTrack.artist}
+          shortId={recommendTrack.shortId}
           sharerUsername={myUsername ?? undefined}
           onClose={() => setRecommendTrack(null)}
         />

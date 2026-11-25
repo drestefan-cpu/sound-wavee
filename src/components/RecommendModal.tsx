@@ -10,12 +10,14 @@ interface RecommendModalProps {
   trackId: string;
   trackTitle: string;
   trackArtist?: string;
+  /** Share code for a short link (falls back to the long /song/ link) */
+  shortId?: string | null;
   /** Current user's username — shared links show "<username> shared this" */
   sharerUsername?: string;
   onClose: () => void;
 }
 
-const RecommendModal = ({ trackId, trackTitle, trackArtist, sharerUsername, onClose }: RecommendModalProps) => {
+const RecommendModal = ({ trackId, trackTitle, trackArtist, shortId, sharerUsername, onClose }: RecommendModalProps) => {
   const { user } = useAuth();
   const [followers, setFollowers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ const RecommendModal = ({ trackId, trackTitle, trackArtist, sharerUsername, onCl
   }, [user]);
 
   // PLAI song page link (rich preview with album art in iMessage etc.)
-  const shareUrl = songShareUrl(trackId, { from: sharerUsername });
+  const shareUrl = songShareUrl(trackId, { shortId, from: sharerUsername });
   const shareTitle = trackArtist ? `${trackTitle} — ${trackArtist}` : trackTitle;
 
   const handleCopyLink = () => {

@@ -6,6 +6,7 @@ import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { SHORTCUT_INSTALL_URL, isAppleMobile } from "@/lib/shareLinks";
+import { resolveTrackLinks } from "@/lib/resolveLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId as extractSentinelVideoId, tidalTrackUrl } from "@/lib/trackLinks";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/
 const ANON_KEY = SUPABASE_PUBLISHABLE_KEY;
 
 interface TrackResult {
+  id?: string;
   title: string;
   artist: string;
   album_art_url: string | null;
@@ -50,18 +52,6 @@ function getPlatformLinks(track: TrackResult) {
   };
 }
 
-// ── YouTube video ID extractor ────────────────────────────────────────────────
-
-function extractYouTubeVideoId(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
-    if (u.hostname === "youtu.be") return u.pathname.slice(1).split("?")[0] || null;
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -121,23 +111,7 @@ const SharePage = () => {
       if (data.success) {
         setResult(data as ShareResult);
       } else {
-        const ytVideoId = extractYouTubeVideoId(trimmedUrl);
-        if (ytVideoId) {
-          setResult({
-            share_url: trimmedUrl,
-            short_url: null,
-            track: {
-              title: "YouTube video",
-              artist: "",
-              album_art_url: null,
-              spotify_track_id: null,
-              apple_music_id: null,
-              youtube_video_id: ytVideoId,
-            },
-          });
-        } else {
-          setError(data.error || "couldn't find that song — try a different link");
-        }
+        setError(data.error || "couldn't find a song at that link — share a single track");
       }
     } catch {
       setError("something went wrong — check your connection and try again");
@@ -173,17 +147,53 @@ const SharePage = () => {
   const shareUrl = result?.short_url || result?.share_url || "";
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(shareUrl);
-    toast("link copied ✓");
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => toast("link copied ✓"))
+      .catch(() => toast.error("couldn't copy — press and hold the link to copy it"));
   };
 
+  // Phone share sheet; on computers without one, copy the link instead
   const handleNativeShare = () => {
     if (!result) return;
-    navigator.share({
-      title: `${result.track.title} — ${result.track.artist}`,
-      url: shareUrl,
-    });
+    if (!navigator.share) {
+      handleCopy();
+      return;
+    }
+    navigator
+      .share({ title: `${result.track.title} — ${result.track.artist}`, url: shareUrl })
+      .catch(() => {}); // cancelled
   };
+
+  // Links to other apps are filled in just after the link is made — pick them up for the buttons
+  const resultTrackId = result?.track.id;
+  useEffect(() => {
+    if (!resultTrackId) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      resolveTrackLinks([resultTrackId]).then((rows) => {
+        const row = rows.find((r) => r.id === resultTrackId);
+        if (!row || cancelled) return;
+        setResult((prev) =>
+          prev && prev.track.id === resultTrackId
+            ? {
+                ...prev,
+                track: {
+                  ...prev.track,
+                  spotify_track_id: prev.track.spotify_track_id || getRealSpotifyId(row.spotify_track_id ?? undefined, row.spotify_link_id) || null,
+                  apple_music_id: prev.track.apple_music_id || row.apple_music_id,
+                  tidal_track_id: prev.track.tidal_track_id || row.tidal_track_id,
+                },
+              }
+            : prev,
+        );
+      });
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [resultTrackId]);
 
   return (
     <div style={{ position: "relative", height: "100dvh", overflow: "hidden", background: "hsl(var(--background))" }}>

@@ -19,6 +19,8 @@ export interface UnifiedTrackData {
   spotifyLinkId?: string | null;
   tidalTrackId?: string | null;
   amazonMusicId?: string | null;
+  /** 6-character share code → short links like plai.delaneyprojects.xyz/s/abc123 */
+  shortId?: string | null;
   likeId?: string;
   localOnly?: boolean;
   initialReactions?: { emoji: string; count: number }[];
