@@ -20,6 +20,7 @@ import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import ForYouTab from "@/components/profile/ForYouTab";
 import ShareStats from "@/components/profile/ShareStats";
+import TasteMatchSheet, { type TasteMatch, matchLabel } from "@/components/TasteMatchSheet";
 import FollowersModal from "@/components/FollowersModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
@@ -127,6 +128,8 @@ const Profile = () => {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [recsLoaded, setRecsLoaded] = useState(false);
   const [tasteMatch, setTasteMatch] = useState<number | null>(null);
+  const [tasteDetails, setTasteDetails] = useState<TasteMatch | null>(null);
+  const [showTasteMatch, setShowTasteMatch] = useState(false);
   const [followers, setFollowers] = useState<any[]>([]);
   const [moonsFaded, setMoonsFaded] = useState(false);
   const [activeMoonId, setActiveMoonId] = useState<string | null>(null);
@@ -370,13 +373,12 @@ const Profile = () => {
 
   useEffect(() => {
     if (isOwnProfile || !user || !profile) return;
+    // Live taste match (artists + songs in common, on any app) — tap the chip for the breakdown
     const loadMatch = async () => {
-      const { data } = await supabase
-        .from("taste_compatibility" as any)
-        .select("score")
-        .or(`and(user_a.eq.${user.id},user_b.eq.${profile.id}),and(user_a.eq.${profile.id},user_b.eq.${user.id})`)
-        .maybeSingle();
-      if (data) setTasteMatch((data as any).score);
+      const { data } = await (supabase as any).rpc("my_taste_match", { p_other: profile.id });
+      if (!data) return;
+      setTasteDetails(data as TasteMatch);
+      setTasteMatch((data as TasteMatch).score);
     };
     loadMatch();
   }, [isOwnProfile, user, profile]);
@@ -758,7 +760,8 @@ const Profile = () => {
       setActivityLoaded(true);
     } else {
       setProfileOwnerHiddenIds(new Set(((ownerHiddenRes as any).data || []).map((r: any) => r.track_id)));
-      setTasteMatch(tasteMatchRes.data ? (tasteMatchRes.data as any).score : null);
+      // (the live score comes from my_taste_match — see loadMatch; stored score only as a first guess)
+      if (tasteMatchRes.data) setTasteMatch((prev) => prev ?? (tasteMatchRes.data as any).score);
     }
   }, [profile, isOwnProfile, user]);
 
@@ -1110,10 +1113,29 @@ const Profile = () => {
             {profile?.status && (
               <p className="text-[11px] text-muted-foreground/70 italic mt-0.5">"{profile.status}"</p>
             )}
-            {!isOwnProfile && tasteMatch !== null && (
-              <span className="inline-block mt-1 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-medium text-primary-foreground">
-                {tasteMatch}% taste match
-              </span>
+            {!isOwnProfile && tasteDetails && (
+              <button
+                onClick={() => setShowTasteMatch(true)}
+                className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium transition-transform active:scale-95 ${
+                  tasteDetails.enough && tasteMatch !== null
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border bg-card text-muted-foreground"
+                }`}
+                aria-label="see your taste match"
+              >
+                {tasteDetails.enough && tasteMatch !== null
+                  ? `${tasteMatch}% taste match · ${matchLabel(tasteMatch)}`
+                  : "taste match: not enough music yet"}
+                <span aria-hidden="true">›</span>
+              </button>
+            )}
+            {showTasteMatch && tasteDetails && (
+              <TasteMatchSheet
+                match={tasteDetails}
+                otherName={`@${profile?.username || "them"}`}
+                myUsername={myUsername ?? undefined}
+                onClose={() => setShowTasteMatch(false)}
+              />
             )}
           </div>
 
