@@ -1,8 +1,8 @@
 // "Make a PLAI link" endpoint for the iPhone "Share with PLAI" shortcut (and anything else
 // that wants a simple GET):
 //
-//   GET https://plai.delaneyprojects.xyz/new?url=<Spotify / Apple Music / Tidal / YouTube / … link>
-//   → 200 text/plain  https://plai.delaneyprojects.xyz/s/abc123
+//   GET https://plai.delaneyprojects.xyz/new?url=<Spotify / Apple Music / Tidal / YouTube / … link>[&from=<PLAI username>]
+//   → 200 text/plain  https://plai.delaneyprojects.xyz/s/abc123[?from=username]
 //   → 4xx text/plain  a short, human-readable reason
 //
 // It calls PLAI's create-share-link function with the public app key, so the shortcut itself
@@ -12,6 +12,8 @@ const SUPABASE_URL = "https://sylwprldxdgbsncwyhfk.supabase.co";
 // Public anon key — the same one the PLAI web app ships with.
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHdwcmxkeGRnYnNuY3d5aGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMzEzOTgsImV4cCI6MjA5MDkwNzM5OH0.bnb0MzVpArZnu4Hte3cDhsJzkxAAYyyGOBL7pFapDnE";
+
+const USERNAME_RE = /^[a-z0-9._-]{1,40}$/i;
 
 // Shared text is often "Check out this song! https://…" — pull out the first link
 const firstUrl = (value) => (String(value || "").match(/https?:\/\/[^\s<>"']+/) || [])[0] || null;
@@ -43,7 +45,12 @@ export default async function handler(req, res) {
       res.status(422).send(data.error || "Couldn't find that song — try sharing a single track.");
       return;
     }
-    res.status(200).send(link);
+    // Optional sharer name → the preview says "<username> shared this"
+    const from = (url.searchParams.get("from") || "").trim().replace(/^@/, "");
+    const withFrom = from && USERNAME_RE.test(from) && data.short_url
+      ? `${data.short_url}?from=${encodeURIComponent(from.toLowerCase())}`
+      : link;
+    res.status(200).send(withFrom);
   } catch {
     res.status(502).send("PLAI is unreachable right now — try again in a moment.");
   }
