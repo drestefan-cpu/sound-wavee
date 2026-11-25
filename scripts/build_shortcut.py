@@ -15,17 +15,21 @@ def tokens(parts):
             s += "￼"
     return {"Value": {"string": s, "attachmentsByRange": rng}, "WFSerializationType": "WFTextTokenString"}
 
-U_ENC, U_REQ, U_GET, U_TXT = (uid() for _ in range(4))
+U_USER, U_ENC, U_REQ, U_GET, U_TXT = (uid() for _ in range(5))
 G_MENU = uid()
 
 actions = [
+  # 0 — the sharer's PLAI username, set once when the shortcut is added (import question below);
+  #     links then carry ?from= so friends who open them get the song in "for you". Blank = anonymous.
+  {"WFWorkflowActionIdentifier": "is.workflow.actions.gettext",
+   "WFWorkflowActionParameters": {"UUID": U_USER, "WFTextActionText": ""}},
   # 1 — URL-encode what was shared (a link, or text that contains a link)
   {"WFWorkflowActionIdentifier": "is.workflow.actions.urlencode",
    "WFWorkflowActionParameters": {"UUID": U_ENC, "WFEncodeMode": "Encode", "WFInput": tokens([{"Type": "ExtensionInput"}])}},
   # 2 — PLAI request URL
   {"WFWorkflowActionIdentifier": "is.workflow.actions.gettext",
    "WFWorkflowActionParameters": {"UUID": U_REQ, "WFTextActionText": tokens(
-       ["https://plai.delaneyprojects.xyz/new?enc=", out(U_ENC, "URL Encoded Text"), "&url=", {"Type": "ExtensionInput"}])}},
+       ["https://plai.delaneyprojects.xyz/new?from=", out(U_USER, "Text"), "&enc=", out(U_ENC, "URL Encoded Text"), "&url=", {"Type": "ExtensionInput"}])}},
   # 3 — ask PLAI (responds with the link as plain text, or a short reason)
   {"WFWorkflowActionIdentifier": "is.workflow.actions.downloadurl",
    "WFWorkflowActionParameters": {"UUID": U_GET, "WFHTTPMethod": "GET", "WFURL": tokens([out(U_REQ, "Text")])}},
@@ -63,7 +67,10 @@ workflow = {
   "WFWorkflowHasShortcutInputVariables": True,
   "WFWorkflowNoInputBehavior": {"Name": "WFWorkflowNoInputBehaviorGetClipboard", "Parameters": {}},
   "WFWorkflowOutputContentItemClasses": [],
-  "WFWorkflowImportQuestions": [],
+  "WFWorkflowImportQuestions": [{
+      "ActionIndex": 0, "Category": "Parameter", "ParameterKey": "WFTextActionText", "DefaultValue": "",
+      "Text": "Your PLAI username (optional). Friends who open your links will see they're from you.",
+  }],
   "WFWorkflowActions": actions,
   "WFQuickActionSurfaces": [],
 }

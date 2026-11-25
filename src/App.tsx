@@ -1,4 +1,5 @@
 /* PLAI App */
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -12,25 +13,33 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import MiniPlayer from "@/components/MiniPlayer";
 import Landing from "./pages/Landing";
-import Feed from "./pages/Feed";
-import Profile from "./pages/Profile";
-import SettingsPage from "./pages/Settings";
-import Demo from "./pages/Demo";
-import Admin from "./pages/Admin";
-import TidalCallback from "./pages/TidalCallback";
-import YouTubeCallback from "./pages/YouTubeCallback";
-import GoogleCallback from "./pages/GoogleCallback";
-import NotFound from "./pages/NotFound";
-import Notifications from "./pages/Notifications";
-import Radar from "./pages/Radar";
-import RadarArtist from "./pages/RadarArtist";
-import RadarNew from "./pages/RadarNew";
+const Feed = lazy(() => import("./pages/Feed"));
+const Profile = lazy(() => import("./pages/Profile"));
+const SettingsPage = lazy(() => import("./pages/Settings"));
+const Demo = lazy(() => import("./pages/Demo"));
+const Admin = lazy(() => import("./pages/Admin"));
+const TidalCallback = lazy(() => import("./pages/TidalCallback"));
+const YouTubeCallback = lazy(() => import("./pages/YouTubeCallback"));
+const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Radar = lazy(() => import("./pages/Radar"));
+const RadarArtist = lazy(() => import("./pages/RadarArtist"));
+const RadarNew = lazy(() => import("./pages/RadarNew"));
 import SongShare from "./pages/SongShare";
-import ShareTarget from "./pages/ShareTarget";
+const ShareTarget = lazy(() => import("./pages/ShareTarget"));
 import ShortLink from "./pages/ShortLink";
-import SharePage from "./pages/SharePage";
+const SharePage = lazy(() => import("./pages/SharePage"));
 
 const queryClient = new QueryClient();
+
+// Pages load on demand so the first download is small; the landing and shared-song pages
+// (what new visitors see first) stay in the main bundle.
+const PageLoading = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
 
 // Toasts follow the app theme (Night = dark, Dawn = light)
 const ThemedToaster = () => {
@@ -52,6 +61,7 @@ const App = () => (
               <SpotifyPlayerProvider>
                 <MiniPlayer />
               </SpotifyPlayerProvider>
+              <Suspense fallback={<PageLoading />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/song/:trackId" element={<SongShare />} />
@@ -75,6 +85,7 @@ const App = () => (
                 <Route path="/auth/google/callback" element={<GoogleCallback />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </SavedTracksProvider>
           </PlatformProvider>
         </AuthProvider>

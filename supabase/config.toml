@@ -26,3 +26,5 @@ verify_jwt = false
 
 [functions.sync-youtube-likes]
 verify_jwt = false
+[functions.sync-all]
+verify_jwt = false
