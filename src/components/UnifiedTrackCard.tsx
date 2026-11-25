@@ -134,8 +134,8 @@ const UnifiedTrackCard = ({
             {rank ? (
               <span
                 aria-label={`number ${rank}`}
-                className={`-mr-1 w-4 flex-shrink-0 text-center text-xs font-medium tabular-nums ${
-                  rank <= 3 ? "text-primary" : "text-muted-foreground"
+                className={`-mr-0.5 flex h-6 min-w-6 flex-shrink-0 items-center justify-center rounded-full px-1 text-[11px] font-medium tabular-nums ${
+                  rank <= 3 ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
                 }`}
               >
                 {rank}
