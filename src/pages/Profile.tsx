@@ -20,6 +20,7 @@ import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import ForYouTab from "@/components/profile/ForYouTab";
 import TasteMatchSheet, { type TasteMatch } from "@/components/TasteMatchSheet";
+import ShareStats from "@/components/profile/ShareStats";
 import FollowersModal from "@/components/FollowersModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
@@ -76,6 +77,40 @@ const logProfileView = async (viewerId: string, profileId: string, tabViewed: st
   } catch {}
 };
 
+/** saved · for you · sent — the three kinds of finds in your library */
+const FindsSwitch = ({
+  value,
+  onChange,
+  dot,
+}: {
+  value: "saved" | "received" | "sent";
+  onChange: (v: "saved" | "received" | "sent") => void;
+  dot: boolean;
+}) => (
+  <div className="mb-3 inline-flex rounded-full border border-border bg-card p-0.5" role="tablist">
+    {([
+      ["saved", "saved"],
+      ["received", "for you"],
+      ["sent", "sent"],
+    ] as const).map(([key, label]) => (
+      <button
+        key={key}
+        role="tab"
+        aria-selected={value === key}
+        onClick={() => onChange(key)}
+        className={`relative rounded-full px-4 py-1 text-[11px] font-medium transition-colors ${
+          value === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {label}
+        {key === "received" && dot && value !== key && (
+          <span className="absolute right-1.5 top-1 h-1.5 w-1.5 rounded-full bg-primary" aria-label="new" />
+        )}
+      </button>
+    ))}
+  </div>
+);
+
 const Profile = () => {
   const { username } = useParams();
   const { user, loading } = useAuth();
@@ -108,11 +143,15 @@ const Profile = () => {
   // ?tab=foryou etc. opens a specific tab (e.g. from "added to your for you" on a shared song)
   const [tab, setTab] = useState<TabType>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if ((["finds", "foryou", "collection", "friends"] as string[]).includes(t || "")) return t as TabType;
+    if (t === "foryou") return "finds"; // "for you" is now a view inside finds
+    if ((["finds", "collection", "friends", "activity"] as string[]).includes(t || "")) return t as TabType;
     // Your library (/profile) opens on your collection; other people's profiles on their finds.
-    // (?tab=activity from older links → collection; activity moved to the notifications page)
     return username ? "finds" : "collection";
   });
+  // Inside finds (own library): songs you saved · songs sent to you · songs you sent
+  const [findsView, setFindsView] = useState<"saved" | "received" | "sent">(() =>
+    new URLSearchParams(window.location.search).get("tab") === "foryou" ? "received" : "saved",
+  );
   const [collectionFilter, setCollectionFilter] = useState<"timeline" | "hidden">("timeline");
   const [collectionPlatformFilter, setCollectionPlatformFilter] = useState<"all" | "spotify" | "youtube" | "apple" | "tidal">("all");
   const [showFlappy, setShowFlappy] = useState(false);
@@ -132,6 +171,7 @@ const Profile = () => {
   const [tasteMatch, setTasteMatch] = useState<number | null>(null);
   const [tasteDetails, setTasteDetails] = useState<TasteMatch | null>(null);
   const [showTasteMatch, setShowTasteMatch] = useState(false);
+  const [friendMatches, setFriendMatches] = useState<Map<string, number | null>>(new Map());
   const [followers, setFollowers] = useState<any[]>([]);
   const [moonsFaded, setMoonsFaded] = useState(false);
   const [activeMoonId, setActiveMoonId] = useState<string | null>(null);
@@ -479,7 +519,7 @@ const Profile = () => {
   }, [isOwnProfile, user, tab]);
 
   useEffect(() => {
-    if (!isOwnProfile || !user || tab !== "foryou") return;
+    if (!isOwnProfile || !user || tab !== "finds" || findsView !== "received") return;
     const loadRecs = async () => {
       const { data } = await supabase
         .from("recommendations" as any)
@@ -498,7 +538,15 @@ const Profile = () => {
       setUnseenRecCount(0);
     };
     loadRecs();
-  }, [isOwnProfile, user, tab]);
+  }, [isOwnProfile, user, tab, findsView]);
+
+  // Your taste match with each friend (own library's friends tab)
+  useEffect(() => {
+    if (!isOwnProfile || tab !== "friends" || friendMatches.size > 0) return;
+    (supabase as any).rpc("my_friend_matches").then(({ data }: { data: { user_id: string; score: number | null }[] | null }) => {
+      setFriendMatches(new Map((data || []).map((m) => [m.user_id, m.score])));
+    });
+  }, [isOwnProfile, tab, friendMatches.size]);
 
   useEffect(() => {
     if (!profile || tab !== "friends") return;
@@ -919,8 +967,9 @@ const Profile = () => {
   // (Friends live behind the following / followers counts; activity is in the notifications bell.)
   const ownTabs = [
     { key: "collection" as TabType, label: collectionLabel, icon: <Library className="h-3 w-3" /> },
-    { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
-    { key: "foryou" as TabType, label: "for you", icon: <Sparkle className="h-3 w-3" />, badge: unseenRecCount > 0 },
+    { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" />, badge: unseenRecCount > 0 },
+    { key: "friends" as TabType, label: "friends", icon: <Users className="h-3 w-3" /> },
+    { key: "activity" as TabType, label: "activity", icon: <Bell className="h-3 w-3" /> },
   ];
   const otherTabs = [
     { key: "finds" as TabType, label: findsLabel, icon: <Heart className="h-3 w-3" /> },
@@ -1233,8 +1282,21 @@ const Profile = () => {
               <Skeleton key={i} className="aspect-square rounded-lg" />
             ))}
           </div>
+        ) : tab === "finds" && isOwnProfile && findsView !== "saved" ? (
+          <div>
+            <FindsSwitch value={findsView} onChange={setFindsView} dot={unseenRecCount > 0} />
+            <ForYouTab
+              view={findsView === "sent" ? "sent" : "received"}
+              received={recommendations}
+              loaded={recsLoaded}
+              onReceivedChange={setRecommendations}
+              myUsername={myUsername ?? undefined}
+            />
+          </div>
         ) : tab === "finds" ? (
-          savedTracks.length > 0 ? (
+          <div>
+          {isOwnProfile && <FindsSwitch value={findsView} onChange={setFindsView} dot={unseenRecCount > 0} />}
+          {savedTracks.length > 0 ? (
             <div className="space-y-2">
               {savedTracks.map((s: any) => (
                 <UnifiedTrackCard
@@ -1273,16 +1335,113 @@ const Profile = () => {
             </div>
           ) : (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              {isOwnProfile ? "songs you discover on PLAI live here — save them from the feed" : "no finds yet"}
+              {isOwnProfile ? "songs you save from friends with the heart live here" : "no finds yet"}
             </p>
-          )
-        ) : tab === "foryou" ? (
-          <ForYouTab
-            received={recommendations}
-            loaded={recsLoaded}
-            onReceivedChange={setRecommendations}
-            myUsername={myUsername ?? undefined}
-          />
+          )}
+          </div>
+        ) : tab === "activity" ? (
+          <div className="space-y-1.5">
+            <ShareStats />
+            <ShareStats />
+            {activityLoaded && activity.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                {(["all", "saves", "reactions", "recommendations"] as ActivityFilterType[]).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setActivityFilter(f)}
+                    className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-150 whitespace-nowrap ${
+                      activityFilter === f
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
+            {activityLoaded && activity.length === 0 ? (
+              <div className="space-y-2">
+                <p className="py-3 text-center text-sm text-muted-foreground">
+                  when people save or react to your songs, you'll see it here.
+                </p>
+                <div className="rounded-xl border border-border bg-card p-2.5 opacity-50 relative border-l-4 border-l-primary">
+                  <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                    example
+                  </span>
+                  <p className="text-sm text-foreground">
+                    @musicfan saved <span className="text-primary">Beautiful Things</span>
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-2.5 opacity-50 relative">
+                  <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                    example
+                  </span>
+                  <p className="text-sm text-foreground">
+                    @friend reacted 🔥 to <span className="text-primary">Swim</span>
+                  </p>
+                </div>
+              </div>
+            ) : !activityLoaded ? (
+              <div className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : filteredActivity.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">nothing here yet</p>
+            ) : (
+              filteredActivity.map((item, i) => (
+                <div
+                  key={i}
+                  className={`rounded-xl border border-border bg-card p-2.5 ${item.type === "save" ? "border-l-4 border-l-primary" : ""}`}
+                >
+                  <div className="flex items-center gap-2">
+                    {item.type === "recommendation" ? (
+                      <Send className="h-4 w-4 text-primary flex-shrink-0" />
+                    ) : item.avatarUrl ? (
+                      <div className="h-5 w-5 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
+                        <img src={item.avatarUrl} alt="" className="h-full w-full object-cover" />
+                      </div>
+                    ) : null}
+                    <p className="text-xs text-foreground flex-1 min-w-0">
+                      {item.type === "save" ? (
+                        <>
+                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">
+                            @{item.username || item.displayName}
+                          </Link>
+                          {" saved "}
+                          <span className="text-primary">{item.trackTitle}</span>
+                        </>
+                      ) : item.type === "reaction" ? (
+                        <>
+                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">
+                            @{item.username || item.displayName}
+                          </Link>
+                          {" reacted "}
+                          {item.emoji}
+                          {" to "}
+                          <span className="text-primary">{item.trackTitle}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Link to={`/profile/${item.username}`} className="text-primary hover:underline">
+                            @{item.username || item.displayName}
+                          </Link>
+                          {" recommended "}
+                          <span className="text-primary">{item.trackTitle}</span>
+                          {" for you"}
+                        </>
+                      )}
+                    </p>
+                    {item.type === "recommendation" && item.albumArtUrl && (
+                      <div className="h-8 w-8 rounded overflow-hidden flex-shrink-0">
+                        <img src={item.albumArtUrl} alt="" className="h-full w-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         ) : tab === "friends" ? (
           <div className="space-y-2">
             {!friendsLoaded ? (
@@ -1319,6 +1478,12 @@ const Profile = () => {
                       <p className="text-sm font-medium text-foreground truncate">{p.display_name || "User"}</p>
                       <p className="text-xs text-muted-foreground">@{p.username || "user"}</p>
                     </div>
+                    {isOwnProfile && typeof friendMatches.get(p.id) === "number" && (
+                      <span className="shrink-0 text-right" aria-label={`${friendMatches.get(p.id)}% taste match`}>
+                        <span className="block font-display text-base leading-none tabular-nums text-primary">{friendMatches.get(p.id)}%</span>
+                        <span className="text-[9px] text-muted-foreground">match</span>
+                      </span>
+                    )}
                   </Link>
                 );
               })

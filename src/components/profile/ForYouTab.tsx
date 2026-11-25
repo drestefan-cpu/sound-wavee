@@ -43,6 +43,8 @@ interface Props {
   loaded: boolean;
   onReceivedChange: (rows: any[]) => void;
   myUsername?: string;
+  /** Controlled view (the library's finds switch); without it, this shows its own received/sent switch */
+  view?: "received" | "sent";
 }
 
 const Segmented = ({ value, onChange }: { value: "received" | "sent"; onChange: (v: "received" | "sent") => void }) => (
@@ -69,9 +71,10 @@ const Spinner = () => (
   </div>
 );
 
-const ForYouTab = ({ received, loaded, onReceivedChange, myUsername }: Props) => {
+const ForYouTab = ({ received, loaded, onReceivedChange, myUsername, view: controlledView }: Props) => {
   const { isSaved, toggleSave } = useSavedTracks();
-  const [view, setView] = useState<"received" | "sent">("received");
+  const [ownView, setView] = useState<"received" | "sent">("received");
+  const view = controlledView ?? ownView;
   const [sent, setSent] = useState<SentRow[] | null>(null);
   const [shareTrack, setShareTrack] = useState<{ id: string; title: string; artist?: string; shortId?: string | null } | null>(null);
 
@@ -94,7 +97,7 @@ const ForYouTab = ({ received, loaded, onReceivedChange, myUsername }: Props) =>
 
   return (
     <div>
-      <Segmented value={view} onChange={setView} />
+      {!controlledView && <Segmented value={view} onChange={setView} />}
 
       {view === "received" ? (
         !loaded ? (

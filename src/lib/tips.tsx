@@ -59,17 +59,17 @@ export const LIBRARY_TIPS: TipStep[] = [
   {
     icon: Heart,
     title: "finds",
-    body: "Songs you saved in PLAI with the heart, and who you found them through.",
-  },
-  {
-    icon: Sparkle,
-    title: "for you",
-    body: "Songs friends sent you. Reply with an emoji, or switch to sent to see what you've sent.",
+    body: "Songs from friends: ones you saved with the heart, ones sent to you (reply with an emoji), and ones you sent.",
   },
   {
     icon: Users,
     title: "friends",
-    body: "Tap following or followers at the top to see your people, with your taste match % for each.",
+    body: "The people you follow, with your taste match. Tap someone's match on their profile to see what you share.",
+  },
+  {
+    icon: Bell,
+    title: "activity",
+    body: "Who saved or reacted to your songs, and how often your shared links were opened.",
   },
 ];
 
