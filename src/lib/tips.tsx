@@ -14,7 +14,7 @@ export const FRIENDS_TIPS: TipStep[] = [
     title: "on every song",
     body: (
       <>
-        <Heart className="inline h-3 w-3 align-[-1px]" /> saves it to your collection,{" "}
+        <Heart className="inline h-3 w-3 align-[-1px]" /> saves it to your finds,{" "}
         <Play className="inline h-3 w-3 align-[-1px]" /> plays it in your music app,{" "}
         <Send className="inline h-3 w-3 align-[-1px]" /> sends it to a friend. Tap a song for details and a 30-second preview.
       </>
@@ -53,8 +53,8 @@ export const DISCOVER_TIPS: TipStep[] = [
 export const LIBRARY_TIPS: TipStep[] = [
   {
     icon: Heart,
-    title: "your finds",
-    body: "Songs you like in your music app, synced to PLAI. This is what your friends see.",
+    title: "finds",
+    body: "Songs you saved in PLAI with the heart, and who you found them through.",
   },
   {
     icon: Sparkle,
@@ -64,7 +64,7 @@ export const LIBRARY_TIPS: TipStep[] = [
   {
     icon: Library,
     title: "collection",
-    body: "Songs you saved in PLAI with the heart, all in one place.",
+    body: "The songs you like in your music app, synced to PLAI. This is what friends see in their feed.",
   },
   {
     icon: Bell,
