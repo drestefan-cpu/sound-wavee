@@ -5,6 +5,7 @@ import { Music } from "lucide-react";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
 import { useAuth } from "@/contexts/AuthContext";
+import { SHORTCUT_INSTALL_URL, isAppleMobile } from "@/lib/shareLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId as extractSentinelVideoId, tidalTrackUrl } from "@/lib/trackLinks";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
@@ -289,6 +290,16 @@ const SharePage = () => {
                 >
                   generate link →
                 </button>
+              )}
+
+              {/* Skip the copy-paste next time: iPhone shortcut in the share sheet */}
+              {isAppleMobile() && (
+                <p style={{ fontSize: 12, textAlign: "center", marginTop: 14, color: "hsl(var(--muted-foreground))" }}>
+                  skip the copy-paste —{" "}
+                  <a href={SHORTCUT_INSTALL_URL} target="_blank" rel="noopener noreferrer" style={{ color: "hsl(var(--primary))", textDecoration: "none" }}>
+                    add Share with PLAI to your share sheet →
+                  </a>
+                </p>
               )}
             </>
           ) : (

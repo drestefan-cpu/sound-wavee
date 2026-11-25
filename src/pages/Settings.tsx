@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlatform } from "@/contexts/PlatformContext";
+import { SHORTCUT_INSTALL_URL, isAppleMobile } from "@/lib/shareLinks";
 import { useTheme, type ThemePreference } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, LogOut, Radar } from "lucide-react";
+import { ChevronDown, LogOut, Radar, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
@@ -624,6 +625,31 @@ const SettingsPage = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">share from any music app</h3>
+          {isAppleMobile() ? (
+            <>
+              <p className="text-xs text-muted-foreground mb-3">
+                add "Share with PLAI" to your iPhone share sheet — share a song from Spotify, Apple Music, Tidal or YouTube Music and get a PLAI link that plays everywhere
+              </p>
+              <a
+                href={SHORTCUT_INSTALL_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+                style={{ touchAction: "manipulation" }}
+              >
+                <Share2 className="h-4 w-4" />
+                add to iPhone share sheet
+              </a>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              add PLAI to your home screen and it appears in your phone's share menu — share a song from any music app to get a PLAI link that plays everywhere
+            </p>
+          )}
         </div>
 
         <div className="border-t border-border pt-6">

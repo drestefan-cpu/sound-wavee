@@ -5,6 +5,14 @@
  */
 export const SHARE_BASE_URL = "https://plai.delaneyprojects.xyz";
 
+/** Install page for the "Share with PLAI" iPhone shortcut (share-preview/shortcut/) */
+export const SHORTCUT_INSTALL_URL = `${SHARE_BASE_URL}/shortcut`;
+
+/** iPhone / iPad (including iPadOS, which reports itself as a Mac) */
+export const isAppleMobile = () =>
+  typeof navigator !== "undefined" &&
+  (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+
 export function songShareUrl(
   trackId: string,
   opts: { shortId?: string | null; from?: string | null } = {},
