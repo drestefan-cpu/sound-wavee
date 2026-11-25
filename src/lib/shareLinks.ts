@@ -5,6 +5,9 @@
  */
 export const SHARE_BASE_URL = "https://plai.delaneyprojects.xyz";
 
+/** The app's public address (same site as the share links) */
+export const APP_URL = SHARE_BASE_URL;
+
 /** Install page for the "Share with PLAI" iPhone shortcut (share-preview/shortcut/) */
 export const SHORTCUT_INSTALL_URL = `${SHARE_BASE_URL}/shortcut`;
 

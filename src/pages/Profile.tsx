@@ -1,3 +1,4 @@
+import { APP_URL } from "@/lib/shareLinks";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -575,7 +576,7 @@ const Profile = () => {
   };
 
   const copyProfileLink = () => {
-    const link = `https://onplai.lovable.app/profile/${profile?.username || profile?.id}`;
+    const link = `${APP_URL}/profile/${profile?.username || profile?.id}`;
     navigator.clipboard.writeText(link);
     toast.success("Profile link copied");
   };
@@ -1584,7 +1585,7 @@ const Profile = () => {
             </button>
             <div className="flex justify-center mb-4">
               <QRCodeSVG
-                value={`https://onplai.lovable.app/profile/${profile?.username || profile?.id}`}
+                value={`${APP_URL}/profile/${profile?.username || profile?.id}`}
                 size={180}
                 bgColor="transparent"
                 fgColor="hsl(var(--foreground))"

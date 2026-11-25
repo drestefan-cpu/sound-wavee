@@ -4,7 +4,7 @@ import { Music, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId, tidalTrackUrl, amazonMusicUrl } from "@/lib/trackLinks";
-import { songShareUrl } from "@/lib/shareLinks";
+import { songShareUrl, APP_URL } from "@/lib/shareLinks";
 import { resolveTrackLinks } from "@/lib/resolveLinks";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
@@ -106,7 +106,7 @@ const SongShare = () => {
 
     setMeta("og:title", `${track.title} — ${track.artist}`);
     setMeta("og:description", `${track.artist} on PLAI`);
-    setMeta("og:image", track.album_art_url || "https://onplai.lovable.app/plai-icon.png");
+    setMeta("og:image", track.album_art_url || `${APP_URL}/plai-icon.png`);
     setMeta("og:url", window.location.href);
 
     return () => {
@@ -161,7 +161,7 @@ const SongShare = () => {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <p className="text-sm" style={{ color: "hsl(var(--foreground) / 0.4)" }}>song not found</p>
-        <a href="https://onplai.lovable.app" className="mt-3 text-xs text-primary">
+        <a href="/" className="mt-3 text-xs text-primary">
           go to PLAI →
         </a>
       </div>
@@ -426,7 +426,7 @@ const SongShare = () => {
               </Link>
             ) : (
               <a
-                href="https://onplai.lovable.app"
+                href="/"
                 style={{ fontSize: 12, color: "hsl(var(--foreground) / 0.4)", textDecoration: "none" }}
               >
                 find music with friends on PLAI →
@@ -436,7 +436,7 @@ const SongShare = () => {
               <PlaiLogo className="text-sm" glow={false} surface="card" />
             </div>
             <a
-              href="https://onplai.lovable.app"
+              href="/"
               style={{ fontSize: "0.75rem", color: "hsl(var(--foreground) / 0.3)", textDecoration: "none", display: "block", marginTop: 8 }}
             >
               open in PLAI →

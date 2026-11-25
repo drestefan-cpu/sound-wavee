@@ -65,7 +65,7 @@ async function fetchOgData(
 ): Promise<{ photo_url: string | null; name: string | null }> {
   try {
     // Only public websites, with a timeout and size cap (see _shared/safeFetch.ts)
-    const html = await fetchPublicHtml(url, "Mozilla/5.0 (compatible; PLAIRadar/1.0; +https://onplai.lovable.app)")
+    const html = await fetchPublicHtml(url, "Mozilla/5.0 (compatible; PLAIRadar/1.0; +https://plai.delaneyprojects.xyz)")
     if (!html) return { photo_url: null, name: null }
 
     // og:image — handle both attribute orders
