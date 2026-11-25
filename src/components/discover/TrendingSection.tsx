@@ -115,29 +115,6 @@ const Activity = ({ r }: { r: TrendingRow }) => {
   );
 };
 
-/** Big rank numeral beside the card: top 3 in the accent colour, the rest in faded ink. */
-const RankedRow = ({
-  rank,
-  size = "lg",
-  children,
-}: {
-  rank: number;
-  size?: "lg" | "sm";
-  children: React.ReactNode;
-}) => (
-  <div className="flex items-center gap-3">
-    <span
-      aria-label={`number ${rank}`}
-      className={`shrink-0 text-right font-display tabular-nums leading-none ${
-        size === "lg" ? "w-7 text-2xl" : "w-6 text-base"
-      } ${rank <= 3 ? "text-primary" : "text-foreground/30"}`}
-    >
-      {rank}
-    </span>
-    <div className="min-w-0 flex-1">{children}</div>
-  </div>
-);
-
 interface TrendingSectionProps {
   onShare: (track: ShareableTrack) => void;
   sharerUsername?: string;
@@ -290,28 +267,28 @@ const TrendingSection = ({
             {trending.map((r, i) => {
               const row: TrackRow = { ...r, id: r.track_id };
               return (
-                <RankedRow key={r.track_id} rank={i + 1}>
-                  <UnifiedTrackCard
-                    track={toCard(row)}
-                    hideReactions
-                    sourceContext="discover_trending"
-                    sharerUsername={sharerUsername}
-                    onShare={() =>
-                      onShare({
-                        id: r.track_id,
-                        title: r.title,
-                        artist: r.artist,
-                        shortId: r.short_id,
-                      })
-                    }
-                    subtitle={
-                      <div>
-                        <Activity r={r} />
-                        <FriendAvatars friends={friends.get(r.track_id)} />
-                      </div>
-                    }
-                  />
-                </RankedRow>
+                <UnifiedTrackCard
+                  key={r.track_id}
+                  rank={i + 1}
+                  track={toCard(row)}
+                  hideReactions
+                  sourceContext="discover_trending"
+                  sharerUsername={sharerUsername}
+                  onShare={() =>
+                    onShare({
+                      id: r.track_id,
+                      title: r.title,
+                      artist: r.artist,
+                      shortId: r.short_id,
+                    })
+                  }
+                  subtitle={
+                    <div>
+                      <Activity r={r} />
+                      <FriendAvatars friends={friends.get(r.track_id)} />
+                    </div>
+                  }
+                />
               );
             })}
           </div>
@@ -339,24 +316,24 @@ const TrendingSection = ({
           </div>
           <div className="space-y-2">
             {chartRows.map((t) => (
-              <RankedRow key={t.id} rank={chart.indexOf(t) + 1} size="sm">
-                <UnifiedTrackCard
-                  compact
-                  hideReactions
-                  track={toCard(t)}
-                  sourceContext="discover_chart"
-                  sharerUsername={sharerUsername}
-                  onShare={() =>
-                    onShare({
-                      id: t.id,
-                      title: t.title,
-                      artist: t.artist,
-                      shortId: t.short_id,
-                    })
-                  }
-                  subtitle={<FriendAvatars friends={friends.get(t.id)} />}
-                />
-              </RankedRow>
+              <UnifiedTrackCard
+                key={t.id}
+                rank={chart.indexOf(t) + 1}
+                compact
+                hideReactions
+                track={toCard(t)}
+                sourceContext="discover_chart"
+                sharerUsername={sharerUsername}
+                onShare={() =>
+                  onShare({
+                    id: t.id,
+                    title: t.title,
+                    artist: t.artist,
+                    shortId: t.short_id,
+                  })
+                }
+                subtitle={<FriendAvatars friends={friends.get(t.id)} />}
+              />
             ))}
           </div>
         </section>

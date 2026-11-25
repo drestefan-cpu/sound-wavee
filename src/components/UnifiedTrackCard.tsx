@@ -44,7 +44,20 @@ interface UnifiedTrackCardProps {
   sourceContext?: string;
   children?: React.ReactNode;
   sharerUsername?: string;
+  /** Chart / trending position, shown as a small tag on the artwork */
+  rank?: number;
 }
+
+const RankTag = ({ rank }: { rank: number }) => (
+  <span
+    aria-label={`number ${rank}`}
+    className={`absolute left-1 top-1 min-w-[18px] rounded-md bg-background/85 px-1 text-center text-[10px] font-semibold leading-[18px] tabular-nums backdrop-blur-sm ${
+      rank <= 3 ? "text-primary" : "text-foreground/75"
+    }`}
+  >
+    {rank}
+  </span>
+);
 
 const UnifiedTrackCard = ({
   track,
@@ -62,6 +75,7 @@ const UnifiedTrackCard = ({
   sourceContext,
   children,
   sharerUsername,
+  rank,
 }: UnifiedTrackCardProps) => {
   const { preferredPlatform } = usePlatform();
   const { isSaved: isGloballySaved, toggleSave } = useSavedTracks();
@@ -118,7 +132,7 @@ const UnifiedTrackCard = ({
         >
           <div className="flex items-center gap-3">
             <div
-              className="flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
+              className="relative flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
               style={{ width: 56, height: 56 }}
             >
               {track.albumArtUrl && !artError ? (
@@ -133,6 +147,7 @@ const UnifiedTrackCard = ({
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">♪</div>
               )}
+              {rank ? <RankTag rank={rank} /> : null}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium text-foreground text-sm">{track.title}</p>
@@ -210,7 +225,7 @@ const UnifiedTrackCard = ({
         {header}
         <div className="flex gap-3 items-center">
           <div
-            className="flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
+            className="relative flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
             style={{ width: 72, height: 72 }}
           >
             {track.albumArtUrl && !artError ? (
@@ -225,6 +240,7 @@ const UnifiedTrackCard = ({
             ) : (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">♪</div>
             )}
+              {rank ? <RankTag rank={rank} /> : null}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-foreground text-sm">{track.title}</p>

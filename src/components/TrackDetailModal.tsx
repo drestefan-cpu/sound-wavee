@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Heart, Send, X, Play, Pause, FileText, ArrowUpRight } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
@@ -82,7 +83,7 @@ const PreviewButton = ({ playing, progress, onClick }: { playing: boolean; progr
     <button
       onClick={onClick}
       aria-label={playing ? "pause preview" : "play a 30-second preview"}
-      className="absolute bottom-3 right-3 flex h-14 w-14 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-transform duration-150 active:scale-95"
+      className="absolute bottom-2.5 right-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-transform duration-150 active:scale-95"
     >
       <svg className="absolute inset-0 -rotate-90" viewBox="0 0 56 56" aria-hidden="true">
         <circle cx="28" cy="28" r={r} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2.5" />
@@ -134,6 +135,42 @@ const TrackDetailModal = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  // Swipe down to close (from the top of the sheet)
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const drag = useRef<{ y: number; t: number } | null>(null);
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  const close = () => {
+    if (closing) return;
+    audioRef.current?.pause();
+    setClosing(true);
+    setTimeout(onClose, 220);
+  };
+  const onTouchStart = (e: React.TouchEvent) => {
+    if ((panelRef.current?.scrollTop ?? 0) > 0) return;
+    drag.current = { y: e.touches[0].clientY, t: Date.now() };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!drag.current) return;
+    const dy = e.touches[0].clientY - drag.current.y;
+    if (dy <= 0 && !dragging) {
+      drag.current = null; // scrolling the content up, not dragging
+      return;
+    }
+    setDragging(true);
+    setDragY(Math.max(0, dy));
+  };
+  const onTouchEnd = () => {
+    if (!drag.current) return;
+    const velocity = dragY / Math.max(1, Date.now() - drag.current.t);
+    drag.current = null;
+    setDragging(false);
+    if (dragY > 110 || (dragY > 40 && velocity > 0.6)) close();
+    else setDragY(0);
+  };
 
   const canHide = !!user && !!track.likeId && !!track.trackDbId && isOwnTrack !== false;
 
@@ -233,35 +270,40 @@ const TrackDetailModal = ({
   const iconButton =
     "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border bg-secondary transition-all duration-150 active:scale-95";
 
-  return (
+  const sheetOffset = closing ? "100%" : `${dragY}px`;
+
+  // Rendered at the top of the page (above the bottom menu)
+  return createPortal(
     <>
-      {showRecommend && (
-        <RecommendModal
-          trackId={track.trackDbId || track.id}
-          trackTitle={track.title}
-          trackArtist={track.artist}
-          shortId={track.shortId}
-          sharerUsername={sharerUsername}
-          onClose={() => setShowRecommend(false)}
-        />
-      )}
       <div
-        className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
-        onClick={onClose}
+        className="fixed inset-0 z-[60] flex items-end justify-center backdrop-blur-sm sm:items-center"
+        style={{
+          backgroundColor: `rgba(0,0,0,${closing ? 0 : 0.7 * Math.max(0.2, 1 - dragY / 400)})`,
+          transition: dragging ? "none" : "background-color 0.22s ease",
+        }}
+        onClick={close}
         role="dialog"
         aria-modal="true"
         aria-label={`${track.title} by ${track.artist}`}
       >
         <div
-          className="relative max-h-[92dvh] w-full overflow-y-auto overscroll-contain rounded-t-3xl border border-border bg-card px-5 motion-safe:animate-sheet-up sm:mx-4 sm:max-w-sm sm:rounded-2xl sm:motion-safe:animate-pop-in"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" }}
+          ref={panelRef}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          className="relative max-h-[86dvh] w-full overflow-y-auto overscroll-contain rounded-t-3xl border border-border bg-card px-5 motion-safe:animate-sheet-up sm:mx-4 sm:max-w-sm sm:rounded-2xl sm:motion-safe:animate-pop-in"
+          style={{
+            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)",
+            transform: `translateY(${sheetOffset})`,
+            transition: dragging ? "none" : "transform 0.22s cubic-bezier(0.32, 0.72, 0, 1)",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* top bar */}
           <div className="sticky top-0 z-10 -mx-5 mb-1 flex h-11 items-center justify-center bg-card px-5">
             <span className="h-1 w-10 rounded-full bg-border sm:hidden" aria-hidden="true" />
             <button
-              onClick={onClose}
+              onClick={close}
               aria-label="close"
               className="absolute right-3 top-1.5 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
             >
@@ -270,7 +312,7 @@ const TrackDetailModal = ({
           </div>
 
           {/* cover + preview */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-secondary shadow-lg">
+          <div className="relative mx-auto aspect-square w-[74%] max-w-[300px] overflow-hidden rounded-2xl bg-secondary shadow-lg">
             {track.albumArtUrl && !artError ? (
               <img src={track.albumArtUrl} alt="" className="h-full w-full object-cover" onError={() => setArtError(true)} />
             ) : (
@@ -280,13 +322,13 @@ const TrackDetailModal = ({
           </div>
 
           {/* title */}
-          <div className="mt-5 space-y-1">
+          <div className="mt-4 space-y-1 text-center">
             <h2 className="break-words text-xl font-semibold leading-tight text-foreground" style={{ textWrap: "balance" } as React.CSSProperties}>
               {track.title}
             </h2>
             <p className="break-words text-[15px] text-foreground/80">{track.artist}</p>
             {(track.album || year || details?.explicit) && (
-              <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+              <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-xs text-muted-foreground">
                 {track.album && <span className="break-words">{track.album}</span>}
                 {track.album && year && <span aria-hidden="true">·</span>}
                 {year && <span>{year}</span>}
@@ -328,7 +370,7 @@ const TrackDetailModal = ({
           </div>
 
           {/* other apps */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-1 gap-y-1.5 text-xs">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1 gap-y-1.5 text-xs">
             <span className="mr-1 text-[11px] text-muted-foreground">also on</span>
             {otherPlatforms.map((p) => (
               <button
@@ -350,7 +392,7 @@ const TrackDetailModal = ({
           </div>
 
           {friends.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-3 flex justify-center">
               <FriendAvatars friends={friends} verb="loved by" />
             </div>
           )}
@@ -432,7 +474,20 @@ const TrackDetailModal = ({
           )}
         </div>
       </div>
-    </>
+      {showRecommend && (
+        <div className="relative z-[70]">
+          <RecommendModal
+            trackId={track.trackDbId || track.id}
+            trackTitle={track.title}
+            trackArtist={track.artist}
+            shortId={track.shortId}
+            sharerUsername={sharerUsername}
+            onClose={() => setShowRecommend(false)}
+          />
+        </div>
+      )}
+    </>,
+    document.body,
   );
 };
 
