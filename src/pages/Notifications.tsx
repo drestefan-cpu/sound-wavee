@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
+import ShareStats from "@/components/profile/ShareStats";
 import { Bell, UserPlus, Heart, Disc, Send, Music } from "lucide-react";
 
 interface Notification {
@@ -91,6 +92,7 @@ const Notifications = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Notifications" />
       <main className="mx-auto max-w-feed px-4 py-4">
+        <ShareStats />
         {!loaded ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (

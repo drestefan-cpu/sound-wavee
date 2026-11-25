@@ -52,6 +52,11 @@ export const DISCOVER_TIPS: TipStep[] = [
 
 export const LIBRARY_TIPS: TipStep[] = [
   {
+    icon: Library,
+    title: "collection",
+    body: "The songs you like in your music app, synced to PLAI. This is what friends see in their feed.",
+  },
+  {
     icon: Heart,
     title: "finds",
     body: "Songs you saved in PLAI with the heart, and who you found them through.",
@@ -62,14 +67,9 @@ export const LIBRARY_TIPS: TipStep[] = [
     body: "Songs friends sent you. Reply with an emoji, or switch to sent to see what you've sent.",
   },
   {
-    icon: Library,
-    title: "collection",
-    body: "The songs you like in your music app, synced to PLAI. This is what friends see in their feed.",
-  },
-  {
-    icon: Bell,
-    title: "activity",
-    body: "Who saved or reacted to your songs, and how often your shared links were opened.",
+    icon: Users,
+    title: "friends",
+    body: "Tap following or followers at the top to see your people, with your taste match % for each.",
   },
 ];
 

@@ -27,9 +27,6 @@ export interface TasteMatch {
   }[];
 }
 
-export const matchLabel = (score: number) =>
-  score >= 75 ? "same wavelength" : score >= 50 ? "a lot in common" : score >= 25 ? "some overlap" : score >= 10 ? "a little overlap" : "different worlds";
-
 const Ring = ({ score }: { score: number }) => {
   const r = 34;
   const c = 2 * Math.PI * r;
@@ -103,7 +100,6 @@ const TasteMatchSheet = ({ match, otherName, myUsername, onClose }: Props) => {
               <div className="mt-4">
                 <Ring score={match.score} />
               </div>
-              <p className="mt-2 text-sm text-foreground">{matchLabel(match.score)}</p>
             </>
           ) : (
             <p className="mt-4 max-w-[16rem] text-sm text-muted-foreground">
