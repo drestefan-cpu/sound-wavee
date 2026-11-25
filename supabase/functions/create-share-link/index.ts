@@ -16,9 +16,17 @@ const ok = (body: Record<string, unknown>) =>
 const fail = (error: string) =>
   new Response(JSON.stringify({ success: false, error }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } })
 
+// 6-character share code (a–z, 0–9) from a cryptographic random source. Unique index on tracks.short_id.
 function generateShortId(): string {
-  return Math.random().toString(36).slice(2, 8)
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+  const bytes = crypto.getRandomValues(new Uint8Array(6))
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("")
 }
+
+// Supabase runs background work after the response with EdgeRuntime.waitUntil
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined
+
+const PLACEHOLDER_SPOTIFY_ID = /^(tidal_|apple:|yt:|share:)/
 
 function detectPlatform(url: string): string {
   try {
@@ -115,13 +123,13 @@ async function fetchOgMetadata(url: string): Promise<{ title: string | null; art
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
-  if (req.method !== "POST") return fail("POST only")
+  if (req.method !== "POST") return fail("send a POST request")
 
   let body: { url?: string; sharer_username?: string }
-  try { body = await req.json() } catch { return fail("invalid JSON") }
+  try { body = await req.json() } catch { return fail("that request couldn't be read — try again") }
 
   const { url, sharer_username } = body
-  if (!url) return fail("url required")
+  if (!url) return fail("share a song link to make a PLAI link")
 
   const platform = detectPlatform(url)
 
@@ -140,7 +148,7 @@ serve(async (req) => {
   // ── Spotify ──────────────────────────────────────────────────────────────────
   if (platform === "spotify") {
     const match = new URL(url).pathname.match(/^\/track\/([A-Za-z0-9]+)/)
-    if (!match) return fail("paste a Spotify track URL — artist and playlist URLs aren't supported yet")
+    if (!match) return fail("share a single song — Spotify artists, albums and playlists aren't supported yet")
     const trackId = match[1]
     let token: string | null = null
     // Use the signed-in caller's own Spotify connection if there is one (never another user's)
@@ -150,9 +158,9 @@ serve(async (req) => {
       token = profile?.spotify_access_token || null
     }
     if (!token) token = await getSpotifyClientToken()
-    if (!token) return fail("could not authenticate with Spotify")
+    if (!token) return fail("Spotify isn't responding right now — try again in a moment")
     const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, { headers: { Authorization: `Bearer ${token}` } })
-    if (!res.ok) return fail("could not fetch track from Spotify")
+    if (!res.ok) return fail("couldn't find that song on Spotify")
     const track = await res.json()
     title = track.name
     artist = track.artists?.[0]?.name || null
@@ -167,7 +175,7 @@ serve(async (req) => {
     const u = new URL(url)
     const iParam = u.searchParams.get("i")
     const match = iParam ? [null, iParam] : u.pathname.match(/\/([0-9]+)(?:\?|$)/)
-    if (!match) return fail("could not extract song ID from Apple Music URL")
+    if (!match) return fail("share a single song — Apple Music albums and playlists aren't supported yet")
     const songId = match[1]
     try {
       const devToken = await generateAppleDeveloperToken()
@@ -188,13 +196,13 @@ serve(async (req) => {
           } catch {}
         }
       }
-    } catch { return fail("could not fetch track from Apple Music") }
+    } catch { return fail("couldn't find that song on Apple Music") }
   }
 
   // ── Tidal ─────────────────────────────────────────────────────────────────────
   else if (platform === "tidal") {
     const match = new URL(url).pathname.match(/\/track\/([0-9]+)/)
-    if (!match) return fail("paste a Tidal track link — albums and playlists aren't supported yet")
+    if (!match) return fail("share a single song — Tidal albums and playlists aren't supported yet")
     tidalIdFromUrl = match[1]
     // 1. Already in PLAI? (most Tidal songs are, from syncs and ISRC matching)
     const { data: known } = await supabase
@@ -229,14 +237,14 @@ serve(async (req) => {
   // ── YouTube ───────────────────────────────────────────────────────────────────
   else if (platform === "youtube") {
     const videoId = extractYouTubeVideoId(url)
-    if (!videoId) return fail("could not extract video ID from YouTube URL")
+    if (!videoId) return fail("share a single video or song from YouTube")
     const ytKey = Deno.env.get("YOUTUBE_API_KEY")
-    if (!ytKey) return fail("YouTube API not configured")
+    if (!ytKey) return fail("YouTube links aren't available right now")
     const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${ytKey}`)
-    if (!res.ok) return fail("could not fetch video from YouTube")
+    if (!res.ok) return fail("couldn't reach YouTube — try again in a moment")
     const data = await res.json()
     const snippet = data.items?.[0]?.snippet
-    if (!snippet) return fail("video not found")
+    if (!snippet) return fail("couldn't find that YouTube video")
     title = snippet.title
       ?.replace(/ - Official (Music )?Video$/i, "")
       ?.replace(/ \(Official.*\)$/i, "")
@@ -283,7 +291,12 @@ serve(async (req) => {
     }
   }
 
-  // ── Everything else (Bandcamp, Audiomack, Amazon, Boomplay, Anghami, etc) ────
+  // ── Other known music sites (Bandcamp, Audiomack, Amazon Music, Boomplay, Anghami) ──
+  // Links from anywhere else are refused, so nobody can turn an arbitrary page (with its own
+  // title and image) into a PLAI link under our domain.
+  else if (platform === "og") {
+    return fail("that link isn't from a music app — share a song from Spotify, Apple Music, Tidal, YouTube Music, SoundCloud, Deezer or Bandcamp")
+  }
   else {
     const og = await fetchOgMetadata(url)
     title = og.title
@@ -291,7 +304,7 @@ serve(async (req) => {
     album_art_url = og.album_art_url
   }
 
-  if (!title) return fail("could not find track info from that link — try a direct track URL")
+  if (!title) return fail("couldn't find a song at that link — share a single track")
 
   // ── Resolve Spotify ID via ISRC for non-Spotify links (Apple, Tidal, Deezer) ──
   if (!spotify_track_id && isrc) {
@@ -309,27 +322,20 @@ serve(async (req) => {
     } catch {}
   }
 
-  // ── Check if track exists in DB ───────────────────────────────────────────────
+  // ── Find the song in PLAI (ISRC first, then platform IDs) ────────────────────
   let existingTrack: any = null
-  let trackId: string
-  let shortId: string
-  let shareUrl: string
-  let shortUrl: string
-  let tidal_track_id: string | null = null
-  try {
-
-  // Check by ISRC first, then fall back to platform IDs
   try {
     if (isrc) {
-      const { data, error } = await supabase.from("tracks").select("*").eq("isrc", isrc).maybeSingle()
+      // Several rows can share an ISRC (same song synced from different apps) — use the earliest
+      const { data } = await supabase.from("tracks").select("*").eq("isrc", isrc).order("created_at", { ascending: true }).limit(1).maybeSingle()
       if (data) existingTrack = data
     }
     if (!existingTrack && apple_music_id) {
-      const { data, error } = await supabase.from("tracks").select("*").eq("apple_music_id", apple_music_id).maybeSingle()
+      const { data } = await supabase.from("tracks").select("*").eq("apple_music_id", apple_music_id).limit(1).maybeSingle()
       if (data) existingTrack = data
     }
     if (!existingTrack && spotify_track_id) {
-      const { data, error } = await supabase.from("tracks").select("*").eq("spotify_track_id", spotify_track_id).maybeSingle()
+      const { data } = await supabase.from("tracks").select("*").eq("spotify_track_id", spotify_track_id).limit(1).maybeSingle()
       if (data) existingTrack = data
     }
     if (!existingTrack && tidalIdFromUrl) {
@@ -337,123 +343,98 @@ serve(async (req) => {
       if (data) existingTrack = data
     }
     if (!existingTrack && youtube_video_id) {
-      const { data, error } = await supabase.from("tracks").select("*").eq("youtube_video_id", youtube_video_id).maybeSingle()
+      const { data } = await supabase.from("tracks").select("*").eq("youtube_video_id", youtube_video_id).limit(1).maybeSingle()
       if (data) existingTrack = data
     }
-  } catch(e: any) { console.error("DB_LOOKUP_ERR", String(e), e?.message) }
-
-  // ── Create or update track ────────────────────────────────────────────────────
-  if (existingTrack) {
-    trackId = existingTrack.id
-    shortId = existingTrack.short_id || generateShortId()
-    const updates: any = {}
-    if (!existingTrack.short_id) updates.short_id = shortId
-    if (apple_music_id && !existingTrack.apple_music_id) updates.apple_music_id = apple_music_id
-    if (youtube_video_id && !existingTrack.youtube_video_id) updates.youtube_video_id = youtube_video_id
-    if (tidalIdFromUrl && !existingTrack.tidal_track_id) updates.tidal_track_id = tidalIdFromUrl
-    // Replace a missing or "share:" placeholder Spotify ID with the real one
-    if (spotify_track_id && (!existingTrack.spotify_track_id || existingTrack.spotify_track_id.startsWith("share:"))) updates.spotify_track_id = spotify_track_id
-    // Songs from Tidal / Apple / YouTube keep their placeholder ID; store the real Spotify ID alongside it
-    else if (spotify_track_id && /^(tidal_|apple:|yt:)/.test(existingTrack.spotify_track_id || "") && !existingTrack.spotify_link_id) updates.spotify_link_id = spotify_track_id
-    if (isrc && !existingTrack.isrc) updates.isrc = isrc
-    if (album_art_url && !existingTrack.album_art_url) updates.album_art_url = album_art_url
-    if (Object.keys(updates).length > 0) {
-      await supabase.from("tracks").update(updates).eq("id", trackId)
-    }
-  } else {
-    shortId = generateShortId()
-    const { data: newTrack, error } = await supabase.from("tracks").insert({
-      title: title || "Unknown",
-      artist: artist || "Unknown",
-      album,
-      album_art_url,
-      isrc,
-      // spotify_track_id is NOT NULL UNIQUE — use a unique placeholder for non-Spotify shares
-      spotify_track_id: spotify_track_id ?? `share:${crypto.randomUUID()}`,
-      apple_music_id,
-      youtube_video_id,
-      tidal_track_id: tidalIdFromUrl,
-      short_id: shortId,
-      track_source: "share",
-    }).select("id").single()
-    if (error || !newTrack) return fail("could not create share link")
-    trackId = newTrack.id
+  } catch (e) {
+    console.error("Track lookup failed:", String(e))
   }
 
-  // ── Resolve missing platform links via ISRC ────────────────────────────────────
-  if (isrc) {
-    if (!apple_music_id) {
-      try {
-        const devToken = await generateAppleDeveloperToken()
-        const res = await fetch(`https://api.music.apple.com/v1/catalog/us/songs?filter[isrc]=${isrc}`, {
-          headers: { Authorization: `Bearer ${devToken}` }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          const appleId = data.data?.[0]?.id
-          if (appleId) {
-            apple_music_id = appleId
-            await supabase.from("tracks").update({ apple_music_id: appleId }).eq("id", trackId)
-          }
-        }
-      } catch {}
-    }
-
-    if (!youtube_video_id) {
-      try {
-    const ytKey = Deno.env.get("YOUTUBE_API_KEY")
-        if (ytKey && title) {
-          const q = encodeURIComponent(`${title} ${artist || ""} official`)
-          const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&type=video&videoCategoryId=10&maxResults=1&key=${ytKey}`)
-          if (res.ok) {
-            const data = await res.json()
-            const vid = data.items?.[0]?.id?.videoId
-            if (vid) {
-              youtube_video_id = vid
-              await supabase.from("tracks").update({ youtube_video_id: vid }).eq("id", trackId)
-            }
-          }
-        }
-      } catch {}
-    }
-  }
-
-  // ── Fill in this song's other platform links (Spotify / Apple / Tidal by ISRC) ──
+  // ── Create or update the song ────────────────────────────────────────────────
+  let trackId: string
+  let shortId: string
   try {
-    await resolveTrackLinks(supabase, [trackId], { spotifyLimit: 1 })
-    const { data: linked } = await supabase.from("tracks").select("tidal_track_id, apple_music_id").eq("id", trackId).single()
-    tidal_track_id = linked?.tidal_track_id ?? null
-    if (!apple_music_id && linked?.apple_music_id) apple_music_id = linked.apple_music_id
+    if (existingTrack) {
+      trackId = existingTrack.id
+      shortId = existingTrack.short_id || generateShortId()
+      const updates: Record<string, unknown> = {}
+      if (!existingTrack.short_id) updates.short_id = shortId
+      if (apple_music_id && !existingTrack.apple_music_id) updates.apple_music_id = apple_music_id
+      if (youtube_video_id && !existingTrack.youtube_video_id) updates.youtube_video_id = youtube_video_id
+      if (tidalIdFromUrl && !existingTrack.tidal_track_id) updates.tidal_track_id = tidalIdFromUrl
+      // Replace a missing or "share:" placeholder Spotify ID with the real one
+      if (spotify_track_id && (!existingTrack.spotify_track_id || existingTrack.spotify_track_id.startsWith("share:"))) updates.spotify_track_id = spotify_track_id
+      // Songs from Tidal / Apple / YouTube keep their placeholder ID; store the real Spotify ID alongside it
+      else if (spotify_track_id && /^(tidal_|apple:|yt:)/.test(existingTrack.spotify_track_id || "") && !existingTrack.spotify_link_id) updates.spotify_link_id = spotify_track_id
+      if (isrc && !existingTrack.isrc) updates.isrc = isrc
+      if (album_art_url && !existingTrack.album_art_url) updates.album_art_url = album_art_url
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.from("tracks").update(updates).eq("id", trackId)
+        // A share code clash is near-impossible, but never leave a song without one
+        if (error && updates.short_id) {
+          shortId = generateShortId()
+          await supabase.from("tracks").update({ ...updates, short_id: shortId }).eq("id", trackId)
+        }
+      }
+    } else {
+      let inserted: { id: string } | null = null
+      shortId = generateShortId()
+      for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
+        const { data, error } = await supabase.from("tracks").insert({
+          title: title || "Unknown",
+          artist: artist || "Unknown",
+          album,
+          album_art_url,
+          isrc,
+          // spotify_track_id is NOT NULL UNIQUE — use a unique placeholder for non-Spotify shares
+          spotify_track_id: spotify_track_id ?? `share:${crypto.randomUUID()}`,
+          apple_music_id,
+          youtube_video_id,
+          tidal_track_id: tidalIdFromUrl,
+          short_id: shortId,
+          track_source: "share",
+        }).select("id").single()
+        if (data) inserted = data
+        else if (error?.code === "23505" && error.message.includes("short_id")) shortId = generateShortId() // code clash: retry
+        else {
+          console.error("Track insert failed:", error?.message)
+          break
+        }
+      }
+      if (!inserted) return fail("couldn't create a share link for that song — try again")
+      trackId = inserted.id
+    }
   } catch (err) {
-    console.error("Link lookup failed (share link still created):", String(err))
+    console.error("create-share-link error:", String(err))
+    return fail("couldn't create a share link for that song — try again")
   }
 
-  // ── Build share URLs ──────────────────────────────────────────────────────────
-  // Share links go through the share-preview service (rich iMessage previews), which forwards to the app
+  // ── Fill in the other platforms' links after replying, so sharing feels instant ──
+  const fillLinks = resolveTrackLinks(supabase, [trackId], { spotifyLimit: 1 })
+    .catch((err) => console.error("Link lookup failed (share link already sent):", String(err)))
+  if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(fillLinks)
+  else await fillLinks
+
+  // ── Reply with every link already known for this song ───────────────────────
+  const known = existingTrack || {}
+  const knownSpotify = known.spotify_track_id && !PLACEHOLDER_SPOTIFY_ID.test(known.spotify_track_id) ? known.spotify_track_id : known.spotify_link_id
   const base = `https://plai.delaneyprojects.xyz/song/${trackId}`
-  shareUrl = sharer_username ? `${base}?from=${sharer_username.toLowerCase()}` : base
-  shortUrl = `https://plai.delaneyprojects.xyz/s/${shortId}`
-
-  } catch(dbErr: any) {
-    return fail('could not create share link')
-  }
-
   return ok({
     success: true,
-    share_url: shareUrl,
-    short_url: shortUrl,
+    share_url: sharer_username ? `${base}?from=${encodeURIComponent(sharer_username.toLowerCase())}` : base,
+    short_url: `https://plai.delaneyprojects.xyz/s/${shortId}`,
     track: {
       id: trackId,
       short_id: shortId,
-      title: title || "Unknown",
-      artist: artist || "Unknown",
-      album,
-      album_art_url,
-      spotify_track_id,
-      apple_music_id,
-      youtube_video_id,
-      tidal_track_id,
-      isrc,
-    }
+      title: known.title || title || "Unknown",
+      artist: known.artist || artist || "Unknown",
+      album: known.album ?? album,
+      album_art_url: known.album_art_url || album_art_url,
+      spotify_track_id: spotify_track_id || knownSpotify || null,
+      apple_music_id: apple_music_id || known.apple_music_id || null,
+      youtube_video_id: youtube_video_id || known.youtube_video_id || null,
+      tidal_track_id: tidalIdFromUrl || known.tidal_track_id || null,
+      isrc: isrc || known.isrc || null,
+    },
   })
 })

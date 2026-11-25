@@ -32,10 +32,10 @@ actions = [
   # 4 — read the response as plain text
   {"WFWorkflowActionIdentifier": "is.workflow.actions.detect.text",
    "WFWorkflowActionParameters": {"UUID": U_TXT, "WFInput": attach(out(U_GET, "Contents of URL"))}},
-  # 5 — menu showing the result: Send… / Copy link
+  # 5 — menu showing PLAI's reply (the link, or a ⚠️ message saying why not): Send… / Copy link
   {"WFWorkflowActionIdentifier": "is.workflow.actions.choosefrommenu",
    "WFWorkflowActionParameters": {"GroupingIdentifier": G_MENU, "WFControlFlowMode": 0,
-       "WFMenuPrompt": tokens(["PLAI link ready\n", out(U_TXT, "Text")]),
+       "WFMenuPrompt": tokens([out(U_TXT, "Text")]),
        "WFMenuItems": ["Send…", "Copy link"]}},
   {"WFWorkflowActionIdentifier": "is.workflow.actions.choosefrommenu",
    "WFWorkflowActionParameters": {"GroupingIdentifier": G_MENU, "WFControlFlowMode": 1, "WFMenuItemTitle": "Send…"}},
