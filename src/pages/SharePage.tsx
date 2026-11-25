@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { Music } from "lucide-react";
 import Starfield from "@/components/Starfield";
 import PlaiLogo from "@/components/PlaiLogo";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { getRealSpotifyId, getAppleMusicId, extractYouTubeVideoId as extractSentinelVideoId, tidalTrackUrl } from "@/lib/trackLinks";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
@@ -79,6 +81,15 @@ const card: React.CSSProperties = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 const SharePage = () => {
+  const { user } = useAuth();
+  // Radar members see an "add this artist to Radar" shortcut after creating a link
+  const [hasRadarAccess, setHasRadarAccess] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    (supabase.from("radar_access" as any).select("id").eq("user_id", user.id).maybeSingle() as any).then(
+      ({ data }: { data: unknown }) => setHasRadarAccess(!!data),
+    );
+  }, [user]);
   const [searchParams] = useSearchParams();
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -419,6 +430,18 @@ const SharePage = () => {
                   </button>
                 )}
               </div>
+
+              {/* Radar members can add this artist to Radar */}
+              {hasRadarAccess && inputValue.trim() && (
+                <div style={{ textAlign: "center", marginTop: 12 }}>
+                  <a
+                    href={`/radar/new?url=${encodeURIComponent(inputValue.trim())}`}
+                    style={{ fontSize: 12, color: "hsl(var(--primary))", textDecoration: "none" }}
+                  >
+                    add this artist to Radar →
+                  </a>
+                </div>
+              )}
 
               {/* Try another */}
               <div style={{ textAlign: "center", marginTop: 12 }}>

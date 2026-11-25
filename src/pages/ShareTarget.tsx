@@ -30,7 +30,8 @@ const ShareTarget = () => {
       return;
     }
 
-    navigate(`/radar/new?url=${encodeURIComponent(found)}`, { replace: true });
+    // Turn the shared song into a PLAI link (Radar users can add the artist from there)
+    navigate(`/share?url=${encodeURIComponent(found)}&auto=1`, { replace: true });
   }, []);
 
   return (
