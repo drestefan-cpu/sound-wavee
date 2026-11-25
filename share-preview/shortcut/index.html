@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Share with PLAI — iPhone shortcut</title>
+  <meta name="description" content="Add Share with PLAI to your iPhone share sheet: turn any Spotify, Apple Music, Tidal or YouTube Music song into a PLAI link that plays everywhere." />
+  <meta property="og:title" content="Share with PLAI" />
+  <meta property="og:description" content="Add PLAI to your iPhone share sheet — one link that plays on every music app." />
+  <meta property="og:image" content="https://onplai.lovable.app/plai-icon.png" />
+  <meta name="theme-color" content="#080B12" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&family=DM+Sans:wght@400;500;600&display=swap" />
+  <style>
+    :root {
+      --bg: #080b12; --card: #121a28; --text: #f0ebe3; --sub: #8fa6c2; --line: #26324a; --pink: #ff2d78;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; background: radial-gradient(120% 60% at 50% 110%, rgba(255,45,120,.10), transparent 70%), var(--bg);
+      color: var(--text); font: 16px/1.55 "DM Sans", system-ui, -apple-system, sans-serif;
+      padding: max(32px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+      display: flex; justify-content: center;
+    }
+    main { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 22px; }
+    .logo { font-family: "Unbounded", "Arial Black", sans-serif; font-weight: 900; font-size: 30px; letter-spacing: -.02em; }
+    .logo b { color: var(--pink); font-weight: 900; }
+    h1 { font-size: 26px; line-height: 1.2; margin: 0; letter-spacing: -.01em; }
+    .lede { margin: 0; color: var(--sub); }
+    .icon { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(160deg, #f25aa3, #e33a87); display: grid; place-items: center; box-shadow: 0 10px 30px -10px rgba(237,70,148,.6); }
+    .icon svg { width: 32px; height: 32px; }
+    .install {
+      display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none;
+      background: var(--pink); color: #fff; font-weight: 600; font-size: 17px; padding: 16px 20px; border-radius: 999px;
+    }
+    .install:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; }
+    .card h2 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; color: var(--sub); font-weight: 600; }
+    ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+    li strong { color: var(--text); font-weight: 600; }
+    .muted { color: var(--sub); font-size: 14px; margin: 0; }
+    .note { display: none; }
+    .not-ios .note { display: block; }
+    a.inline { color: var(--pink); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo" aria-label="PLAI">PL<b>A</b>I</div>
+
+    <div class="icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9.5" stroke-dasharray="2.4 2.6"/><path d="M10 8.5v7l6-3.5z" fill="#fff" stroke="none"/></svg>
+    </div>
+
+    <h1>Share with PLAI</h1>
+    <p class="lede">Turn any song you're listening to into one PLAI link that opens on Spotify, Apple Music, Tidal or YouTube Music, straight from your music app's share button.</p>
+
+    <a class="install" href="/shortcut/Share-with-PLAI.shortcut" download="Share with PLAI.shortcut">Add to iPhone</a>
+
+    <p class="note muted">This shortcut is for iPhone and iPad. On Android, add PLAI to your home screen and it appears in your share menu automatically.</p>
+
+    <section class="card">
+      <h2>Install</h2>
+      <ol>
+        <li>Tap <strong>Add to iPhone</strong>, then <strong>Download</strong> if Safari asks.</li>
+        <li>Open the download (the <strong>↓</strong> icon in Safari's address bar). It opens in the Shortcuts app.</li>
+        <li>Tap <strong>Add Shortcut</strong>.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Use it</h2>
+      <ol>
+        <li>In Spotify, Apple Music, Tidal or YouTube Music, tap <strong>Share</strong> (then <strong>More</strong> if you see the app's own menu).</li>
+        <li>Choose <strong>Share with PLAI</strong>. The first time, tap <strong>Always Allow</strong>.</li>
+        <li>Pick <strong>Send…</strong> to message the link, or <strong>Copy link</strong> to paste it anywhere.</li>
+      </ol>
+      <p class="muted" style="margin-top:12px">Tip: in the share sheet, tap <strong>Edit Actions</strong> and add it to Favourites so it's always at the top.</p>
+    </section>
+
+    <p class="muted">Don't have PLAI yet? <a class="inline" href="https://onplai.lovable.app">See what your friends are listening to →</a></p>
+  </main>
+  <script>
+    // Show the Android/desktop note when not on an iPhone or iPad
+    if (!/iPhone|iPad|iPod/.test(navigator.userAgent) && !(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
+      document.body.classList.add("not-ios");
+    }
+  </script>
+</body>
+</html>
