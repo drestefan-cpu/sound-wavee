@@ -196,7 +196,7 @@ export async function resolveTrackLinks(
 }
 
 /** PLAI's own TIDAL app token (client-credentials flow) for catalogue lookups. */
-async function getTidalAppToken(): Promise<string | null> {
+export async function getTidalAppToken(): Promise<string | null> {
   try {
     const clientId = Deno.env.get("TIDAL_CLIENT_ID")
     const clientSecret = Deno.env.get("TIDAL_CLIENT_SECRET")
@@ -213,5 +213,64 @@ async function getTidalAppToken(): Promise<string | null> {
     return data.access_token || null
   } catch {
     return null
+  }
+}
+
+export type TidalTrackInfo = {
+  title: string
+  artist: string | null
+  album: string | null
+  albumArtUrl: string | null
+  isrc: string | null
+}
+
+/**
+ * One Tidal track's details from TIDAL's current API (v2, JSON:API):
+ * /tracks/{id}?include=artists,albums, then the album's cover art.
+ */
+export async function fetchTidalTrack(tidalId: string): Promise<TidalTrackInfo | null> {
+  const token = await getTidalAppToken()
+  if (!token) return null
+  const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.api+json" }
+  const get = async (url: string) => {
+    let res = await fetch(url, { headers })
+    if (res.status === 429) {
+      await sleep(Math.min((Number(res.headers.get("Retry-After")) || 2) * 1000, 8000))
+      res = await fetch(url, { headers })
+    }
+    return res.ok ? res.json() : null
+  }
+
+  const doc = await get(`https://openapi.tidal.com/v2/tracks/${encodeURIComponent(tidalId)}?countryCode=US&include=artists&include=albums`)
+  const t = doc?.data
+  if (!t?.attributes?.title) return null
+  const included = new Map<string, any>()
+  for (const inc of (doc.included || []) as any[]) included.set(`${inc.type}:${inc.id}`, inc)
+
+  const artists = ((t.relationships?.artists?.data || []) as any[])
+    .map((a) => included.get(`artists:${a.id}`)?.attributes?.name)
+    .filter(Boolean)
+  const albumRef = t.relationships?.albums?.data?.[0]
+  const album = albumRef ? included.get(`albums:${albumRef.id}`) : null
+
+  let albumArtUrl: string | null = null
+  if (albumRef?.id) {
+    const albumDoc = await get(`https://openapi.tidal.com/v2/albums/${encodeURIComponent(albumRef.id)}?countryCode=US&include=coverArt`)
+    const artId = albumDoc?.data?.relationships?.coverArt?.data?.[0]?.id
+    const artwork = ((albumDoc?.included || []) as any[]).find((inc) => inc.type === "artworks" && String(inc.id) === String(artId))
+    const files: any[] = artwork?.attributes?.files || []
+    const best = files
+      .filter((f) => f?.href)
+      .sort((a, b) => Math.abs((a.meta?.width ?? 640) - 640) - Math.abs((b.meta?.width ?? 640) - 640))[0]
+    albumArtUrl = best?.href || null
+  }
+
+  const version: string | undefined = t.attributes.version
+  return {
+    title: version ? `${t.attributes.title} (${version})` : t.attributes.title,
+    artist: artists.join(", ") || null,
+    album: album?.attributes?.title || null,
+    albumArtUrl,
+    isrc: t.attributes.isrc || null,
   }
 }

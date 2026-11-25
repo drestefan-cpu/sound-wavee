@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { optionalCallerId } from "../_shared/auth.ts"
-import { resolveTrackLinks } from "../_shared/links.ts"
+import { fetchTidalTrack, resolveTrackLinks } from "../_shared/links.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -138,6 +138,7 @@ serve(async (req) => {
   let spotify_track_id: string | null = null
   let apple_music_id: string | null = null
   let youtube_video_id: string | null = null
+  let tidalIdFromUrl: string | null = null
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
 
@@ -198,34 +199,32 @@ serve(async (req) => {
   // ── Tidal ─────────────────────────────────────────────────────────────────────
   else if (platform === "tidal") {
     const match = new URL(url).pathname.match(/\/track\/([0-9]+)/)
-    if (!match) return fail("paste a Tidal track URL")
-    const trackId = match[1]
-    try {
-      const tokenRes = await fetch("https://auth.tidal.com/v1/oauth2/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "client_credentials",
-          client_id: Deno.env.get("TIDAL_CLIENT_ID")!,
-          client_secret: Deno.env.get("TIDAL_CLIENT_SECRET")!,
-        })
-      })
-      const tokenData = await tokenRes.json()
-      const tidalToken = tokenData.access_token
-      if (tidalToken) {
-        const res = await fetch(`https://openapi.tidal.com/tracks/${trackId}?countryCode=US`, {
-          headers: { Authorization: `Bearer ${tidalToken}`, "accept": "application/vnd.tidal.v1+json" }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          title = data.title || null
-          artist = data.artists?.[0]?.name || null
-          album = data.album?.title || null
-          isrc = data.isrc || null
-        }
+    if (!match) return fail("paste a Tidal track link — albums and playlists aren't supported yet")
+    tidalIdFromUrl = match[1]
+    // 1. Already in PLAI? (most Tidal songs are, from syncs and ISRC matching)
+    const { data: known } = await supabase
+      .from("tracks")
+      .select("title, artist, album, album_art_url, isrc")
+      .eq("tidal_track_id", tidalIdFromUrl)
+      .limit(1)
+      .maybeSingle()
+    if (known?.title) {
+      title = known.title
+      artist = known.artist
+      album = known.album
+      album_art_url = known.album_art_url
+      isrc = known.isrc
+    } else {
+      // 2. Ask TIDAL's current API (v2)
+      const info = await fetchTidalTrack(tidalIdFromUrl)
+      if (info) {
+        title = info.title
+        artist = info.artist
+        album = info.album
+        album_art_url = info.albumArtUrl
+        isrc = info.isrc
       }
-    } catch { return fail("could not fetch track from Tidal") }
-    // OG fallback for album art since Tidal API may not return it
+    }
     if (!album_art_url) {
       const og = await fetchOgMetadata(url)
       album_art_url = og.album_art_url
@@ -338,6 +337,10 @@ serve(async (req) => {
       const { data, error } = await supabase.from("tracks").select("*").eq("spotify_track_id", spotify_track_id).maybeSingle()
       if (data) existingTrack = data
     }
+    if (!existingTrack && tidalIdFromUrl) {
+      const { data } = await supabase.from("tracks").select("*").eq("tidal_track_id", tidalIdFromUrl).limit(1).maybeSingle()
+      if (data) existingTrack = data
+    }
     if (!existingTrack && youtube_video_id) {
       const { data, error } = await supabase.from("tracks").select("*").eq("youtube_video_id", youtube_video_id).maybeSingle()
       if (data) existingTrack = data
@@ -352,6 +355,7 @@ serve(async (req) => {
     if (!existingTrack.short_id) updates.short_id = shortId
     if (apple_music_id && !existingTrack.apple_music_id) updates.apple_music_id = apple_music_id
     if (youtube_video_id && !existingTrack.youtube_video_id) updates.youtube_video_id = youtube_video_id
+    if (tidalIdFromUrl && !existingTrack.tidal_track_id) updates.tidal_track_id = tidalIdFromUrl
     // Replace a missing or "share:" placeholder Spotify ID with the real one
     if (spotify_track_id && (!existingTrack.spotify_track_id || existingTrack.spotify_track_id.startsWith("share:"))) updates.spotify_track_id = spotify_track_id
     // Songs from Tidal / Apple / YouTube keep their placeholder ID; store the real Spotify ID alongside it
@@ -373,6 +377,7 @@ serve(async (req) => {
       spotify_track_id: spotify_track_id ?? `share:${crypto.randomUUID()}`,
       apple_music_id,
       youtube_video_id,
+      tidal_track_id: tidalIdFromUrl,
       short_id: shortId,
       track_source: "share",
     }).select("id").single()
