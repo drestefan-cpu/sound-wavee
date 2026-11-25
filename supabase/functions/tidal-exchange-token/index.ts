@@ -56,6 +56,14 @@ serve(async (req) => {
       })
       .eq("id", user_id);
 
+    // No Spotify connection and still on the default play app → play songs on Tidal
+    await supabaseAdmin
+      .from("profiles")
+      .update({ preferred_platform: "tidal" })
+      .eq("id", user_id)
+      .eq("preferred_platform", "spotify")
+      .is("spotify_refresh_token", null);
+
     return new Response(
       JSON.stringify({
         success: true,

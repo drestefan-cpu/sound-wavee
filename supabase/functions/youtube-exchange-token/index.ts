@@ -129,6 +129,10 @@ serve(async (req) => {
       } as any)
     }
 
+    // No Spotify connection and still on the default play app → play songs on YouTube Music
+    await supabase.from('profiles').update({ preferred_platform: 'youtube_music' } as any)
+      .eq('id', caller.id).eq('preferred_platform', 'spotify').is('spotify_refresh_token', null)
+
     return json({ success: true, youtube_user_id: youtubeUserId, user_id: caller.id })
   } catch (err: any) {
     console.error('youtube-exchange-token error:', err)

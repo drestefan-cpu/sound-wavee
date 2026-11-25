@@ -120,6 +120,14 @@ const Landing = () => {
         .eq("id", userId);
       if (upsertError) throw new Error("Could not save Apple Music token");
 
+      // Apple Music listeners play songs on Apple Music (unless they've picked another app)
+      if (isAnonymousFlow) {
+        await supabase.from("profiles").update({ preferred_platform: "apple_music" } as any).eq("id", userId);
+        try {
+          localStorage.setItem("plai-platform", "apple_music");
+        } catch {}
+      }
+
       // 7. Trigger sync — fire and forget
       fetch(`${SUPABASE_URL}/functions/v1/sync-apple-music-likes`, {
         method: "POST",
@@ -578,10 +586,10 @@ const Landing = () => {
             <p className="text-xs text-muted-foreground/40">Come have a good time</p>
             <button
               onClick={() => { setPinUsername(""); setPinValue(""); setShowPinLogin(true); }}
-              className="text-xs text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors mt-1"
+              className="mt-2 rounded-full border border-border px-4 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
               style={{ touchAction: "manipulation" }}
             >
-              returning with Apple Music? sign in with PIN →
+              already joined with Apple Music? <span className="font-medium text-primary">sign in with your PIN</span>
             </button>
           </>
         )}
