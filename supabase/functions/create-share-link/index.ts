@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { optionalCallerId } from "../_shared/auth.ts"
+import { fetchPublicHtml } from "../_shared/safeFetch.ts"
 import { fetchTidalTrack, resolveTrackLinks } from "../_shared/links.ts"
 
 const corsHeaders = {
@@ -91,15 +92,9 @@ async function getSpotifyClientToken(): Promise<string | null> {
 
 async function fetchOgMetadata(url: string): Promise<{ title: string | null; artist: string | null; album_art_url: string | null }> {
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; PLAIBot/1.0)" }
-    })
-    clearTimeout(timeout)
-    if (!res.ok) return { title: null, artist: null, album_art_url: null }
-    const html = await res.text()
+    // Only public websites, with a timeout and size cap (see _shared/safeFetch.ts)
+    const html = await fetchPublicHtml(url, "Mozilla/5.0 (compatible; PLAIBot/1.0)")
+    if (!html) return { title: null, artist: null, album_art_url: null }
     const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1] ||
       html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i)?.[1] || null
     const ogImage = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1] ||

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { requireCaller } from "../_shared/auth.ts"
+import { fetchPublicHtml } from "../_shared/safeFetch.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,22 +64,9 @@ async function fetchOgData(
   url: string
 ): Promise<{ photo_url: string | null; name: string | null }> {
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
-
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; PLAIRadar/1.0; +https://onplai.lovable.app)",
-        Accept: "text/html",
-      },
-    })
-    clearTimeout(timeout)
-
-    if (!res.ok) return { photo_url: null, name: null }
-
-    const html = await res.text()
+    // Only public websites, with a timeout and size cap (see _shared/safeFetch.ts)
+    const html = await fetchPublicHtml(url, "Mozilla/5.0 (compatible; PLAIRadar/1.0; +https://onplai.lovable.app)")
+    if (!html) return { photo_url: null, name: null }
 
     // og:image — handle both attribute orders
     const ogImage =
