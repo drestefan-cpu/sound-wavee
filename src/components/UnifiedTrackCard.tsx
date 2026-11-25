@@ -131,6 +131,16 @@ const UnifiedTrackCard = ({
           onClick={() => setShowDetail(true)}
         >
           <div className="flex items-center gap-3">
+            {rank ? (
+              <span
+                aria-label={`number ${rank}`}
+                className={`-mr-1 w-4 flex-shrink-0 text-center text-xs font-medium tabular-nums ${
+                  rank <= 3 ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {rank}
+              </span>
+            ) : null}
             <div
               className="relative flex-shrink-0 overflow-hidden rounded-lg bg-card border border-border"
               style={{ width: 56, height: 56 }}
@@ -147,7 +157,7 @@ const UnifiedTrackCard = ({
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">♪</div>
               )}
-              {rank ? <RankTag rank={rank} /> : null}
+              
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium text-foreground text-sm">{track.title}</p>
