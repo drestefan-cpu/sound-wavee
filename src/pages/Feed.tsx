@@ -18,6 +18,8 @@ import { demoFeedItems, demoUsers } from "@/lib/demoData";
 import DiscoverPostCard, { type DiscoverPost } from "@/components/DiscoverPostCard";
 import DiscoverPostModal from "@/components/DiscoverPostModal";
 import TrendingSection from "@/components/discover/TrendingSection";
+import FriendAvatars from "@/components/discover/FriendAvatars";
+import ReleaseProjectCard, { type ReleaseProject } from "@/components/discover/ReleaseProjectCard";
 import PeopleSection from "@/components/discover/PeopleSection";
 import { formatTimestamp } from "@/lib/formatTimestamp";
 
@@ -61,6 +63,10 @@ interface ArtistReleaseItem {
   albumArtUrl: string | null;
   trackDbId?: string;
   shortId?: string | null;
+  releaseDate?: string | null;
+  spotifyAlbumId?: string | null;
+  albumType?: string | null;
+  totalTracks?: number | null;
   badge?: "today" | "new";
   activityScore?: number;
   likedBy?: {
@@ -370,14 +376,6 @@ const Feed = () => {
         return;
       }
 
-      // Check for new releases in the background (the server does this at most twice a day,
-      // using PLAI's own Spotify access when this person hasn't connected Spotify)
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.access_token) {
-          supabase.functions.invoke("sync-artist-releases", { body: { user_id: user.id } }).catch(() => {});
-        }
-      });
-
       setArtistLoading(true);
       setArtistEmptyState(null);
       setArtistError(false);
@@ -566,6 +564,10 @@ const Feed = () => {
               albumArtUrl: row.album_art_url,
               trackDbId,
               shortId: trackDbId ? shortIdByTrackId.get(trackDbId) || null : null,
+              releaseDate: row.release_date || null,
+              spotifyAlbumId: row.spotify_album_id || null,
+              albumType: row.album_type || null,
+              totalTracks: row.total_tracks ?? null,
               badge: getArtistBadge(row.release_date),
               activityScore: saves + reactions / 3,
               likedBy: likedByTrackId.get(trackDbId || "") || undefined,
@@ -589,7 +591,19 @@ const Feed = () => {
     };
 
     loadArtistReleases();
-  }, [user]);
+    // Re-run once the friends list arrives, so "popular releases" can show friends' likes
+  }, [user, followingIds]);
+
+  useEffect(() => {
+    if (!user || useMockReleases) return;
+    // Check for new releases in the background (the server does this at most twice a day,
+    // using PLAI's own Spotify access when this person hasn't connected Spotify)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        supabase.functions.invoke("sync-artist-releases", { body: { user_id: user.id } }).catch(() => {});
+      }
+    });
+  }, [user, useMockReleases]);
 
   const openDiscoverPost = (post: DiscoverPost) => {
     if (post.post_type === "external" && post.external_url) {
@@ -757,64 +771,87 @@ const Feed = () => {
     );
   };
 
-  const renderLikedBy = (likedBy?: ArtistReleaseItem["likedBy"]) => {
-    if (!likedBy || likedBy.length === 0) return null;
-    const visible = likedBy.slice(0, 3);
-    const overflow = likedBy.length - visible.length;
-    const lead = visible[0];
-    return (
-      <div className="flex items-center gap-2 pt-1">
-        <div className="flex items-center">
-          {visible.map((friend, index) => (
-            <div
-              key={friend.id}
-              className="-ml-1 first:ml-0 h-5 w-5 overflow-hidden rounded-full border border-background bg-primary/20"
-              style={{ zIndex: visible.length - index }}
-            >
-              {friend.avatarUrl ? (
-                <img src={friend.avatarUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-[9px] font-bold text-primary">
-                  {friend.displayName[0]?.toUpperCase() || friend.username[0]?.toUpperCase() || "?"}
-                </div>
-              )}
-            </div>
-          ))}
-          {overflow > 0 && (
-            <div className="-ml-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-background bg-card px-1 text-[9px] font-medium text-muted-foreground">
-              +{overflow}
-            </div>
-          )}
-        </div>
-        <p className="text-[10px] text-muted-foreground">
-          liked by @{lead.username}
-          {likedBy.length > 1 ? ` +${likedBy.length - 1}` : ""}
-        </p>
-      </div>
-    );
-  };
-
-  const artistHighlights = [...artistItems]
+  // Popular: only releases the people you follow have actually liked or reacted to
+  const popularReleases = artistItems
+    .filter((t) => (t.likedBy?.length ?? 0) > 0)
     .sort((a, b) => (b.activityScore ?? 0) - (a.activityScore ?? 0))
     .slice(0, 3);
-  const artistReleases = artistItems;
 
-  const artistSections = [
-    {
-      key: "popular",
-      title: "popular releases",
-      subtitle: "music your friends are loving",
-      items: artistHighlights,
-      compact: false,
-    },
-    {
-      key: "all",
-      title: "all releases",
-      subtitle: "Latest drops from the artists you follow",
-      items: artistReleases,
-      compact: true,
-    },
-  ] as const;
+  // All releases, one entry per project (album / EP / single)
+  const projectTypeLabel = (type?: string | null, total?: number | null, songs = 1) => {
+    if (type === "album") return "Album";
+    if (type === "compilation") return "Compilation";
+    if (type === "single") return (total ?? songs) >= 4 ? "EP" : "Single";
+    return songs > 1 ? "Project" : "Single";
+  };
+  const releaseProjects = (() => {
+    const groups = new Map<string, ArtistReleaseItem[]>();
+    for (const t of artistItems) {
+      const key = t.spotifyAlbumId || `${(t.album || t.title).toLowerCase()}|${t.artist.toLowerCase()}`;
+      groups.set(key, [...(groups.get(key) || []), t]);
+    }
+    return [...groups.entries()]
+      .map(([key, tracks]) => {
+        const first = tracks[0];
+        const friends = new Map<string, NonNullable<ArtistReleaseItem["likedBy"]>[number]>();
+        tracks.forEach((t) => t.likedBy?.forEach((f) => friends.set(f.id, f)));
+        const project: ReleaseProject = {
+          key,
+          album: first.album || first.title,
+          artist: first.artist,
+          albumArtUrl: first.albumArtUrl,
+          spotifyAlbumId: first.spotifyAlbumId || null,
+          typeLabel: projectTypeLabel(first.albumType, first.totalTracks, tracks.length),
+          totalTracks: first.totalTracks ?? null,
+          badge: first.badge,
+          releaseDate: first.releaseDate || null,
+          friends: [...friends.values()],
+        };
+        return { project, tracks };
+      })
+      .sort((a, b) => (b.project.releaseDate || "").localeCompare(a.project.releaseDate || ""));
+  })();
+
+  const renderReleaseTrack = (track: ArtistReleaseItem, compact: boolean, insideProject = false) => (
+    <UnifiedTrackCard
+      key={track.id}
+      compact={compact}
+      hideReactions={compact}
+      track={{
+        id: track.trackDbId || track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        spotifyTrackId: track.spotifyTrackId,
+        albumArtUrl: track.albumArtUrl,
+        likeId: track.trackDbId || track.id,
+        trackDbId: track.trackDbId,
+        shortId: track.shortId,
+        localOnly: !track.trackDbId,
+      }}
+      isSaved={track.trackDbId ? isSaved(track.trackDbId) : false}
+      onToggleSave={() => {
+        if (!track.trackDbId) {
+          toast("this song is still being added to PLAI — try again in a minute");
+          return;
+        }
+        toggleSave(track.trackDbId, undefined, "discover_releases");
+      }}
+      onShare={() => {
+        if (!track.trackDbId) {
+          toast("this song is still being added to PLAI — try again in a minute");
+          return;
+        }
+        setRecommendTrack({ id: track.trackDbId, title: track.title, artist: track.artist, shortId: track.shortId });
+      }}
+      subtitle={
+        <div>
+          {!insideProject && renderArtistBadge(track.badge)}
+          <FriendAvatars friends={track.likedBy} />
+        </div>
+      }
+    />
+  );
 
   const LiveIndicator = () => {
     if (liveState === "syncing") {
@@ -1067,7 +1104,7 @@ const Feed = () => {
             </div>
 
             {discoverTab === "trending" ? (
-              <TrendingSection onShare={setRecommendTrack} sharerUsername={currentUsername ?? undefined} />
+              <TrendingSection onShare={setRecommendTrack} sharerUsername={currentUsername ?? undefined} followingIds={followingIds} />
             ) : discoverTab === "releases" ? (
               <div className="space-y-6">
                 {artistLoading ? (
@@ -1095,58 +1132,32 @@ const Feed = () => {
                   </div>
                 ) : (
                   <>
-                    {artistSections.map((section) => (
-                      <section key={section.key} className="space-y-3">
-                        <div className="flex items-end justify-between gap-3">
-                          <div>
-                            <h3 className="font-display text-lg text-foreground">{section.title}</h3>
-                            <p className="text-xs text-muted-foreground">{section.subtitle}</p>
-                          </div>
+                    {popularReleases.length > 0 && (
+                      <section className="space-y-3">
+                        <div>
+                          <h3 className="font-display text-lg text-foreground">popular with your friends</h3>
+                          <p className="text-xs text-muted-foreground">new songs the people you follow are loving</p>
                         </div>
-                        <div className={section.compact ? "space-y-2" : "space-y-3"}>
-                          {section.items.map((track) => (
-                            <UnifiedTrackCard
-                              key={track.id}
-                              compact={section.compact}
-                              hideReactions={section.compact}
-                              track={{
-                                id: track.trackDbId || track.id,
-                                title: track.title,
-                                artist: track.artist,
-                                album: track.album,
-                                spotifyTrackId: track.spotifyTrackId,
-                                albumArtUrl: track.albumArtUrl,
-                                likeId: track.trackDbId || track.id,
-                                trackDbId: track.trackDbId,
-                                shortId: track.shortId,
-                                localOnly: !track.trackDbId,
-                              }}
-                              isSaved={track.trackDbId ? isSaved(track.trackDbId) : false}
-                              onToggleSave={() => {
-                                if (!track.trackDbId) {
-                                  toast("save will unlock once this release is synced");
-                                  return;
-                                }
-                                toggleSave(track.trackDbId, undefined, "discover_releases");
-                              }}
-                              onShare={() => {
-                                if (!track.trackDbId) {
-                                  toast("sharing will unlock once this release is synced");
-                                  return;
-                                }
-                                setRecommendTrack({ id: track.trackDbId, title: track.title, artist: track.artist, shortId: track.shortId });
-                              }}
-                              subtitle={
-                                <div>
-                                  {renderArtistBadge(track.badge)}
-                                  {renderLikedBy(track.likedBy)}
-                                </div>
-                              }
-                            />
-                          ))}
-                        </div>
+                        <div className="space-y-3">{popularReleases.map((track) => renderReleaseTrack(track, false))}</div>
                       </section>
-                    ))}
+                    )}
+                    <section className="space-y-3">
+                      <div>
+                        <h3 className="font-display text-lg text-foreground">new from artists you follow</h3>
+                        <p className="text-xs text-muted-foreground">albums, EPs and singles from the last 60 days</p>
+                      </div>
+                      <div className="space-y-2">
+                        {releaseProjects.map(({ project, tracks }) =>
+                          tracks.length === 1 && project.typeLabel === "Single" ? (
+                            renderReleaseTrack(tracks[0], true)
+                          ) : (
+                            <ReleaseProjectCard key={project.key} project={project} badge={renderArtistBadge(project.badge)}>
+                              {tracks.map((track) => renderReleaseTrack(track, true, true))}
+                            </ReleaseProjectCard>
+                          ),
+                        )}
+                      </div>
+                    </section>
                   </>
                 )}
               </div>

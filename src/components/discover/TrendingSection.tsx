@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import UnifiedTrackCard, { type UnifiedTrackData } from "@/components/UnifiedTrackCard";
+import FriendAvatars, { loadFriendLikes, type FriendLike } from "@/components/discover/FriendAvatars";
 
 /**
  * Discover → trending.
@@ -44,7 +45,7 @@ const TRACK_COLUMNS =
 const CHART_MAX_AGE_MS = 12 * 3_600_000;
 const MIN_TRENDING = 5;
 
-let cache: { trending: TrendingRow[]; days: number; chart: TrackRow[]; at: number } | null = null;
+let cache: { trending: TrendingRow[]; days: number; chart: TrackRow[]; friends: Map<string, FriendLike[]>; at: number } | null = null;
 
 const toCard = (t: TrackRow): UnifiedTrackData => ({
   id: t.id,
@@ -79,12 +80,15 @@ const RankBadge = ({ rank }: { rank: number }) => (
 interface TrendingSectionProps {
   onShare: (track: ShareableTrack) => void;
   sharerUsername?: string;
+  /** People the viewer follows — their avatars show on songs they've liked */
+  followingIds: string[];
 }
 
-const TrendingSection = ({ onShare, sharerUsername }: TrendingSectionProps) => {
+const TrendingSection = ({ onShare, sharerUsername, followingIds }: TrendingSectionProps) => {
   const [trending, setTrending] = useState<TrendingRow[]>(cache?.trending || []);
   const [days, setDays] = useState(cache?.days || 7);
   const [chart, setChart] = useState<TrackRow[]>(cache?.chart || []);
+  const [friends, setFriends] = useState<Map<string, FriendLike[]>>(cache?.friends || new Map());
   const [loading, setLoading] = useState(!cache);
 
   useEffect(() => {
@@ -104,39 +108,53 @@ const TrendingSection = ({ onShare, sharerUsername }: TrendingSectionProps) => {
       };
     };
 
-    const load = async () => {
-      const rpc = supabase.rpc as any;
-      let { data: week } = await rpc("trending_tracks", { p_days: 7, p_limit: 10 });
-      let windowDays = 7;
-      if (!week || week.length < MIN_TRENDING) {
+    // Each part loads on its own, so one failing never blanks the other
+    const loadTrending = async (): Promise<{ rows: TrendingRow[]; days: number }> => {
+      try {
+        // (call through the client object — a detached supabase.rpc loses its connection)
+        const rpc = (fn: string, args: Record<string, unknown>) => (supabase as any).rpc(fn, args);
+        const { data: week } = await rpc("trending_tracks", { p_days: 7, p_limit: 10 });
+        if (week && week.length >= MIN_TRENDING) return { rows: week, days: 7 };
         const { data: month } = await rpc("trending_tracks", { p_days: 30, p_limit: 10 });
-        if (month && month.length > (week?.length || 0)) {
-          week = month;
-          windowDays = 30;
+        if (month && month.length > (week?.length || 0)) return { rows: month, days: 30 };
+        return { rows: week || [], days: 7 };
+      } catch {
+        return { rows: [], days: 7 };
+      }
+    };
+
+    const loadChartFresh = async (): Promise<TrackRow[]> => {
+      try {
+        let result = await loadChart();
+        if (result.tracks.length === 0 || Date.now() - result.fetchedAt > CHART_MAX_AGE_MS) {
+          // Ask the server to refresh the chart (it only calls Apple if the copy is stale)
+          await supabase.functions.invoke("refresh-charts", { body: {} }).catch(() => {});
+          result = await loadChart();
         }
+        return result.tracks;
+      } catch {
+        return [];
       }
+    };
 
-      let chartResult = await loadChart();
-      if (chartResult.tracks.length === 0 || Date.now() - chartResult.fetchedAt > CHART_MAX_AGE_MS) {
-        // Ask the server to refresh the chart (it only calls Apple if the copy is stale)
-        await supabase.functions.invoke("refresh-charts", { body: {} }).catch(() => {});
-        chartResult = await loadChart();
-      }
-
+    const load = async () => {
+      const [t, chartTracks] = await Promise.all([loadTrending(), loadChartFresh()]);
+      const ids = [...new Set([...t.rows.map((r) => r.track_id), ...chartTracks.map((c) => c.id)])];
+      const friendMap = await loadFriendLikes(ids, followingIds).catch(() => new Map<string, FriendLike[]>());
       if (cancelled) return;
-      const trendingRows = (week || []) as TrendingRow[];
-      cache = { trending: trendingRows, days: windowDays, chart: chartResult.tracks, at: Date.now() };
-      setTrending(trendingRows);
-      setDays(windowDays);
-      setChart(chartResult.tracks);
+      cache = { trending: t.rows, days: t.days, chart: chartTracks, friends: friendMap, at: Date.now() };
+      setTrending(t.rows);
+      setDays(t.days);
+      setChart(chartTracks);
+      setFriends(friendMap);
       setLoading(false);
     };
 
-    load().catch(() => !cancelled && setLoading(false));
+    load();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [followingIds]);
 
   if (loading) {
     return (
@@ -169,9 +187,12 @@ const TrendingSection = ({ onShare, sharerUsername }: TrendingSectionProps) => {
                   sharerUsername={sharerUsername}
                   onShare={() => onShare({ id: r.track_id, title: r.title, artist: r.artist, shortId: r.short_id })}
                   subtitle={
-                    <div className="flex items-center gap-2 pt-1">
-                      <RankBadge rank={i + 1} />
-                      <span className="text-[10px] text-muted-foreground">{activityLine(r)}</span>
+                    <div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <RankBadge rank={i + 1} />
+                        <span className="text-[10px] text-muted-foreground">{activityLine(r)}</span>
+                      </div>
+                      <FriendAvatars friends={friends.get(r.track_id)} />
                     </div>
                   }
                 />
@@ -204,7 +225,12 @@ const TrendingSection = ({ onShare, sharerUsername }: TrendingSectionProps) => {
                 sourceContext="discover_chart"
                 sharerUsername={sharerUsername}
                 onShare={() => onShare({ id: t.id, title: t.title, artist: t.artist, shortId: t.short_id })}
-                subtitle={<RankBadge rank={chart.indexOf(t) + 1} />}
+                subtitle={
+                  <div>
+                    <RankBadge rank={chart.indexOf(t) + 1} />
+                    <FriendAvatars friends={friends.get(t.id)} />
+                  </div>
+                }
               />
             ))}
           </div>

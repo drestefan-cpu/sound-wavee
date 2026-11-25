@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Heart, Play, Send } from "lucide-react";
 import { getTrackUrl, isYouTubeSentinel } from "@/lib/trackLinks";
 import { resolveTrackLinks } from "@/lib/resolveLinks";
+import { openUrl } from "@/lib/openUrl";
 import { usePlatform } from "@/contexts/PlatformContext";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,16 +45,6 @@ interface UnifiedTrackCardProps {
   children?: React.ReactNode;
   sharerUsername?: string;
 }
-
-const openUrl = (url: string) => {
-  const isStandalone =
-    window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
-  if (isStandalone) {
-    window.location.href = url;
-  } else {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-};
 
 const UnifiedTrackCard = ({
   track,

@@ -45,7 +45,7 @@ const PeopleSection = ({ userId }: { userId: string }) => {
 
   useEffect(() => {
     let cancelled = false;
-    (supabase.rpc as any)("suggest_people", { p_limit: 25 }).then(({ data }: { data: PersonRow[] | null }) => {
+    (supabase as any).rpc("suggest_people", { p_limit: 25 }).then(({ data }: { data: PersonRow[] | null }) => {
       if (cancelled) return;
       suggestionsCache = data || [];
       setSuggestions(suggestionsCache);

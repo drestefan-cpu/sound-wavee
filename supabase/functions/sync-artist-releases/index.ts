@@ -30,11 +30,6 @@ serve(async (req) => {
       .eq("id", user_id)
       .single()
 
-    if (profile?.releases_synced_at && !body.force) {
-      const hours = (Date.now() - new Date(profile.releases_synced_at).getTime()) / 3_600_000
-      if (hours < MIN_HOURS_BETWEEN_SYNCS) return jsonResponse({ skipped: true, reason: "synced recently" })
-    }
-
     // ── Spotify access: the person's token if connected, else PLAI's app token ──
     let accessToken: string | null = profile?.spotify_access_token || null
     let usingUserToken = !!accessToken
@@ -78,6 +73,31 @@ serve(async (req) => {
       }
       if (!res.ok) return null
       return res.json()
+    }
+
+    // ── Releases saved before projects were tracked: look up their album (50 per call, cheap) ──
+    {
+      const { data: missing } = await supabaseAdmin
+        .from("artist_releases")
+        .select("spotify_track_id")
+        .is("spotify_album_id", null)
+        .limit(50)
+      const ids = ((missing || []) as { spotify_track_id: string }[]).map((r) => r.spotify_track_id)
+      if (ids.length > 0) {
+        const data = await spotifyFetch(`https://api.spotify.com/v1/tracks?ids=${ids.join(",")}&market=US`)
+        for (const t of (data?.tracks || []) as any[]) {
+          if (!t?.id || !t.album?.id) continue
+          await supabaseAdmin
+            .from("artist_releases")
+            .update({ spotify_album_id: t.album.id, album_type: t.album.album_type || null, total_tracks: t.album.total_tracks ?? null })
+            .eq("spotify_track_id", t.id)
+        }
+      }
+    }
+
+    if (profile?.releases_synced_at && !body.force) {
+      const hours = (Date.now() - new Date(profile.releases_synced_at).getTime()) / 3_600_000
+      if (hours < MIN_HOURS_BETWEEN_SYNCS) return jsonResponse({ skipped: true, reason: "synced recently" })
     }
 
     // ── Followed artists ──
@@ -152,6 +172,9 @@ serve(async (req) => {
             album: album.name,
             album_art_url: albumArt,
             release_date: album.release_date,
+            spotify_album_id: album.id,
+            album_type: album.album_type || null,
+            total_tracks: album.total_tracks ?? null,
           }, { onConflict: "spotify_track_id" })
           if (error) continue
           syncedCount++
