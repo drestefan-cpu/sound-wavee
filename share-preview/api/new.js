@@ -23,9 +23,16 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
   const url = new URL(req.url, `https://${req.headers.host}`);
-  const songUrl = firstUrl(url.searchParams.get("url"));
+  // Accept the song link encoded or not: if it wasn't URL-encoded, its own "&…" parts get split off
+  // as separate params, so fall back to everything after the first "url=" in the raw query.
+  const rawAfterUrl = (req.url.split("?").slice(1).join("?").split(/(?:^|&)url=/)[1] || "");
+  const safeDecode = (v) => { try { return decodeURIComponent(v); } catch { return v; } };
+  const songUrl = firstUrl(url.searchParams.get("url")) || firstUrl(safeDecode(rawAfterUrl)) || firstUrl(url.searchParams.get("enc")) || firstUrl(url.searchParams.get("text"));
   if (!songUrl) {
-    res.status(400).send("Share a song link from Spotify, Apple Music, Tidal, YouTube Music or similar.");
+    const received = (url.searchParams.get("url") || url.searchParams.get("text") || "").slice(0, 80);
+    res.status(400).send(
+      `Share a song link from Spotify, Apple Music, Tidal, YouTube Music or similar. (PLAI received: ${received ? `"${received}"` : "nothing"})`,
+    );
     return;
   }
 
