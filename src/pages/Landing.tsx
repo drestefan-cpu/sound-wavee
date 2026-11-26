@@ -791,7 +791,7 @@ const Landing = () => {
 
               <button
                 onClick={connectTidal}
-                className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground transition-all duration-150 hover:border-primary/40"
+                className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
                 style={{ touchAction: "manipulation" }}
               >
                 <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
@@ -807,7 +807,7 @@ const Landing = () => {
               className="mt-2 rounded-full border border-border px-4 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
               style={{ touchAction: "manipulation" }}
             >
-              already joined with Apple Music? <span className="font-medium text-primary">sign in with your PIN</span>
+              joined with Apple Music or Tidal? <span className="font-medium text-primary">sign in with your PIN</span>
             </button>
           </>
         )}
