@@ -8,6 +8,8 @@ import Starfield from "@/components/Starfield";
 import { getRandomTagline } from "@/lib/taglines";
 import { supabase } from "@/integrations/supabase/client";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { uploadAvatar } from "@/lib/avatarUpload";
+import { Camera } from "lucide-react";
 
 const APIKEY = SUPABASE_PUBLISHABLE_KEY;
 
@@ -32,6 +34,41 @@ const Landing = () => {
   const [pinUsername, setPinUsername] = useState("");
   const [pinValue, setPinValue] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
+  // Apple sign-up: the new account is signed in before it has a username — don't jump to the feed yet
+  const holdForSignup = useRef(false);
+  const [checkingSignup, setCheckingSignup] = useState(false);
+  // Step 2 of Apple sign-up: optional name + photo (Apple doesn't share either)
+  const [profileStep, setProfileStep] = useState<string | null>(null);
+  const [stepName, setStepName] = useState("");
+  const [stepAvatar, setStepAvatar] = useState("");
+  const [stepUploading, setStepUploading] = useState(false);
+  const [stepSaving, setStepSaving] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  // Signed in with Apple Music earlier but never picked a username (closed the app halfway):
+  // pick up the sign-up where it stopped instead of dropping them in the feed nameless
+  useEffect(() => {
+    if (!user || !user.is_anonymous || holdForSignup.current) return;
+    let cancelled = false;
+    setCheckingSignup(true);
+    supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (!data?.username) {
+          holdForSignup.current = true;
+          setAnonUserId(user.id);
+          setShowAppleOnboarding(true);
+        }
+        setCheckingSignup(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -91,6 +128,7 @@ const Landing = () => {
 
       if (!userId) {
         isAnonymousFlow = true;
+        holdForSignup.current = true;
         const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
         if (anonError || !anonData.user) throw new Error("Could not create account — please try again");
         userId = anonData.user.id;
@@ -145,6 +183,8 @@ const Landing = () => {
         toast.error(err?.message || "Could not connect Apple Music — please try again");
         console.error("Apple Music auth error:", err);
       }
+      // Nothing to finish if the account never got created
+      if (!(await supabase.auth.getSession()).data.session) holdForSignup.current = false;
     } finally {
       setAppleLoading(false);
       setAppleSlow(false);
@@ -188,20 +228,55 @@ const Landing = () => {
         throw new Error(reason || "Couldn't save your PIN — please try again");
       }
 
-      // On iPhone in Safari, the home-screen app keeps its own sign-in: tell them to use the PIN there
-      if (isIOS() && !isStandaloneApp()) {
-        setShowAppleOnboarding(false);
-        setAppleDone(cleanUsername);
-        return;
-      }
-      toast.success("Welcome to PLAI!");
-      navigate("/feed");
+      // Step 2: optional name + photo
+      setShowAppleOnboarding(false);
+      setStepName("");
+      setProfileStep(cleanUsername);
     } catch (err: any) {
       console.error("Onboarding error:", err);
       toast.error(err?.message || "Couldn't set up your account — please try again");
     } finally {
       setOnboardingLoading(false);
     }
+  };
+
+  const finishSignup = (username: string) => {
+    setProfileStep(null);
+    // On iPhone in Safari, the home-screen app keeps its own sign-in: tell them to use the PIN there
+    if (isIOS() && !isStandaloneApp()) {
+      setAppleDone(username);
+      return;
+    }
+    holdForSignup.current = false;
+    toast.success("welcome to PLAI!");
+    navigate("/feed");
+  };
+
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file || !anonUserId) return;
+    setStepUploading(true);
+    try {
+      setStepAvatar(await uploadAvatar(anonUserId, file));
+    } catch (err: any) {
+      toast.error(err?.message || "couldn't upload the photo — try again");
+    } finally {
+      setStepUploading(false);
+    }
+  };
+
+  const saveProfileStep = async () => {
+    if (!profileStep || !anonUserId) return;
+    const name = stepName.trim();
+    if (name) {
+      setStepSaving(true);
+      const { error } = await supabase.from("profiles").update({ display_name: name } as any).eq("id", anonUserId);
+      setStepSaving(false);
+      if (error) {
+        toast.error("couldn't save your name — try again");
+        return;
+      }
+    }
+    finishSignup(profileStep);
   };
 
   const handlePinLogin = async () => {
@@ -276,7 +351,7 @@ const Landing = () => {
     }
   };
 
-  if (loading) {
+  if (loading || checkingSignup) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -284,7 +359,9 @@ const Landing = () => {
     );
   }
 
-  if (user) return <Navigate to="/feed" replace />;
+  if (user && !holdForSignup.current && !showAppleOnboarding && !profileStep && !appleDone) {
+    return <Navigate to="/feed" replace />;
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4">
@@ -454,11 +531,81 @@ const Landing = () => {
               <p className="mt-2 text-xs">(your iPhone keeps the home-screen app separate from Safari, so it needs its own sign-in)</p>
             </div>
             <button
-              onClick={() => navigate("/feed")}
+              onClick={() => {
+                holdForSignup.current = false;
+                navigate("/feed");
+              }}
               className="w-full rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground"
               style={{ touchAction: "manipulation" }}
             >
               continue in Safari for now →
+            </button>
+          </div>
+        ) : profileStep ? (
+          /* ── Apple sign-up step 2: name + photo (both optional) ── */
+          <div className="flex w-full flex-col items-center gap-4">
+            <p className="text-center text-sm leading-relaxed text-muted-foreground">
+              add a name and photo<br />so friends know it's you
+            </p>
+            <button
+              type="button"
+              onClick={() => photoInput.current?.click()}
+              disabled={stepUploading}
+              aria-label="choose a profile photo"
+              className="group relative h-24 w-24 rounded-full"
+              style={{ touchAction: "manipulation" }}
+            >
+              <span className="block h-full w-full overflow-hidden rounded-full border border-border bg-card transition-colors group-hover:border-primary">
+                {stepAvatar ? (
+                  <img src={stepAvatar} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-3xl font-semibold text-primary">
+                    {(stepName.trim() || profileStep)[0].toUpperCase()}
+                  </span>
+                )}
+              </span>
+              <span className="absolute -bottom-0.5 -right-0.5 flex border-2 border-background h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                {stepUploading ? (
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
+              </span>
+            </button>
+            <input
+              ref={photoInput}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                pickPhoto(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <input
+              id="signup-display-name"
+              value={stepName}
+              onChange={(e) => setStepName(e.target.value.slice(0, 40))}
+              placeholder="your name (optional)"
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+              style={{ touchAction: "manipulation" }}
+            />
+            <button
+              onClick={saveProfileStep}
+              disabled={stepSaving || stepUploading}
+              className="flex w-full items-center justify-center rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
+              style={{ touchAction: "manipulation" }}
+            >
+              {stepSaving ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              ) : "done →"}
+            </button>
+            <button
+              onClick={() => finishSignup(profileStep)}
+              className="text-xs text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+              style={{ touchAction: "manipulation" }}
+            >
+              skip for now — you can change these in settings
             </button>
           </div>
         ) : showAppleOnboarding ? (
@@ -499,6 +646,7 @@ const Landing = () => {
             <button
               onClick={async () => {
                 await supabase.auth.signOut();
+                holdForSignup.current = false;
                 setShowAppleOnboarding(false);
                 setAnonUserId(null);
                 setOnboardingUsername("");

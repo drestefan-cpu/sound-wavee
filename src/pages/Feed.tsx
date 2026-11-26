@@ -233,7 +233,12 @@ const Feed = () => {
   useEffect(() => {
     const checkOnboarding = async () => {
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("onboarding_complete").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("onboarding_complete, username").eq("id", user.id).single();
+      // Apple Music sign-up left halfway (no username yet): send them back to finish it
+      if (data && user.is_anonymous && !(data as any).username) {
+        navigate("/", { replace: true });
+        return;
+      }
       if (data && !(data as any).onboarding_complete) {
         setShowWelcome(true);
         await supabase

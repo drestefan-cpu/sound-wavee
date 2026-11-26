@@ -1,4 +1,5 @@
 import { useConnectionIssues, clearConnectionIssue } from "@/components/ConnectionNotice";
+import { uploadAvatar } from "@/lib/avatarUpload";
 import { authorizeAppleMusic, AppleMusicAuthError } from "@/lib/appleMusic";
 import SpotifyPlaylistSync from "@/components/SpotifyPlaylistSync";
 import PageTip, { resetTips } from "@/components/PageTip";
@@ -472,8 +473,8 @@ const SettingsPage = () => {
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">your profile</h3>
           <label className="mb-1.5 block text-sm font-medium text-foreground">profile photo</label>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 overflow-hidden rounded-full bg-primary/20 flex-shrink-0">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setAvatarUrl("")} />
               ) : (
@@ -482,31 +483,34 @@ const SettingsPage = () => {
                 </div>
               )}
             </div>
-            <Input
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="paste an image URL"
-              className="settings-field bg-card border-border"
+            <label
+              htmlFor="settings-avatar-file"
+              className={`settings-save cursor-pointer rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 ${avatarSaving ? "pointer-events-none opacity-50" : ""}`}
+              style={{ touchAction: "manipulation" }}
+            >
+              {avatarSaving ? "uploading..." : avatarUrl ? "change photo" : "add photo"}
+            </label>
+            <input
+              id="settings-avatar-file"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!user || !file) return;
+                setAvatarSaving(true);
+                try {
+                  setAvatarUrl(await uploadAvatar(user.id, file));
+                  toast.success("photo saved ✓");
+                } catch (err: any) {
+                  toast.error(err?.message || "couldn't save — try again");
+                } finally {
+                  setAvatarSaving(false);
+                }
+              }}
             />
           </div>
-          <button
-            onClick={async () => {
-              if (!user || !avatarUrl.trim()) return;
-              setAvatarSaving(true);
-              const { error } = await supabase
-                .from("profiles")
-                .update({ avatar_url: avatarUrl.trim() } as any)
-                .eq("id", user.id);
-              setAvatarSaving(false);
-              if (error) toast.error("couldn't save — try again");
-              else toast.success("photo saved ✓");
-            }}
-            disabled={avatarSaving}
-            className="settings-save rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-50"
-            style={{ touchAction: "manipulation" }}
-          >
-            {avatarSaving ? "saving..." : "save"}
-          </button>
         </div>
 
         {/* status sits under "your profile" with the photo */}
