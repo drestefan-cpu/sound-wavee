@@ -33,14 +33,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'PIN must be exactly 6 digits' }), { status: 400, headers: corsHeaders })
     }
 
-    // Accounts with a real email sign in with Spotify/Google — never replace their email with a device one
-    if (user.email && !user.email.endsWith('@plai.device')) {
-      return new Response(
-        JSON.stringify({ error: 'Your account signs in with Spotify or Google, so it doesn\'t need a PIN' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
     // Admin client — sets email + password on the user, bypassing email confirmation
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -50,12 +42,14 @@ serve(async (req) => {
 
     // Use a deterministic device email derived from the user's UUID.
     // signInWithPassword({email, password: pin}) is then used for return visits.
-    const email = `${user.id}@plai.device`
-    const { error: updateError } = await adminClient.auth.admin.updateUserById(user.id, {
-      email,
-      email_confirm: true,
-      password: pin,
-    })
+    // Spotify/Google accounts keep their real email: the PIN is just a spare way in (see pin-login)
+    const hasRealEmail = !!user.email && !user.email.endsWith('@plai.device')
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(
+      user.id,
+      hasRealEmail
+        ? { password: pin }
+        : { email: `${user.id}@plai.device`, email_confirm: true, password: pin },
+    )
 
     if (updateError) {
       console.error('setup-apple-pin update failed', updateError)

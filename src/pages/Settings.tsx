@@ -259,7 +259,7 @@ const SettingsPage = () => {
     supabase.auth.refreshSession().then(() => {}, () => {});
   };
 
-  // Only accounts without Spotify/Google email sign-in use a PIN
+  // Apple Music / Tidal accounts sign in with the PIN; for Spotify / Google accounts it's a spare way in
   const usesPinLogin = !!user && (!user.email || user.email.endsWith("@plai.device") || (user as any).is_anonymous);
 
   const connectAppleMusic = async () => {
@@ -927,10 +927,14 @@ const SettingsPage = () => {
               />
             </button>
           </label>
-          {usesPinLogin && (
+          {!!user && (
           <div id="quick-login-pin" className="mt-6 scroll-mt-24">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">quick login PIN</h4>
-            <p className="text-xs text-muted-foreground mb-2">set a 6-digit PIN to sign in with your username on another device</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              {usesPinLogin
+                ? "set a 6-digit PIN to sign in with your username on another device"
+                : "a spare way in: if Spotify or Google sign-in gets stuck (it can in the home-screen app), sign in with your username + this PIN instead"}
+            </p>
             <div className="flex gap-2">
               <Input
                 type="password"

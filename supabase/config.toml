@@ -34,3 +34,6 @@ verify_jwt = false
 
 [functions.fill-genres]
 verify_jwt = false
+
+[functions.pin-login]
+verify_jwt = false

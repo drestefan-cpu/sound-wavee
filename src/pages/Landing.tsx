@@ -290,24 +290,23 @@ const Landing = () => {
 
     setPinLoading(true);
     try {
-      const { data: profile, error: lookupError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("username", cleanUsername)
-        .single();
-
-      if (lookupError || !profile) {
-        toast.error("username not found");
+      // Checked on the server (works for every account type; locks after 5 wrong tries)
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/pin-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: APIKEY },
+        body: JSON.stringify({ username: cleanUsername, pin: pinValue }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.access_token) {
+        toast.error(result.error || "sign in failed — try again");
         return;
       }
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: `${profile.id}@plai.device`,
-        password: pinValue,
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
       });
-
-      if (signInError) {
-        toast.error("wrong PIN — try again");
+      if (sessionError) {
+        toast.error("sign in failed — try again");
         return;
       }
 
@@ -807,7 +806,7 @@ const Landing = () => {
               className="mt-2 rounded-full border border-border px-4 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
               style={{ touchAction: "manipulation" }}
             >
-              joined with Apple Music or Tidal? <span className="font-medium text-primary">sign in with your PIN</span>
+              set a PIN? <span className="font-medium text-primary">sign in with your username + PIN</span>
             </button>
           </>
         )}
