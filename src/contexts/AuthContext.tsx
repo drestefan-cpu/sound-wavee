@@ -65,6 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", userId);
 
     if (upsertError) console.error("Profile upsert failed:", upsertError.message, upsertError);
+    // Fresh Spotify sign-in → any "connection expired" notice is out of date
+    else (supabase as any).rpc("clear_connection_issue", { p_platform: "spotify" }).then(() => {}, () => {});
 
     const { data, error } = await supabase.functions.invoke("sync-spotify-likes", {
       body: { user_id: userId },

@@ -1,3 +1,4 @@
+import { clearConnectionIssue } from "@/components/ConnectionNotice";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -106,6 +107,7 @@ const YouTubeCallback = () => {
         return;
       }
 
+      clearConnectionIssue("youtube");
       toast.success("YouTube Music connected!");
 
       setStatusText("syncing your liked music…");

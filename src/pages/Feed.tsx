@@ -1,3 +1,4 @@
+import ConnectionNotice from "@/components/ConnectionNotice";
 import PageTip from "@/components/PageTip";
 import { FRIENDS_TIPS, DISCOVER_TIPS } from "@/lib/tips";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
@@ -956,6 +957,7 @@ const Feed = () => {
       </header>
 
       <main className="mx-auto max-w-feed px-4 py-4">
+        {tab === "following" && <ConnectionNotice />}
         {tab === "following" ? (
           <PageTip id="friends" steps={FRIENDS_TIPS} className="mb-4" />
         ) : (

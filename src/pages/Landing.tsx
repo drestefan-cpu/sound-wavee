@@ -1,3 +1,4 @@
+import { authorizeAppleMusic, AppleMusicAuthError, isIOS, isStandaloneApp } from "@/lib/appleMusic";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -18,6 +19,11 @@ const Landing = () => {
   const [showInstallOverlay, setShowInstallOverlay] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [showAppleOnboarding, setShowAppleOnboarding] = useState(false);
+  // Apple's sign-in window can get stuck inside the home-screen app: after a few seconds offer a way out
+  const [appleSlow, setAppleSlow] = useState(false);
+  const [appleHelp, setAppleHelp] = useState(false);
+  // After creating an Apple account in Safari: explain signing in on the home-screen app with the PIN
+  const [appleDone, setAppleDone] = useState<string | null>(null);
   const [anonUserId, setAnonUserId] = useState<string | null>(null);
   const [onboardingUsername, setOnboardingUsername] = useState("");
   const [onboardingPin, setOnboardingPin] = useState("");
@@ -68,34 +74,15 @@ const Landing = () => {
   const connectAppleMusic = async () => {
     setAppleLoading(true);
     try {
-      // 1. Fetch developer token from our edge function
-      const devTokenRes = await fetch(`${SUPABASE_URL}/functions/v1/apple-music-developer-token`, {
-        method: "POST",
-        headers: { apikey: APIKEY, "Content-Type": "application/json" },
-      });
-      const { token: developerToken, error: tokenError } = await devTokenRes.json();
-      if (!developerToken) throw new Error(tokenError || "Could not get developer token");
-
-      // 2. Load MusicKit JS v3 if not already present
-      await new Promise<void>((resolve, reject) => {
-        if ((window as any).MusicKit) { resolve(); return; }
-        const script = document.createElement("script");
-        script.src = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("Failed to load MusicKit JS"));
-        document.head.appendChild(script);
-      });
-
-      // 3. Configure MusicKit
-      await (window as any).MusicKit.configure({
-        developerToken,
-        app: { name: "PLAI", build: "1.0" },
-      });
-      const music = (window as any).MusicKit.getInstance();
-
-      // 4. Authorize — opens Apple Music sign-in
-      const userToken = await music.authorize();
-      if (!userToken) throw new Error("Authorization cancelled");
+      // 1–4. Apple's sign-in (shared helper: loads MusicKit, stops waiting if the window gets stuck)
+      setAppleSlow(false);
+      const slowTimer = setTimeout(() => setAppleSlow(true), 8000);
+      let userToken: string;
+      try {
+        userToken = await authorizeAppleMusic();
+      } finally {
+        clearTimeout(slowTimer);
+      }
 
       // 5. Get existing session or create anonymous account for standalone Apple Music users
       let isAnonymousFlow = false;
@@ -150,15 +137,17 @@ const Landing = () => {
         navigate("/feed");
       }
     } catch (err: any) {
-      const msg = err?.message || "";
-      if (msg.toLowerCase().includes("cancel") || msg.toLowerCase().includes("abort")) {
-        toast.error("Apple Music sign in cancelled");
+      if (err instanceof AppleMusicAuthError && err.reason === "cancelled") {
+        toast("Apple Music sign-in cancelled");
+      } else if (err instanceof AppleMusicAuthError && err.reason === "stuck") {
+        setAppleHelp(true);
       } else {
-        toast.error("Could not connect Apple Music — please try again");
+        toast.error(err?.message || "Could not connect Apple Music — please try again");
         console.error("Apple Music auth error:", err);
       }
     } finally {
       setAppleLoading(false);
+      setAppleSlow(false);
     }
   };
 
@@ -191,13 +180,25 @@ const Landing = () => {
       const { error: pinError } = await supabase.functions.invoke("setup-apple-pin", {
         body: { pin: onboardingPin },
       });
-      if (pinError) throw pinError;
+      if (pinError) {
+        let reason = "";
+        try {
+          reason = (await (pinError as { context?: Response }).context?.json())?.error || "";
+        } catch {}
+        throw new Error(reason || "Couldn't save your PIN — please try again");
+      }
 
+      // On iPhone in Safari, the home-screen app keeps its own sign-in: tell them to use the PIN there
+      if (isIOS() && !isStandaloneApp()) {
+        setShowAppleOnboarding(false);
+        setAppleDone(cleanUsername);
+        return;
+      }
       toast.success("Welcome to PLAI!");
       navigate("/feed");
     } catch (err: any) {
       console.error("Onboarding error:", err);
-      toast.error("Couldn't set up your account — please try again");
+      toast.error(err?.message || "Couldn't set up your account — please try again");
     } finally {
       setOnboardingLoading(false);
     }
@@ -439,7 +440,28 @@ const Landing = () => {
           {tagline}
         </p>
 
-        {showAppleOnboarding ? (
+        {appleDone ? (
+          /* ── Apple account created in Safari: the home-screen app signs in with the PIN ── */
+          <div className="flex w-full flex-col items-center gap-4 text-center">
+            <p className="text-lg font-medium text-foreground">you're in, @{appleDone} 🎉</p>
+            <div className="w-full rounded-2xl border border-border bg-card p-4 text-left text-sm leading-relaxed text-muted-foreground">
+              <p className="mb-2 text-foreground">one last step on iPhone:</p>
+              <ol className="list-decimal space-y-1 pl-5">
+                <li>tap <span className="text-primary">Share</span> → <span className="text-primary">Add to Home Screen</span></li>
+                <li>open PLAI from your home screen</li>
+                <li>tap <span className="text-primary">sign in with your PIN</span> and use <span className="text-foreground">@{appleDone}</span> + your PIN</li>
+              </ol>
+              <p className="mt-2 text-xs">(your iPhone keeps the home-screen app separate from Safari, so it needs its own sign-in)</p>
+            </div>
+            <button
+              onClick={() => navigate("/feed")}
+              className="w-full rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground"
+              style={{ touchAction: "manipulation" }}
+            >
+              continue in Safari for now →
+            </button>
+          </div>
+        ) : showAppleOnboarding ? (
           /* ── Apple Music onboarding ── */
           <div className="flex w-full flex-col gap-4">
             <p className="text-sm text-muted-foreground text-center leading-relaxed">
@@ -491,7 +513,7 @@ const Landing = () => {
         ) : showPinLogin ? (
           /* ── PIN login ── */
           <div className="flex w-full flex-col gap-4">
-            <p className="text-sm text-muted-foreground text-center">sign in with your PIN</p>
+            <p className="text-sm text-muted-foreground text-center">sign in with your username and PIN</p>
             <input
               value={pinUsername}
               onChange={(e) => setPinUsername(e.target.value.toLowerCase())}
@@ -520,6 +542,19 @@ const Landing = () => {
               {pinLoading ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
               ) : "sign in →"}
+            </button>
+            <button
+              onClick={async () => {
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: "google",
+                  options: { redirectTo: `${window.location.origin}/feed` },
+                });
+                if (error) toast.error("Could not connect to Google");
+              }}
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+              style={{ touchAction: "manipulation" }}
+            >
+              linked Google to your account? <span className="text-primary">sign in with Google</span>
             </button>
             <button
               onClick={() => { setShowPinLogin(false); setPinUsername(""); setPinValue(""); }}
@@ -570,6 +605,16 @@ const Landing = () => {
                 )}
                 {appleLoading ? "connecting…" : "continue with Apple Music"}
               </button>
+              {appleLoading && appleSlow && (
+                <button
+                  onClick={() => setAppleHelp(true)}
+                  className="-mt-1 text-xs text-primary"
+                  style={{ touchAction: "manipulation" }}
+                >
+                  stuck? here's another way →
+                </button>
+              )}
+              {appleHelp && <AppleHelp onClose={() => setAppleHelp(false)} />}
 
               <button
                 onClick={connectTidal}
@@ -596,6 +641,44 @@ const Landing = () => {
       </div>
 
       <AndroidInstallPrompt />
+    </div>
+  );
+};
+
+/** When Apple's sign-in window gets stuck (mostly inside the iPhone home-screen app) */
+const AppleHelp = ({ onClose }: { onClose: () => void }) => {
+  const inHomeScreenApp = isStandaloneApp();
+  const link = "https://plai.delaneyprojects.xyz";
+  return (
+    <div className="w-full rounded-2xl border border-primary/30 bg-card p-4 text-left text-sm leading-relaxed text-muted-foreground">
+      <p className="mb-2 font-medium text-foreground">Apple's sign-in didn't come back</p>
+      {inHomeScreenApp ? (
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>open <span className="text-foreground">{link.replace("https://", "")}</span> in <span className="text-primary">Safari</span></li>
+          <li>tap <span className="text-primary">continue with Apple Music</span> and set a username + PIN</li>
+          <li>come back here and tap <span className="text-primary">sign in with your PIN</span></li>
+        </ol>
+      ) : (
+        <p>Close any Apple sign-in tabs, make sure pop-ups aren't blocked for this site, and try again.</p>
+      )}
+      <div className="mt-3 flex items-center gap-4">
+        {inHomeScreenApp && (
+          <button
+            onClick={() =>
+              navigator.clipboard
+                .writeText(link)
+                .then(() => toast("link copied — paste it in Safari"))
+                .catch(() => {})
+            }
+            className="text-xs font-medium text-primary"
+          >
+            copy link
+          </button>
+        )}
+        <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">
+          close
+        </button>
+      </div>
     </div>
   );
 };

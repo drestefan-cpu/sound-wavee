@@ -1,3 +1,5 @@
+import { useConnectionIssues, clearConnectionIssue } from "@/components/ConnectionNotice";
+import { authorizeAppleMusic, AppleMusicAuthError } from "@/lib/appleMusic";
 import SpotifyPlaylistSync from "@/components/SpotifyPlaylistSync";
 import PageTip, { resetTips } from "@/components/PageTip";
 import { SETTINGS_TIPS } from "@/lib/tips";
@@ -44,7 +46,40 @@ const APPEARANCE_OPTIONS: { value: ThemePreference; label: string; icon: string 
 ];
 
 const SettingsPage = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, signInWithSpotify } = useAuth();
+  const [connectionIssues, refreshConnectionIssues] = useConnectionIssues();
+
+  // Apple Music accounts sign in with username + PIN only; offer Google as a backup way in
+  const identities = (user?.identities || []).map((i) => i.provider);
+  const needsBackupSignIn =
+    !!user && !identities.includes("google") && !identities.includes("spotify") &&
+    (!!user.email?.endsWith("@plai.device") || (user as { is_anonymous?: boolean }).is_anonymous === true);
+
+  const linkGoogle = async () => {
+    const { error } = await supabase.auth.linkIdentity({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/settings?linked=google` },
+    });
+    if (error) {
+      toast.error(
+        /manual linking/i.test(error.message)
+          ? "Google backup isn't switched on yet — tell the PLAI owner"
+          : "Couldn't link Google — try again",
+      );
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("linked") === "google") {
+      toast.success("Google linked — you can now also sign in with Google");
+      window.history.replaceState(null, "", "/settings");
+    }
+    // "reconnect" from the feed notice lands here: jump to the music apps
+    if (window.location.hash === "#connected-platforms") {
+      setTimeout(() => document.getElementById("connected-platforms")?.scrollIntoView({ behavior: "smooth" }), 400);
+    }
+  }, []);
   const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const { preferredPlatform, setPreferredPlatform } = usePlatform();
   const [displayName, setDisplayName] = useState("");
@@ -228,29 +263,7 @@ const SettingsPage = () => {
     if (!user) return;
     setAppleLoading(true);
     try {
-      const devTokenRes = await fetch(`${SUPABASE_URL}/functions/v1/apple-music-developer-token`, {
-        method: "POST",
-        headers: { apikey: APIKEY, "Content-Type": "application/json" },
-      });
-      const { token: developerToken, error: tokenError } = await devTokenRes.json();
-      if (!developerToken) throw new Error(tokenError || "Could not get developer token");
-
-      await new Promise<void>((resolve, reject) => {
-        if ((window as any).MusicKit) { resolve(); return; }
-        const script = document.createElement("script");
-        script.src = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("Failed to load MusicKit JS"));
-        document.head.appendChild(script);
-      });
-
-      await (window as any).MusicKit.configure({
-        developerToken,
-        app: { name: "PLAI", build: "1.0" },
-      });
-      const music = (window as any).MusicKit.getInstance();
-      const userToken = await music.authorize();
-      if (!userToken) throw new Error("Authorization cancelled");
+      const userToken = await authorizeAppleMusic();
 
       // User is already signed in — store token against existing profile
       const { data: { session } } = await supabase.auth.getSession();
@@ -263,6 +276,8 @@ const SettingsPage = () => {
       if (upsertError) throw new Error("Could not save Apple Music token");
 
       setAppleConnected(true);
+      await clearConnectionIssue("apple-music");
+      refreshConnectionIssues();
       toast.success("Apple Music connected — syncing…");
 
       supabase.functions.invoke("sync-apple-music-likes", { body: { user_id: user.id } })
@@ -274,11 +289,12 @@ const SettingsPage = () => {
           }
         });
     } catch (err: any) {
-      const msg = err?.message || "";
-      if (msg.toLowerCase().includes("cancel") || msg.toLowerCase().includes("abort")) {
-        toast.error("Apple Music sign in cancelled");
+      if (err instanceof AppleMusicAuthError && err.reason === "cancelled") {
+        toast("Apple Music sign-in cancelled");
+      } else if (err instanceof AppleMusicAuthError && err.reason === "stuck") {
+        toast.error("Apple's sign-in didn't come back. On iPhone, try connecting from Safari instead of the home-screen app.", { duration: 8000 });
       } else {
-        toast.error("Could not connect Apple Music — please try again");
+        toast.error(err?.message || "Could not connect Apple Music — please try again");
         console.error("Apple Music auth error:", err);
       }
     } finally {
@@ -552,6 +568,23 @@ const SettingsPage = () => {
           </p>
         </div>
 
+        {needsBackupSignIn && (
+          <div className="border-t border-border pt-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-1">backup sign-in</h3>
+            <p className="text-[11px] leading-relaxed text-muted-foreground mb-3">
+              You sign in with your username and PIN. Link Google too, so you can still get in on a new phone or if you
+              forget your PIN.
+            </p>
+            <button
+              onClick={linkGoogle}
+              className="rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary/50"
+              style={{ touchAction: "manipulation" }}
+            >
+              link Google
+            </button>
+          </div>
+        )}
+
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-1">tips</h3>
           <p className="text-[11px] text-muted-foreground mb-3">the short guides at the top of each page</p>
@@ -678,7 +711,7 @@ const SettingsPage = () => {
           )}
         </div>
 
-        <div className="border-t border-border pt-6">
+        <div id="connected-platforms" className="border-t border-border pt-6 scroll-mt-20">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">
             connected platforms
           </h3>
@@ -689,9 +722,15 @@ const SettingsPage = () => {
               <div className="flex items-center gap-3">
                 <span className={`h-2 w-2 rounded-full ${spotifyConnected || spotifyPlaylist.name ? "bg-green-500" : "bg-muted"}`} />
                 <span className="text-sm text-foreground">Spotify</span>
-                <span className="text-xs text-muted-foreground ml-auto">
-                  {spotifyConnected ? "connected" : spotifyPlaylist.name ? "via playlist" : "not connected"}
-                </span>
+                {spotifyConnected && connectionIssues.includes("spotify") ? (
+                  <button onClick={() => signInWithSpotify()} className="ml-auto text-xs font-medium text-primary">
+                    expired · reconnect
+                  </button>
+                ) : (
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {spotifyConnected ? "connected" : spotifyPlaylist.name ? "via playlist" : "not connected"}
+                  </span>
+                )}
               </div>
               {!spotifyConnected && (
                 <SpotifyPlaylistSync
@@ -721,7 +760,11 @@ const SettingsPage = () => {
                 <span className="text-sm text-foreground">Tidal</span>
                 {tidalConnected ? (
                   <div className="ml-auto flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">connected</span>
+                    {connectionIssues.includes("tidal") ? (
+                      <button onClick={connectTidal} className="text-xs font-medium text-primary">expired · reconnect</button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">connected</span>
+                    )}
                     <button onClick={disconnectTidal} className="text-[10px] text-destructive hover:underline">
                       disconnect
                     </button>
@@ -753,7 +796,11 @@ const SettingsPage = () => {
                 <span className="text-sm text-foreground">Apple Music</span>
                 {appleConnected ? (
                   <div className="ml-auto flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">connected</span>
+                    {connectionIssues.includes("apple-music") ? (
+                      <button onClick={connectAppleMusic} className="text-xs font-medium text-primary">expired · reconnect</button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">connected</span>
+                    )}
                     <button
                       onClick={async () => {
                         if (!user) return;
@@ -798,7 +845,11 @@ const SettingsPage = () => {
                 <span className="text-sm text-foreground">YouTube Music</span>
                 {youtubeConnected ? (
                   <div className="ml-auto flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">connected</span>
+                    {connectionIssues.includes("youtube") ? (
+                      <button onClick={connectYouTube} className="text-xs font-medium text-primary">expired · reconnect</button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">connected</span>
+                    )}
                     <button onClick={disconnectYouTube} className="text-[10px] text-destructive hover:underline">
                       disconnect
                     </button>

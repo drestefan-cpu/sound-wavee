@@ -1,3 +1,4 @@
+import { clearConnectionIssue } from "@/components/ConnectionNotice";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -148,6 +149,7 @@ const TidalCallback = () => {
           // non-fatal
         }
 
+        clearConnectionIssue("tidal");
         toast.success("Tidal connected!");
         navigate("/feed");
       } catch (err) {
