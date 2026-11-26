@@ -38,11 +38,10 @@ const Landing = () => {
   const holdForSignup = useRef(false);
   const [checkingSignup, setCheckingSignup] = useState(false);
   // Step 2 of Apple sign-up: optional name + photo (Apple doesn't share either)
-  const [profileStep, setProfileStep] = useState<string | null>(null);
   const [stepName, setStepName] = useState("");
   const [stepAvatar, setStepAvatar] = useState("");
   const [stepUploading, setStepUploading] = useState(false);
-  const [stepSaving, setStepSaving] = useState(false);
+  const [usernameEdited, setUsernameEdited] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
 
   // Signed in with Apple Music earlier but never picked a username (closed the app halfway):
@@ -167,7 +166,7 @@ const Landing = () => {
       if (isAnonymousFlow) {
         // Prompt user to set username + PIN before entering the app
         setAnonUserId(userId);
-        setOnboardingUsername("");
+        setOnboardingUsername(""); setUsernameEdited(false); setStepName("");
         setOnboardingPin("");
         setShowAppleOnboarding(true);
       } else {
@@ -207,7 +206,7 @@ const Landing = () => {
     try {
       const { error: usernameError } = await supabase
         .from("profiles")
-        .update({ username: cleanUsername, display_name: cleanUsername } as any)
+        .update({ username: cleanUsername, display_name: stepName.trim() || cleanUsername } as any)
         .eq("id", anonUserId);
       if (usernameError) {
         if (usernameError.code === "23505") {
@@ -228,10 +227,8 @@ const Landing = () => {
         throw new Error(reason || "Couldn't save your PIN — please try again");
       }
 
-      // Step 2: optional name + photo
       setShowAppleOnboarding(false);
-      setStepName("");
-      setProfileStep(cleanUsername);
+      finishSignup(cleanUsername);
     } catch (err: any) {
       console.error("Onboarding error:", err);
       toast.error(err?.message || "Couldn't set up your account — please try again");
@@ -241,7 +238,6 @@ const Landing = () => {
   };
 
   const finishSignup = (username: string) => {
-    setProfileStep(null);
     // On iPhone in Safari, the home-screen app keeps its own sign-in: tell them to use the PIN there
     if (isIOS() && !isStandaloneApp()) {
       setAppleDone(username);
@@ -262,21 +258,6 @@ const Landing = () => {
     } finally {
       setStepUploading(false);
     }
-  };
-
-  const saveProfileStep = async () => {
-    if (!profileStep || !anonUserId) return;
-    const name = stepName.trim();
-    if (name) {
-      setStepSaving(true);
-      const { error } = await supabase.from("profiles").update({ display_name: name } as any).eq("id", anonUserId);
-      setStepSaving(false);
-      if (error) {
-        toast.error("couldn't save your name — try again");
-        return;
-      }
-    }
-    finishSignup(profileStep);
   };
 
   const handlePinLogin = async () => {
@@ -359,7 +340,7 @@ const Landing = () => {
     );
   }
 
-  if (user && !holdForSignup.current && !showAppleOnboarding && !profileStep && !appleDone) {
+  if (user && !holdForSignup.current && !showAppleOnboarding && !appleDone) {
     return <Navigate to="/feed" replace />;
   }
 
@@ -541,30 +522,30 @@ const Landing = () => {
               continue in Safari for now →
             </button>
           </div>
-        ) : profileStep ? (
-          /* ── Apple sign-up step 2: name + photo (both optional) ── */
-          <div className="flex w-full flex-col items-center gap-4">
+        ) : showAppleOnboarding ? (
+          /* ── Apple Music sign-up: photo, name, username and PIN on one screen ── */
+          <div className="flex w-full flex-col gap-4">
             <p className="text-center text-sm leading-relaxed text-muted-foreground">
-              add a name and photo<br />so friends know it's you
+              Apple Music doesn't share your name or photo,<br />so set up your profile here
             </p>
             <button
               type="button"
               onClick={() => photoInput.current?.click()}
               disabled={stepUploading}
               aria-label="choose a profile photo"
-              className="group relative h-24 w-24 rounded-full"
+              className="group relative mx-auto h-20 w-20 rounded-full"
               style={{ touchAction: "manipulation" }}
             >
               <span className="block h-full w-full overflow-hidden rounded-full border border-border bg-card transition-colors group-hover:border-primary">
                 {stepAvatar ? (
                   <img src={stepAvatar} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center text-3xl font-semibold text-primary">
-                    {(stepName.trim() || profileStep)[0].toUpperCase()}
+                  <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-primary">
+                    {(stepName.trim() || onboardingUsername || "+")[0].toUpperCase()}
                   </span>
                 )}
               </span>
-              <span className="absolute -bottom-0.5 -right-0.5 flex border-2 border-background h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground">
                 {stepUploading ? (
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
                 ) : (
@@ -582,61 +563,70 @@ const Landing = () => {
                 e.target.value = "";
               }}
             />
-            <input
-              id="signup-display-name"
-              value={stepName}
-              onChange={(e) => setStepName(e.target.value.slice(0, 40))}
-              placeholder="your name (optional)"
-              className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
-              style={{ touchAction: "manipulation" }}
-            />
-            <button
-              onClick={saveProfileStep}
-              disabled={stepSaving || stepUploading}
-              className="flex w-full items-center justify-center rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
-              style={{ touchAction: "manipulation" }}
-            >
-              {stepSaving ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              ) : "done →"}
-            </button>
-            <button
-              onClick={() => finishSignup(profileStep)}
-              className="text-xs text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-              style={{ touchAction: "manipulation" }}
-            >
-              skip for now — you can change these in settings
-            </button>
-          </div>
-        ) : showAppleOnboarding ? (
-          /* ── Apple Music onboarding ── */
-          <div className="flex w-full flex-col gap-4">
-            <p className="text-sm text-muted-foreground text-center leading-relaxed">
-              set a username and PIN<br />so you can sign back in next time
-            </p>
-            <input
-              value={onboardingUsername}
-              onChange={(e) => setOnboardingUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
-              placeholder="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="w-full rounded-2xl bg-card border border-border px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors"
-              style={{ touchAction: "manipulation" }}
-            />
-            <input
-              type="password"
-              inputMode="numeric"
-              maxLength={6}
-              value={onboardingPin}
-              onChange={(e) => setOnboardingPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="6-digit PIN"
-              className="w-full rounded-2xl bg-card border border-border px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors text-center tracking-[0.5em]"
-              style={{ touchAction: "manipulation" }}
-            />
+
+            <label className="flex flex-col gap-1.5">
+              <span className="px-1 text-left text-xs text-muted-foreground">
+                <span className="text-foreground">name</span> · what friends see on your songs
+              </span>
+              <input
+                id="signup-name"
+                value={stepName}
+                onChange={(e) => {
+                  const name = e.target.value.slice(0, 40);
+                  setStepName(name);
+                  // Suggest a username from the name until they type their own
+                  if (!usernameEdited) setOnboardingUsername(name.toLowerCase().replace(/\s+/g, ".").replace(/[^a-z0-9._-]/g, "").slice(0, 24));
+                }}
+                placeholder="e.g. André Delaney"
+                autoComplete="name"
+                className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary"
+                style={{ touchAction: "manipulation" }}
+              />
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="px-1 text-left text-xs text-muted-foreground">
+                <span className="text-foreground">username</span> · for your profile link and signing in
+              </span>
+              <span className="flex items-center rounded-2xl border border-border bg-card px-4 transition-colors focus-within:border-primary">
+                <span className="text-sm text-muted-foreground">@</span>
+                <input
+                  id="signup-username"
+                  value={onboardingUsername}
+                  onChange={(e) => {
+                    setUsernameEdited(true);
+                    setOnboardingUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""));
+                  }}
+                  placeholder="andre"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  className="min-w-0 flex-1 bg-transparent py-3.5 pl-0.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
+                  style={{ touchAction: "manipulation" }}
+                />
+              </span>
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="px-1 text-left text-xs text-muted-foreground">
+                <span className="text-foreground">6-digit PIN</span> · to sign back in on any device
+              </span>
+              <input
+                id="signup-pin"
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={onboardingPin}
+                onChange={(e) => setOnboardingPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="••••••"
+                className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-center text-sm tracking-[0.5em] text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary"
+                style={{ touchAction: "manipulation" }}
+              />
+            </label>
+
             <button
               onClick={handleAppleOnboarding}
-              disabled={onboardingLoading || onboardingUsername.length < 2 || onboardingPin.length !== 6}
-              className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
+              disabled={onboardingLoading || stepUploading || onboardingUsername.length < 2 || onboardingPin.length !== 6}
+              className="mt-1 flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80 disabled:opacity-60"
               style={{ touchAction: "manipulation" }}
             >
               {onboardingLoading ? (
@@ -651,8 +641,11 @@ const Landing = () => {
                 setAnonUserId(null);
                 setOnboardingUsername("");
                 setOnboardingPin("");
+                setStepName("");
+                setStepAvatar("");
+                setUsernameEdited(false);
               }}
-              className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              className="text-xs text-muted-foreground/50 transition-colors hover:text-muted-foreground"
               style={{ touchAction: "manipulation" }}
             >
               ← use Spotify or YouTube instead
