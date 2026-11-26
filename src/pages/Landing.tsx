@@ -13,6 +13,17 @@ import { Camera } from "lucide-react";
 
 const APIKEY = SUPABASE_PUBLISHABLE_KEY;
 
+/** "André Delaney" → "andre.delaney" */
+const suggestUsername = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ".")
+    .replace(/[^a-z0-9._-]/g, "")
+    .slice(0, 24);
+
 const Landing = () => {
   const { user, loading, signInWithSpotify } = useAuth();
   const navigate = useNavigate();
@@ -36,12 +47,14 @@ const Landing = () => {
   const [pinLoading, setPinLoading] = useState(false);
   // Apple sign-up: the new account is signed in before it has a username — don't jump to the feed yet
   const holdForSignup = useRef(false);
-  const [checkingSignup, setCheckingSignup] = useState(false);
+  // Anonymous accounts are checked for a missing username before deciding where to go
+  const [signupCheckedFor, setSignupCheckedFor] = useState<string | null>(null);
   // Step 2 of Apple sign-up: optional name + photo (Apple doesn't share either)
   const [stepName, setStepName] = useState("");
   const [stepAvatar, setStepAvatar] = useState("");
   const [stepUploading, setStepUploading] = useState(false);
   const [usernameEdited, setUsernameEdited] = useState(false);
+  const [signupPlatform, setSignupPlatform] = useState<"apple" | "tidal">("apple");
   const photoInput = useRef<HTMLInputElement>(null);
 
   // Signed in with Apple Music earlier but never picked a username (closed the app halfway):
@@ -49,7 +62,6 @@ const Landing = () => {
   useEffect(() => {
     if (!user || !user.is_anonymous || holdForSignup.current) return;
     let cancelled = false;
-    setCheckingSignup(true);
     supabase
       .from("profiles")
       .select("username")
@@ -60,9 +72,18 @@ const Landing = () => {
         if (!data?.username) {
           holdForSignup.current = true;
           setAnonUserId(user.id);
+          // Coming from Tidal sign-in: their Tidal name is filled in
+          try {
+            const info = JSON.parse(sessionStorage.getItem("plai-signup") || "null");
+            if (info?.platform) setSignupPlatform(info.platform);
+            if (info?.name) {
+              setStepName(info.name);
+              setOnboardingUsername(suggestUsername(info.name));
+            }
+          } catch {}
           setShowAppleOnboarding(true);
         }
-        setCheckingSignup(false);
+        setSignupCheckedFor(user.id);
       });
     return () => {
       cancelled = true;
@@ -228,6 +249,9 @@ const Landing = () => {
       }
 
       setShowAppleOnboarding(false);
+      try {
+        sessionStorage.removeItem("plai-signup");
+      } catch {}
       finishSignup(cleanUsername);
     } catch (err: any) {
       console.error("Onboarding error:", err);
@@ -332,6 +356,7 @@ const Landing = () => {
     }
   };
 
+  const checkingSignup = !!user?.is_anonymous && !holdForSignup.current && signupCheckedFor !== user.id;
   if (loading || checkingSignup) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -526,7 +551,11 @@ const Landing = () => {
           /* ── Apple Music sign-up: photo, name, username and PIN on one screen ── */
           <div className="flex w-full flex-col gap-4">
             <p className="text-center text-sm leading-relaxed text-muted-foreground">
-              Apple Music doesn't share your name or photo,<br />so set up your profile here
+              {signupPlatform === "tidal" ? (
+                <>Tidal connected ✓<br />now set up your PLAI profile</>
+              ) : (
+                <>Apple Music doesn't share your name or photo,<br />so set up your profile here</>
+              )}
             </p>
             <button
               type="button"
@@ -575,7 +604,7 @@ const Landing = () => {
                   const name = e.target.value.slice(0, 40);
                   setStepName(name);
                   // Suggest a username from the name until they type their own
-                  if (!usernameEdited) setOnboardingUsername(name.toLowerCase().replace(/\s+/g, ".").replace(/[^a-z0-9._-]/g, "").slice(0, 24));
+                  if (!usernameEdited) setOnboardingUsername(suggestUsername(name));
                 }}
                 placeholder="e.g. André Delaney"
                 autoComplete="name"
@@ -637,6 +666,9 @@ const Landing = () => {
               onClick={async () => {
                 await supabase.auth.signOut();
                 holdForSignup.current = false;
+                try {
+                  sessionStorage.removeItem("plai-signup");
+                } catch {}
                 setShowAppleOnboarding(false);
                 setAnonUserId(null);
                 setOnboardingUsername("");
@@ -648,7 +680,7 @@ const Landing = () => {
               className="text-xs text-muted-foreground/50 transition-colors hover:text-muted-foreground"
               style={{ touchAction: "manipulation" }}
             >
-              ← use Spotify or YouTube instead
+              ← use a different music app
             </button>
           </div>
         ) : showPinLogin ? (

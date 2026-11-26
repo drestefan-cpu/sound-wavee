@@ -56,6 +56,12 @@ serve(async (req) => {
       })
       .eq("id", user_id);
 
+    // Their name from Tidal (Tidal has no profile photo). Only fills an empty PLAI name.
+    const name = await tidalName(tokens.access_token);
+    if (name) {
+      await supabaseAdmin.from("profiles").update({ display_name: name }).eq("id", user_id).is("display_name", null);
+    }
+
     // No Spotify connection and still on the default play app → play songs on Tidal
     await supabaseAdmin
       .from("profiles")
@@ -68,6 +74,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         access_token: tokens.access_token,
+        name,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -80,3 +87,19 @@ serve(async (req) => {
     });
   }
 });
+
+/** "First Last" from Tidal's account info, or null (best effort — never blocks connecting) */
+async function tidalName(accessToken: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://openapi.tidal.com/v2/users/me", {
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.api+json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const attrs = (await res.json())?.data?.attributes || {};
+    const full = [attrs.firstName, attrs.lastName].filter((x: unknown) => typeof x === "string" && x.trim()).join(" ").trim();
+    return full ? full.slice(0, 40) : null;
+  } catch {
+    return null;
+  }
+}

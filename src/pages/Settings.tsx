@@ -255,6 +255,8 @@ const SettingsPage = () => {
     }
     toast.success("PIN saved — use it with your username to sign in on another device");
     setPin("");
+    // The account is no longer anonymous: refresh so the "no PIN yet" warning goes away
+    supabase.auth.refreshSession().then(() => {}, () => {});
   };
 
   // Only accounts without Spotify/Google email sign-in use a PIN
@@ -575,10 +577,20 @@ const SettingsPage = () => {
         {needsBackupSignIn && (
           <div className="border-t border-border pt-6">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-1">backup sign-in</h3>
-            <p className="text-[11px] leading-relaxed text-muted-foreground mb-3">
-              You sign in with your username and PIN. Link Google too, so you can still get in on a new phone or if you
-              forget your PIN.
-            </p>
+            {(user as { is_anonymous?: boolean }).is_anonymous ? (
+              <p className="text-[11px] leading-relaxed text-muted-foreground mb-3">
+                Your account has no PIN yet, so if you sign out or switch phones you can't get back in.{" "}
+                <a href="#quick-login-pin" className="text-primary underline-offset-2 hover:underline">
+                  Set a PIN
+                </a>{" "}
+                and link Google as a backup.
+              </p>
+            ) : (
+              <p className="text-[11px] leading-relaxed text-muted-foreground mb-3">
+                You sign in with your username and PIN. Link Google too, so you can still get in on a new phone or if
+                you forget your PIN.
+              </p>
+            )}
             <button
               onClick={linkGoogle}
               className="rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary/50"
@@ -916,7 +928,7 @@ const SettingsPage = () => {
             </button>
           </label>
           {usesPinLogin && (
-          <div className="mt-6">
+          <div id="quick-login-pin" className="mt-6 scroll-mt-24">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3">quick login PIN</h4>
             <p className="text-xs text-muted-foreground mb-2">set a 6-digit PIN to sign in with your username on another device</p>
             <div className="flex gap-2">

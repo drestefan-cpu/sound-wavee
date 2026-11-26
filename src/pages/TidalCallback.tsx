@@ -54,7 +54,9 @@ const TidalCallback = () => {
           }
         }
 
+        let newAccount = false;
         if (!userId) {
+          newAccount = true;
           setStatus("creating your account...");
           const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
           if (anonError || !anonData.user) {
@@ -121,8 +123,22 @@ const TidalCallback = () => {
               .eq("tidal_user_id", tidalUid)
               .maybeSingle() as any);
             if (existingProfile && existingProfile.id !== userId) {
-              // Found existing profile — use it instead of the new anon account
-              userId = existingProfile.id;
+              // This Tidal account already has a PLAI account: send them to sign in to that one
+              // (the brand-new empty account is cleaned up automatically)
+              const { data: existing } = await supabase
+                .from("profiles")
+                .select("username")
+                .eq("id", existingProfile.id)
+                .maybeSingle();
+              if (newAccount) await supabase.auth.signOut();
+              toast(
+                existing?.username
+                  ? `you already have a PLAI account, @${existing.username} — sign in with your PIN`
+                  : "this Tidal account is already connected to another PLAI account",
+                { duration: 8000 },
+              );
+              navigate("/");
+              return;
             } else {
               // Store tidal_user_id for future logins
               await (supabase
@@ -150,6 +166,16 @@ const TidalCallback = () => {
         }
 
         clearConnectionIssue("tidal");
+
+        // New to PLAI: pick a username + PIN (and photo), with the name from Tidal filled in
+        const { data: me } = await supabase.from("profiles").select("username").eq("id", userId).maybeSingle();
+        if (!me?.username) {
+          try {
+            sessionStorage.setItem("plai-signup", JSON.stringify({ platform: "tidal", name: result.name || "" }));
+          } catch {}
+          navigate("/");
+          return;
+        }
         toast.success("Tidal connected!");
         navigate("/feed");
       } catch (err) {
