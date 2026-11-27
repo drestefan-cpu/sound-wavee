@@ -1382,7 +1382,6 @@ const Profile = () => {
         ) : tab === "activity" ? (
           <div className="space-y-1.5">
             <ShareStats />
-            <ShareStats />
             {activityLoaded && activity.length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
                 {(["all", "saves", "reactions", "recommendations"] as ActivityFilterType[]).map((f) => (
