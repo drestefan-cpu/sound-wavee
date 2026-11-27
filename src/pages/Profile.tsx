@@ -1142,76 +1142,146 @@ const Profile = () => {
           </div>
         )}
 
-        <div className="flex flex-col items-center gap-3 relative z-10">
-          <div className="h-16 w-16 overflow-hidden rounded-full bg-primary/20">
+        {/* ── who this is · one line of numbers · actions · song of the week ── */}
+        <div className="relative z-10 flex flex-col items-center text-center">
+          {isOwnProfile && (
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              aria-label="sync your music now"
+              className="absolute right-0 top-0 flex flex-col items-center gap-0.5 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+              <span className="text-[9px] tabular-nums">
+                {syncing
+                  ? "syncing"
+                  : syncResult
+                    ? syncResult
+                    : profile.last_synced_at
+                      ? (() => {
+                          const mins = Math.round((Date.now() - new Date(profile.last_synced_at).getTime()) / 60000);
+                          if (mins < 1) return "just now";
+                          if (mins < 60) return `${mins}m ago`;
+                          const hrs = Math.round(mins / 60);
+                          if (hrs < 24) return `${hrs}h ago`;
+                          return `${Math.round(hrs / 24)}d ago`;
+                        })()
+                      : "sync"}
+              </span>
+            </button>
+          )}
+
+          <div className="h-20 w-20 overflow-hidden rounded-full bg-primary/20">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center font-display text-xl text-primary-foreground bg-primary">
+              <div className="flex h-full w-full items-center justify-center bg-primary font-display text-2xl text-primary-foreground">
                 {displayName[0].toUpperCase()}
               </div>
             )}
           </div>
-          <div className="text-center">
-            <h2 className="text-lg font-medium text-foreground">{displayName}</h2>
-            {profile.username ? (
-              <p className="text-xs text-muted-foreground">@{profile.username}</p>
-            ) : isOwnProfile ? (
-              usernameEdit ? (
-                <div className="flex flex-col items-center gap-1 mt-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={newUsername}
-                      onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
-                      className="rounded-full bg-card border border-border px-3 py-1 text-sm text-foreground w-32"
-                      placeholder="username"
-                    />
-                    <button onClick={handleSaveUsername} className="text-xs text-primary">
-                      save
-                    </button>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">letters, numbers, . _ - only</span>
-                </div>
-              ) : (
-                <button onClick={() => setUsernameEdit(true)} className="text-sm text-primary hover:underline mt-1">
-                  add username →
-                </button>
-              )
-            ) : (
-              <p className="text-xs text-muted-foreground">@user</p>
-            )}
-            {profile?.status && (
-              <p className="text-[11px] text-muted-foreground/70 italic mt-0.5">"{profile.status}"</p>
-            )}
-            {!isOwnProfile && tasteDetails && (
-              <button
-                onClick={() => setShowTasteMatch(true)}
-                className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium transition-transform active:scale-95 ${
-                  tasteDetails.enough && tasteMatch !== null
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border bg-card text-muted-foreground"
-                }`}
-                aria-label="see your taste match"
-              >
-                {tasteDetails.enough && tasteMatch !== null
-                  ? `${tasteMatch}% taste match`
-                  : "taste match: not enough music yet"}
-                <span aria-hidden="true">›</span>
-              </button>
-            )}
-            {showTasteMatch && tasteDetails && (
-              <TasteMatchSheet
-                match={tasteDetails}
-                otherName={`@${profile?.username || "them"}`}
-                myUsername={myUsername ?? undefined}
-                otherUsername={profile?.username || undefined}
-                otherAvatar={(profile as { avatar_url?: string | null } | null)?.avatar_url}
-                onClose={() => setShowTasteMatch(false)}
-              />
-            )}
-          </div>
 
-          <div className="w-full max-w-sm">
+          <h2 className="mt-3 text-lg font-medium leading-tight text-foreground">{displayName}</h2>
+          {/* @username only when it says something the name doesn't */}
+          {profile.username && profile.username.toLowerCase() === displayName.toLowerCase() ? null : (
+            <div className="mt-0.5">
+              {profile.username ? (
+                <p className="text-xs text-muted-foreground">@{profile.username}</p>
+              ) : isOwnProfile ? (
+                usernameEdit ? (
+                  <div className="flex flex-col items-center gap-1 mt-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={newUsername}
+                        onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+                        className="rounded-full bg-card border border-border px-3 py-1 text-sm text-foreground w-32"
+                        placeholder="username"
+                      />
+                      <button onClick={handleSaveUsername} className="text-xs text-primary">
+                        save
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">letters, numbers, . _ - only</span>
+                  </div>
+                ) : (
+                  <button onClick={() => setUsernameEdit(true)} className="text-sm text-primary hover:underline mt-1">
+                    add username →
+                  </button>
+                )
+              ) : (
+                <p className="text-xs text-muted-foreground">@user</p>
+              )}
+            </div>
+          )}
+          {profile?.status && (
+            <p className="mt-1.5 max-w-xs text-xs leading-snug text-muted-foreground">{profile.status}</p>
+          )}
+
+          {/* numbers: one quiet line */}
+          <p className="mt-2.5 flex flex-wrap items-center justify-center gap-x-1.5 text-xs tabular-nums text-muted-foreground">
+            <span>
+              <span className="font-medium text-foreground">{visibleCollectionCount}</span> songs
+            </span>
+            {isOwnProfile ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <button onClick={() => setFollowModal("followers")} className="transition-colors hover:text-foreground">
+                  <span className="font-medium text-foreground">{followerCount}</span> followers
+                </button>
+                <span aria-hidden="true">·</span>
+                <button onClick={() => setFollowModal("following")} className="transition-colors hover:text-foreground">
+                  <span className="font-medium text-foreground">{followingCount}</span> following
+                </button>
+              </>
+            ) : (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>
+                  <span className="font-medium text-foreground">{findsCount}</span> finds
+                </span>
+              </>
+            )}
+          </p>
+
+          {/* someone else's profile: follow, bell, taste match on one row */}
+          {!isOwnProfile && (
+            <div className="mt-4 flex items-center gap-2">
+              <FollowButton targetUserId={profile.id} />
+              <NotifyBell targetUserId={profile.id} targetUsername={profile.username} />
+              {tasteDetails && (
+                <button
+                  onClick={() => setShowTasteMatch(true)}
+                  className={`flex h-9 items-center gap-1 rounded-full border px-3.5 text-xs font-medium transition-colors ${
+                    tasteDetails.enough && tasteMatch !== null
+                      ? "border-primary/60 text-primary hover:bg-primary/10"
+                      : "border-border text-muted-foreground"
+                  }`}
+                  aria-label="see your taste match"
+                >
+                  {tasteDetails.enough && tasteMatch !== null ? (
+                    <>
+                      <span className="tabular-nums">{tasteMatch}%</span> match
+                    </>
+                  ) : (
+                    "match: soon"
+                  )}
+                  <span aria-hidden="true">›</span>
+                </button>
+              )}
+            </div>
+          )}
+          {showTasteMatch && tasteDetails && (
+            <TasteMatchSheet
+              match={tasteDetails}
+              otherName={`@${profile?.username || "them"}`}
+              myUsername={myUsername ?? undefined}
+              otherUsername={profile?.username || undefined}
+              otherAvatar={(profile as { avatar_url?: string | null } | null)?.avatar_url}
+              onClose={() => setShowTasteMatch(false)}
+            />
+          )}
+
+          <div className="mt-4 w-full max-w-sm">
             <SongOfWeek
               trackId={(profile as any).pick_track_id}
               setAt={(profile as any).pick_set_at}
@@ -1221,73 +1291,9 @@ const Profile = () => {
               sharerUsername={myUsername ?? undefined}
             />
           </div>
-
-          <div className="w-full relative flex items-end justify-center">
-            <div className="flex gap-5 text-center text-xs">
-              {isOwnProfile ? (
-                <>
-                  <button onClick={() => setFollowModal("followers")} className="hover:opacity-80 transition-opacity">
-                    <p className="font-medium text-foreground text-sm">{followerCount}</p>
-                    <p className="text-muted-foreground">followers</p>
-                  </button>
-                  <button onClick={() => setFollowModal("following")} className="hover:opacity-80 transition-opacity">
-                    <p className="font-medium text-foreground text-sm">{followingCount}</p>
-                    <p className="text-muted-foreground">following</p>
-                  </button>
-                  <div>
-                    <p className="font-medium text-foreground text-sm">{visibleCollectionCount}</p>
-                    <p className="text-muted-foreground">collection</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <p className="font-medium text-foreground text-sm">{findsCount}</p>
-                    <p className="text-muted-foreground">finds</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground text-sm">{visibleCollectionCount}</p>
-                    <p className="text-muted-foreground">collection</p>
-                  </div>
-                </>
-              )}
-            </div>
-            {isOwnProfile && (
-              <button
-                onClick={handleSync}
-                disabled={syncing}
-                className="absolute right-0 bottom-0 flex flex-col items-center hover:opacity-80 transition-opacity"
-              >
-                <RefreshCw className={`h-4 w-4 text-muted-foreground ${syncing ? "animate-spin" : ""}`} />
-                <p className="text-[10px] text-muted-foreground mt-0.5">{syncing ? "..." : "sync"}</p>
-                {syncResult ? (
-                  <p className="text-[9px] mt-0.5 transition-opacity duration-500" style={{ color: "hsl(var(--muted-foreground))" }}>
-                    {syncResult}
-                  </p>
-                ) : profile.last_synced_at ? (
-                  <p className="text-[9px] mt-0.5" style={{ color: "hsl(var(--muted-foreground))" }}>
-                    {(() => {
-                      const mins = Math.round((Date.now() - new Date(profile.last_synced_at).getTime()) / 60000);
-                      if (mins < 1) return "just now";
-                      if (mins < 60) return `${mins}m ago`;
-                      const hrs = Math.round(mins / 60);
-                      if (hrs < 24) return `${hrs}h ago`;
-                      return `${Math.round(hrs / 24)}d ago`;
-                    })()}
-                  </p>
-                ) : null}
-              </button>
-            )}
-          </div>
-          {!isOwnProfile && (
-            <div className="flex items-center gap-2">
-              <FollowButton targetUserId={profile.id} />
-              <NotifyBell targetUserId={profile.id} targetUsername={profile.username} />
-            </div>
-          )}
         </div>
 
-        <div className="mt-4 mb-3 overflow-x-auto no-scrollbar">
+        <div className="mt-5 mb-3 overflow-x-auto no-scrollbar">
           <div className="mx-auto flex w-max gap-1.5">
           {tabList.map((t) => (
             <button

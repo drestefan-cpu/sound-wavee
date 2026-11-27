@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Pin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import Artwork from "@/components/Artwork";
@@ -55,9 +54,7 @@ const SongOfWeek = ({ trackId, setAt, note, isOwn, ownerId, sharerUsername }: Pr
   if (!current) {
     if (!isOwn) return null;
     return (
-      <p className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground/70">
-        <Pin className="h-2.5 w-2.5" /> open any song to pin your song of the week
-      </p>
+      <p className="text-[10px] text-muted-foreground/60">open any song to pin your song of the week</p>
     );
   }
   if (!track) return <div className="mx-auto h-11 w-56 animate-pulse rounded-full border border-primary/20" />;
@@ -77,9 +74,7 @@ const SongOfWeek = ({ trackId, setAt, note, isOwn, ownerId, sharerUsername }: Pr
           />
         </span>
         <span className="min-w-0 text-left leading-tight">
-          <span className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-[0.14em] text-primary">
-            <Pin className="h-2.5 w-2.5 fill-current" /> song of the week
-          </span>
+          <span className="block text-[10px] text-primary/80">song of the week</span>
           <span className="block truncate text-xs text-foreground">
             {track.title}
             <span className="text-muted-foreground"> · {track.artist}</span>
