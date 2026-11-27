@@ -3,15 +3,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { jsonResponse, corsHeaders } from "../_shared/auth.ts"
 import { generateAppleDeveloperToken, resolveTrackLinks } from "../_shared/links.ts"
 
-// Keeps a copy of the Apple Music US "top songs" chart in chart_tracks, for Discover's
-// "top songs right now" section. The app calls this when it opens Discover; it only fetches
+// Keeps a copy of an Apple Music country's "top songs" chart in chart_tracks, for Discover's
+// "top songs in <country>" section. Body: { storefront: "gb" } (defaults to "us"). The app calls this when it opens Discover; it only fetches
 // from Apple when the stored chart is more than 12 hours old, so repeat calls are cheap.
 // Every chart song becomes a normal PLAI track (so it can be saved and shared), and its
 // Spotify / Tidal links are filled in in the background.
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
 
-const CHART = "apple-us-top-songs"
+// Countries the app offers (same list as src/lib/chartCountry.ts)
+const STOREFRONTS = new Set([
+  "us", "gb", "ca", "au", "nz", "ie", "de", "fr", "es", "it", "nl", "be", "se", "no", "dk", "fi", "pt", "at",
+  "ch", "pl", "cz", "gr", "tr", "il", "ae", "sa", "eg", "za", "ng", "ke", "gh", "in", "jp", "kr", "cn", "hk",
+  "tw", "sg", "my", "ph", "id", "th", "vn", "br", "mx", "ar", "co", "cl", "pe", "jm", "tt", "pr", "do",
+])
 const MAX_AGE_HOURS = 12
 const SIZE = 25
 
@@ -20,6 +25,10 @@ serve(async (req) => {
 
   try {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+    const body = await req.json().catch(() => ({}))
+    const requested = String(body?.storefront || "us").toLowerCase()
+    const storefront = STOREFRONTS.has(requested) ? requested : "us"
+    const CHART = `apple-${storefront}-top-songs`
 
     const { data: latest } = await admin
       .from("chart_tracks")
@@ -35,7 +44,7 @@ serve(async (req) => {
     const token = await generateAppleDeveloperToken()
     if (!token) return jsonResponse({ error: "apple music isn't configured" }, 500)
 
-    const res = await fetch(`https://api.music.apple.com/v1/catalog/us/charts?types=songs&limit=${SIZE}`, {
+    const res = await fetch(`https://api.music.apple.com/v1/catalog/${storefront}/charts?types=songs&limit=${SIZE}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return jsonResponse({ error: `apple music chart unavailable (${res.status})` }, 502)

@@ -8,12 +8,14 @@ import FriendAvatars, {
   loadFriendLikes,
   type FriendLike,
 } from "@/components/discover/FriendAvatars";
+import { CHART_COUNTRIES, chartKey, countryName, flag, getChartCountry, setChartCountry } from "@/lib/chartCountry";
 
 /**
  * Discover → trending.
  *  1. "this week on PLAI": songs with the most likes, saves, reactions and share-link opens on PLAI
  *     (database function trending_tracks). Widens to 30 days while PLAI is small.
- *  2. "top songs right now": the Apple Music US chart, cached by the refresh-charts function.
+ *  2. "top songs in <country>": that country's Apple Music chart (your country by default, switchable),
+ *     cached by the refresh-charts function.
  */
 
 export interface ShareableTrack {
@@ -55,9 +57,38 @@ let cache: {
   trending: TrendingRow[];
   days: number;
   chart: TrackRow[];
+  country: string;
   friends: Map<string, FriendLike[]>;
   at: number;
 } | null = null;
+
+async function loadChart(cc: string) {
+  const { data } = await (supabase
+    .from("chart_tracks" as any)
+    .select(`position, fetched_at, tracks(${TRACK_COLUMNS})`)
+    .eq("chart", chartKey(cc))
+    .order("position") as any);
+  const rows = (data || []) as { position: number; fetched_at: string; tracks: TrackRow | null }[];
+  return {
+    tracks: rows.map((r) => r.tracks).filter((t): t is TrackRow => !!t),
+    fetchedAt: rows[0]?.fetched_at ? new Date(rows[0].fetched_at).getTime() : 0,
+  };
+}
+
+/** A country's chart, asking the server to refresh it first if the stored copy is missing or old */
+async function loadChartFresh(cc: string): Promise<TrackRow[]> {
+  try {
+    let result = await loadChart(cc);
+    if (result.tracks.length === 0 || Date.now() - result.fetchedAt > CHART_MAX_AGE_MS) {
+      // (the server only calls Apple if its copy is stale)
+      await supabase.functions.invoke("refresh-charts", { body: { storefront: cc } }).catch(() => {});
+      result = await loadChart(cc);
+    }
+    return result.tracks;
+  } catch {
+    return [];
+  }
+}
 
 const toCard = (t: TrackRow): UnifiedTrackData => ({
   id: t.id,
@@ -136,29 +167,12 @@ const TrendingSection = ({
     cache?.friends || new Map(),
   );
   const [loading, setLoading] = useState(!cache);
+  const [country, setCountry] = useState(() => cache?.country || getChartCountry());
+  const [chartLoading, setChartLoading] = useState(false);
 
   useEffect(() => {
     if (cache && Date.now() - cache.at < 5 * 60_000) return;
     let cancelled = false;
-
-    const loadChart = async () => {
-      const { data } = await (supabase
-        .from("chart_tracks" as any)
-        .select(`position, fetched_at, tracks(${TRACK_COLUMNS})`)
-        .eq("chart", "apple-us-top-songs")
-        .order("position") as any);
-      const rows = (data || []) as {
-        position: number;
-        fetched_at: string;
-        tracks: TrackRow | null;
-      }[];
-      return {
-        tracks: rows.map((r) => r.tracks).filter((t): t is TrackRow => !!t),
-        fetchedAt: rows[0]?.fetched_at
-          ? new Date(rows[0].fetched_at).getTime()
-          : 0,
-      };
-    };
 
     // Each part loads on its own, so one failing never blanks the other
     const loadTrending = async (): Promise<{
@@ -186,29 +200,11 @@ const TrendingSection = ({
       }
     };
 
-    const loadChartFresh = async (): Promise<TrackRow[]> => {
-      try {
-        let result = await loadChart();
-        if (
-          result.tracks.length === 0 ||
-          Date.now() - result.fetchedAt > CHART_MAX_AGE_MS
-        ) {
-          // Ask the server to refresh the chart (it only calls Apple if the copy is stale)
-          await supabase.functions
-            .invoke("refresh-charts", { body: {} })
-            .catch(() => {});
-          result = await loadChart();
-        }
-        return result.tracks;
-      } catch {
-        return [];
-      }
-    };
-
     const load = async () => {
+      const cc = country;
       const [t, chartTracks] = await Promise.all([
         loadTrending(),
-        loadChartFresh(),
+        loadChartFresh(cc),
       ]);
       const ids = [
         ...new Set([
@@ -224,6 +220,7 @@ const TrendingSection = ({
         trending: t.rows,
         days: t.days,
         chart: chartTracks,
+        country: cc,
         friends: friendMap,
         at: Date.now(),
       };
@@ -238,7 +235,23 @@ const TrendingSection = ({
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [followingIds]);
+
+  // Switching country: reload just the chart
+  const changeCountry = async (cc: string) => {
+    setCountry(cc);
+    setChartCountry(cc);
+    setChartLoading(true);
+    const tracks = await loadChartFresh(cc);
+    const friendMap = await loadFriendLikes(tracks.map((t) => t.id), followingIds).catch(
+      () => new Map<string, FriendLike[]>(),
+    );
+    setChart(tracks);
+    setFriends((prev) => new Map([...prev, ...friendMap]));
+    if (cache) cache = { ...cache, chart: tracks, country: cc };
+    setChartLoading(false);
+  };
 
   if (loading) {
     return (
@@ -305,16 +318,43 @@ const TrendingSection = ({
         )}
       </section>
 
-      {chartRows.length > 0 && (
-        <section className="space-y-3">
-          <div>
-            <h3 className="font-display text-lg text-foreground">
-              top songs right now
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              the Apple Music US chart, updated twice a day
-            </p>
+      <section className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1.5">
+            <div>
+              <h3 className="font-display text-lg text-foreground">top songs right now</h3>
+              <p className="text-xs text-muted-foreground">the Apple Music chart, updated twice a day</p>
+            </div>
+            {/* country picker: a chip with the phone's own list picker underneath */}
+            <label className="relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs text-foreground transition-colors hover:border-primary/50">
+              <span aria-hidden="true">{flag(country)}</span>
+              <span>{countryName(country)}</span>
+              <span aria-hidden="true" className="text-muted-foreground">▾</span>
+              <select
+                id="chart-country"
+                aria-label="chart country"
+                value={country}
+                onChange={(e) => changeCountry(e.target.value)}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              >
+                {[...CHART_COUNTRIES]
+                  .sort((a, b) => countryName(a).localeCompare(countryName(b)))
+                  .map((cc) => (
+                    <option key={cc} value={cc}>
+                      {flag(cc)} {countryName(cc)}
+                    </option>
+                  ))}
+              </select>
+            </label>
           </div>
+          {chartLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : chartRows.length === 0 ? (
+            <p className="rounded-xl border border-border bg-card p-5 text-center text-xs text-muted-foreground">
+              The {countryName(country)} chart isn't available right now. Try again in a bit, or pick another country.
+            </p>
+          ) : (
           <div className="space-y-2">
             {chartRows.map((t) => (
               <UnifiedTrackCard
@@ -337,8 +377,8 @@ const TrendingSection = ({
               />
             ))}
           </div>
+          )}
         </section>
-      )}
     </div>
   );
 };
