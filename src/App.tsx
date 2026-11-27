@@ -30,6 +30,7 @@ import SongShare from "./pages/SongShare";
 const ShareTarget = lazy(() => import("./pages/ShareTarget"));
 import ShortLink from "./pages/ShortLink";
 import Join from "./pages/Join";
+import SpotifyAccessSheet from "./components/SpotifyAccessSheet";
 const SharePage = lazy(() => import("./pages/SharePage"));
 
 const queryClient = new QueryClient();
@@ -87,6 +88,7 @@ const App = () => (
                 <Route path="/auth/google/callback" element={<GoogleCallback />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <SpotifyAccessSheet />
               </Suspense>
             </SavedTracksProvider>
           </PlatformProvider>

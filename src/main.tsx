@@ -1,3 +1,5 @@
+// (must stay first: reads Spotify sign-in errors before anything else touches the address)
+import "./lib/oauthReturn";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";

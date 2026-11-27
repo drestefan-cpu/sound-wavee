@@ -54,6 +54,15 @@ function describe(n: Note): Message {
       };
     case "follow":
       return { title: `${who} followed you`, body: "tap to see their music", url: profile, tag: `follow-${n.id}` };
+    case "spotify_request":
+      return {
+        title: `${d.name || d.email || "someone"} wants to connect Spotify`,
+        body: `add ${d.email || "them"} in Spotify's dashboard, then mark them added in PLAI admin`,
+        url: "/admin",
+        tag: `spot-${n.id}`,
+      };
+    case "spotify_approved":
+      return { title: "you're approved for Spotify 🎧", body: "tap to connect it — your liked songs will sync", url: "/settings#connected-platforms", tag: "spot-ok" };
     case "invite_joined":
       return { title: `${who} joined PLAI from your invite 🎉`, body: "you follow each other now — say hi with a song", url: profile, tag: `inv-${n.id}` };
     case "rec_reply":

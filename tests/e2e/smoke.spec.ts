@@ -52,6 +52,26 @@ test.describe("signed out", () => {
     noCrash();
   });
 
+  test("when Spotify turns someone away, they can request access or join with a playlist", async ({ page }) => {
+    const noCrash = watchForCrashes(page);
+    // pretend they just tried "continue with Spotify" and Spotify sent them back with an error
+    await page.goto(SIGNED_OUT + "/privacy/index.html");
+    await page.evaluate(() =>
+      localStorage.setItem("plai-oauth-attempt", JSON.stringify({ provider: "spotify", at: Date.now() })),
+    );
+    await page.goto(SIGNED_OUT + "/feed?error=server_error&error_description=Error+getting+user+profile");
+    await expect(page.getByText("Spotify needs to approve you first")).toBeVisible({ timeout: 15_000 });
+    await expect(page).toHaveURL(/\/$/); // the error is cleared from the address
+    await expect(page.getByRole("button", { name: "request access" })).toBeDisabled();
+    // a real tap (fails if anything, like the add-to-home-screen overlay, covers the sheet)
+    await page.getByPlaceholder("your Spotify email").click();
+    await page.getByPlaceholder("your Spotify email").fill("friend@example.com");
+    await expect(page.getByRole("button", { name: "request access" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: /join with a playlist/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: "email André" })).toHaveAttribute("href", /^mailto:andre@delaneyprojects\.xyz/);
+    noCrash();
+  });
+
   test("privacy policy and terms pages load", async ({ page }) => {
     await page.goto(SIGNED_OUT + "/privacy/index.html");
     await expect(page.getByRole("heading", { name: "Privacy policy" })).toBeVisible();

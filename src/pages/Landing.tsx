@@ -45,7 +45,7 @@ const Landing = () => {
   const [stepAvatar, setStepAvatar] = useState("");
   const [stepUploading, setStepUploading] = useState(false);
   const [usernameEdited, setUsernameEdited] = useState(false);
-  const [signupPlatform, setSignupPlatform] = useState<"apple" | "tidal">("apple");
+  const [signupPlatform, setSignupPlatform] = useState<"apple" | "tidal" | "spotify">("apple");
   const photoInput = useRef<HTMLInputElement>(null);
 
   // Signed in with Apple Music earlier but never picked a username (closed the app halfway):
@@ -253,6 +253,17 @@ const Landing = () => {
   };
 
   const finishSignup = (username: string) => {
+    // Came from "Spotify needs to approve you": link their request, then straight to adding a playlist
+    if (signupPlatform === "spotify") {
+      try {
+        const email = localStorage.getItem("plai-spotify-request-email");
+        if (email) (supabase as any).rpc("link_spotify_request", { p_email: email }).then(() => {}, () => {});
+      } catch {}
+      holdForSignup.current = false;
+      toast.success("welcome to PLAI! now add your playlist");
+      navigate("/settings#connected-platforms");
+      return;
+    }
     // On iPhone in Safari, the home-screen app keeps its own sign-in: tell them to use the PIN there
     if (isIOS() && !isStandaloneApp()) {
       setAppleDone(username);
@@ -543,6 +554,8 @@ const Landing = () => {
             <p className="text-center text-sm leading-relaxed text-muted-foreground">
               {signupPlatform === "tidal" ? (
                 <>Tidal connected ✓<br />now set up your PLAI profile</>
+              ) : signupPlatform === "spotify" ? (
+                <>set up your PLAI profile,<br />then add a public Spotify playlist</>
               ) : (
                 <>Apple Music doesn't share your name or photo,<br />so set up your profile here</>
               )}

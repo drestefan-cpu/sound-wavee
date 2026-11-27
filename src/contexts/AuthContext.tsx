@@ -3,6 +3,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { disablePush, refreshPushSubscription } from "@/lib/push";
+import { markSpotifyAttempt } from "@/lib/oauthReturn";
 
 interface AuthContextType {
   session: Session | null;
@@ -239,6 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    markSpotifyAttempt();
     await supabase.auth.signInWithOAuth({
       provider: "spotify",
       options: {

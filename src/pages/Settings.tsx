@@ -80,6 +80,11 @@ const SettingsPage = () => {
       window.history.replaceState(null, "", "/settings");
     }
     // "reconnect" from the feed notice lands here: jump to the music apps
+    // Asked for Spotify access before having an account: link it so they hear when they're approved
+    try {
+      const reqEmail = localStorage.getItem("plai-spotify-request-email");
+      if (reqEmail && user && !user.is_anonymous) (supabase as any).rpc("link_spotify_request", { p_email: reqEmail }).then(() => {}, () => {});
+    } catch {}
     if (window.location.hash === "#connected-platforms") {
       setTimeout(() => document.getElementById("connected-platforms")?.scrollIntoView({ behavior: "smooth" }), 400);
     }

@@ -14,7 +14,7 @@ CREATE TEMP TABLE ids ON COMMIT DROP AS SELECT
   (SELECT id FROM profiles WHERE username = 'andreappletest') AS newbie,
   (SELECT l.track_id FROM likes l WHERE l.user_id = (SELECT id FROM profiles WHERE username = 'dre.stefan')
     ORDER BY l.created_at DESC LIMIT 1) AS dre_track;
-GRANT ALL ON results, ids TO authenticated;
+GRANT ALL ON results, ids TO authenticated, anon;
 
 INSERT INTO results SELECT 'test accounts exist', dre IS NOT NULL AND jan IS NOT NULL AND newbie IS NOT NULL AND dre_track IS NOT NULL,
   'needs dre.stefan, jantidal, andreappletest' FROM ids;
@@ -144,6 +144,22 @@ BEGIN
   INSERT INTO results VALUES ('invite: only counts once', r2 = 'followed', r2);
 END $$;
 RESET ROLE;
+
+-- ── Spotify access requests (as someone not signed in) ─────────────────────
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+  INSERT INTO results SELECT 'anyone can ask for Spotify access', request_spotify_access('db-check@example.com', 'DB check') = 'pending', '';
+  BEGIN
+    PERFORM 1 FROM spotify_access_requests;
+    INSERT INTO results VALUES ('Spotify request emails are private', false, 'readable');
+  EXCEPTION WHEN insufficient_privilege THEN
+    INSERT INTO results VALUES ('Spotify request emails are private', true, '');
+  END;
+END $$;
+RESET ROLE;
+INSERT INTO results SELECT 'admins are told about Spotify requests',
+  EXISTS (SELECT 1 FROM ids, notifications n WHERE n.user_id = ids.dre AND n.type = 'spotify_request' AND n.data->>'email' = 'db-check@example.com'), '';
 
 -- ── account deletion removes everything (as the database owner) ────────────
 DELETE FROM auth.users WHERE id = (SELECT newbie FROM ids);

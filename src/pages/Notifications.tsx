@@ -25,6 +25,8 @@ const ICONS: Record<string, any> = {
   new_music: Music,
   weekly_recap: CalendarHeart,
   invite_joined: UserPlus,
+  spotify_request: Music,
+  spotify_approved: Music,
   rec_reply: MessageCircle,
 };
 
@@ -42,6 +44,10 @@ const typeLabel = (type: string, data: any) => {
       return "recommended you a song";
     case "weekly_recap":
       return "is ready";
+    case "spotify_request":
+      return `asked to connect Spotify${data?.email ? ` (${data.email})` : ""}: add them in Spotify, then mark them added`;
+    case "spotify_approved":
+      return "is ready for you: tap to connect it";
     case "invite_joined":
       return "joined PLAI from your invite — you follow each other now";
     case "rec_reply":
@@ -122,7 +128,11 @@ const Notifications = () => {
               const Icon = ICONS[n.type] || Bell;
               const actorName = n.type === "weekly_recap"
                 ? "your week on PLAI"
-                : n.data?.actor_username ? `@${n.data.actor_username}` : "someone";
+                : n.type === "spotify_request"
+                  ? n.data?.name || n.data?.email || "someone"
+                  : n.type === "spotify_approved"
+                    ? "Spotify"
+                    : n.data?.actor_username ? `@${n.data.actor_username}` : "someone";
               const trackInfo = n.data?.track_title ? ` · ${n.data.track_title}` : "";
               return (
                 <div
@@ -152,6 +162,13 @@ const Notifications = () => {
                         </Link>
                       ) : n.type === "weekly_recap" ? (
                         <Link to="/feed?recap=1" className="font-medium hover:underline">
+                          {actorName}
+                        </Link>
+                      ) : n.type === "spotify_request" || n.type === "spotify_approved" ? (
+                        <Link
+                          to={n.type === "spotify_request" ? "/admin" : "/settings#connected-platforms"}
+                          className="font-medium hover:underline"
+                        >
                           {actorName}
                         </Link>
                       ) : (
