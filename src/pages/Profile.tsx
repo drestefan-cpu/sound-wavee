@@ -1199,6 +1199,8 @@ const Profile = () => {
                 match={tasteDetails}
                 otherName={`@${profile?.username || "them"}`}
                 myUsername={myUsername ?? undefined}
+                otherUsername={profile?.username || undefined}
+                otherAvatar={(profile as { avatar_url?: string | null } | null)?.avatar_url}
                 onClose={() => setShowTasteMatch(false)}
               />
             )}

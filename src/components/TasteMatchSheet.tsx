@@ -1,5 +1,10 @@
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { Share, X } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { makeTasteMatchImage } from "@/lib/tasteMatchImage";
 import { useSheetDrag } from "@/hooks/useSheetDrag";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 
@@ -60,11 +65,52 @@ interface Props {
   match: TasteMatch;
   otherName: string;
   myUsername?: string;
+  /** for the share picture */
+  otherUsername?: string;
+  otherAvatar?: string | null;
   onClose: () => void;
 }
 
-const TasteMatchSheet = ({ match, otherName, myUsername, onClose }: Props) => {
+const TasteMatchSheet = ({ match, otherName, myUsername, otherUsername, otherAvatar, onClose }: Props) => {
   const { panelRef, handlers, sheetStyle, backdropStyle, close } = useSheetDrag(onClose);
+  const { user } = useAuth();
+  const [sharing, setSharing] = useState(false);
+  // shown when the phone can't share files directly: press and hold to save
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const share = async () => {
+    if (!user || match.score === null || !otherUsername) return;
+    setSharing(true);
+    try {
+      const { data: me } = await supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle();
+      const mine = me?.username || myUsername || "me";
+      const blob = await makeTasteMatchImage({
+        score: match.score,
+        me: { username: mine, avatarUrl: me?.avatar_url },
+        them: { username: otherUsername, avatarUrl: otherAvatar },
+        artists: match.shared_artists.map((a) => a.name),
+      });
+      const text = `me and @${otherUsername} are ${match.score}% taste matched on PLAI 🎧 find yours: https://plai.delaneyprojects.xyz/profile/${mine}`;
+      const file = new File([blob], `plai-taste-match-${otherUsername}.png`, { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text });
+        } catch (err) {
+          if ((err as Error)?.name !== "AbortError") throw err;
+        }
+      } else {
+        setPreview(URL.createObjectURL(blob));
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {}
+      }
+    } catch (err) {
+      console.error("taste match share failed", err);
+      toast.error("couldn't make the picture — try again");
+    } finally {
+      setSharing(false);
+    }
+  };
 
   return createPortal(
     <div
@@ -101,6 +147,21 @@ const TasteMatchSheet = ({ match, otherName, myUsername, onClose }: Props) => {
               <div className="mt-4">
                 <Ring score={match.score} />
               </div>
+              {otherUsername && (
+                <button
+                  onClick={share}
+                  disabled={sharing}
+                  className="mt-4 flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-60"
+                  style={{ touchAction: "manipulation" }}
+                >
+                  {sharing ? (
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                  ) : (
+                    <Share className="h-3.5 w-3.5" />
+                  )}
+                  share your match
+                </button>
+              )}
             </>
           ) : (
             <p className="mt-4 max-w-[16rem] text-sm text-muted-foreground">
@@ -172,6 +233,22 @@ const TasteMatchSheet = ({ match, otherName, myUsername, onClose }: Props) => {
               ))}
             </div>
           </section>
+        )}
+
+        {preview && (
+          <div
+            className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-3 bg-background/95 p-6"
+            onClick={() => {
+              URL.revokeObjectURL(preview);
+              setPreview(null);
+            }}
+          >
+            <img src={preview} alt="your taste match picture" className="max-h-[70dvh] w-auto rounded-2xl border border-border" />
+            <p className="max-w-xs text-center text-xs leading-relaxed text-muted-foreground">
+              Press and hold the picture to save or share it. The caption is copied, ready to paste.
+            </p>
+            <button className="text-xs font-medium text-primary">done</button>
+          </div>
         )}
 
         {match.enough && match.shared_artists.length === 0 && match.shared_songs.length === 0 && (
