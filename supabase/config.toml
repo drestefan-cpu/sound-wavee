@@ -37,3 +37,6 @@ verify_jwt = false
 
 [functions.pin-login]
 verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false

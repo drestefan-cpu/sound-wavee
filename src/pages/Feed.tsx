@@ -1,3 +1,4 @@
+import PushPrompt from "@/components/PushPrompt";
 import ConnectionNotice from "@/components/ConnectionNotice";
 import PageTip from "@/components/PageTip";
 import { FRIENDS_TIPS, DISCOVER_TIPS } from "@/lib/tips";
@@ -963,6 +964,7 @@ const Feed = () => {
 
       <main className="mx-auto max-w-feed px-4 py-4">
         {tab === "following" && <ConnectionNotice />}
+        {tab === "following" && <PushPrompt />}
         {tab === "following" ? (
           <PageTip id="friends" steps={FRIENDS_TIPS} className="mb-4" />
         ) : (

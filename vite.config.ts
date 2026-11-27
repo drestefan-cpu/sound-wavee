@@ -19,6 +19,8 @@ export default defineConfig(({ mode }) => ({
       manifest: false,
       workbox: {
         clientsClaim: true,
+        // lock-screen notifications (public/push-sw.js)
+        importScripts: ["/push-sw.js"],
         cleanupOutdatedCaches: true,
         navigateFallback: "/index.html",
         // server routes on the same site: shortcut install page, shortcut endpoint, functions

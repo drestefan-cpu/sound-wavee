@@ -1,3 +1,4 @@
+import PushSettings from "@/components/PushSettings";
 import { useConnectionIssues, clearConnectionIssue } from "@/components/ConnectionNotice";
 import { uploadAvatar } from "@/lib/avatarUpload";
 import { authorizeAppleMusic, AppleMusicAuthError } from "@/lib/appleMusic";
@@ -600,6 +601,8 @@ const SettingsPage = () => {
             </button>
           </div>
         )}
+
+        <PushSettings />
 
         <div className="border-t border-border pt-6">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-1">tips</h3>

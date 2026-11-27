@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { disablePush, refreshPushSubscription } from "@/lib/push";
 
 interface AuthContextType {
   session: Session | null;
@@ -201,6 +202,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (event === "SIGNED_IN" && session?.user) {
         setTimeout(() => triggerAutoSync(session.user.id), 3000);
+        // This device's notifications follow whoever is signed in
+        refreshPushSubscription().catch(() => {});
       }
     });
 
@@ -252,6 +255,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Stop this device getting the old account's notifications
+    await disablePush().catch(() => {});
     await supabase.auth.signOut();
     // Only clear app-specific keys — supabase.auth.signOut() handles its own cleanup.
     // Calling localStorage.clear() wipes Supabase's session reconciliation state and
