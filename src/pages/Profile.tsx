@@ -1211,12 +1211,13 @@ const Profile = () => {
             )}
           </div>
 
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-sm">
             <SongOfWeek
               trackId={(profile as any).pick_track_id}
               setAt={(profile as any).pick_set_at}
               note={(profile as any).pick_note}
               isOwn={isOwnProfile}
+              ownerId={(profile as any).id}
               sharerUsername={myUsername ?? undefined}
             />
           </div>
