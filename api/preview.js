@@ -2,6 +2,7 @@
 //
 //   /s/:shortId   → looks up the track by short_id
 //   /song/:id     → looks up the track by id
+//   /join/:user   → invite link: "@user invited you to PLAI" with their photo
 //
 // Returns a tiny HTML page whose Open Graph tags carry the song's title, artist and
 // album art (what iMessage shows), then immediately forwards people to the song in PLAI.
@@ -71,8 +72,47 @@ function renderPage({ title, description, image, pageUrl, redirectUrl, type }) {
 </html>`;
 }
 
+async function findProfile(username) {
+  const url = `${SUPABASE_URL}/rest/v1/profiles?select=username,display_name,avatar_url&username=eq.${encodeURIComponent(username)}&limit=1`;
+  const res = await fetch(url, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows[0] || null;
+}
+
 export default async function handler(req, res) {
   const url = new URL(req.url, `https://${req.headers.host}`);
+
+  // Invite links: /join/<username>
+  const rawJoin = url.searchParams.get("join");
+  if (rawJoin !== null) {
+    const username = USERNAME_RE.test(rawJoin) ? rawJoin.toLowerCase() : null;
+    let person = null;
+    try {
+      person = username ? await findProfile(username) : null;
+    } catch {
+      person = null;
+    }
+    const name = person ? person.display_name || `@${person.username}` : null;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
+    res.status(200).send(
+      renderPage({
+        title: name ? `${name} invited you to PLAI` : "PLAI",
+        description: name
+          ? `see what ${name} is listening to, and your taste match`
+          : "i love your taste",
+        image: person?.avatar_url || DEFAULT_IMAGE,
+        pageUrl: `${APP_URL}/join/${username || ""}`,
+        redirectUrl: `${APP_URL}/join/${username || ""}`,
+        type: "website",
+      }),
+    );
+    return;
+  }
+
   const rawId = url.searchParams.get("id");
   const rawShort = url.searchParams.get("short");
   const rawFrom = url.searchParams.get("from");

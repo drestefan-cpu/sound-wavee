@@ -29,6 +29,7 @@ const RadarNew = lazy(() => import("./pages/RadarNew"));
 import SongShare from "./pages/SongShare";
 const ShareTarget = lazy(() => import("./pages/ShareTarget"));
 import ShortLink from "./pages/ShortLink";
+import Join from "./pages/Join";
 const SharePage = lazy(() => import("./pages/SharePage"));
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
                 <Route path="/" element={<Landing />} />
                 <Route path="/song/:trackId" element={<SongShare />} />
                 <Route path="/s/:shortId" element={<ShortLink />} />
+                <Route path="/join/:username" element={<Join />} />
                 <Route path="/share" element={<SharePage />} />
                 <Route path="/share-target" element={<ShareTarget />} />
                 <Route path="/feed" element={<Feed />} />

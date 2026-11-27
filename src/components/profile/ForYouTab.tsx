@@ -6,6 +6,8 @@ import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import RecommendModal from "@/components/RecommendModal";
 import { EMOJIS, reactionPillClass } from "@/components/EmojiReactions";
+import RecReplies, { type Reply } from "@/components/profile/RecReplies";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Profile → for you.
@@ -77,6 +79,26 @@ const ForYouTab = ({ received, loaded, onReceivedChange, myUsername, view: contr
   const view = controlledView ?? ownView;
   const [sent, setSent] = useState<SentRow[] | null>(null);
   const [shareTrack, setShareTrack] = useState<{ id: string; title: string; artist?: string; shortId?: string | null } | null>(null);
+  const { user } = useAuth();
+
+  // Replies for every song in the list being shown (one query)
+  const [replies, setReplies] = useState<Record<string, Reply[]>>({});
+  const recIds = (view === "received" ? received.map((r: any) => r.id) : (sent || []).map((r) => r.id)).join(",");
+  useEffect(() => {
+    if (!recIds) return;
+    supabase
+      .from("recommendation_replies" as any)
+      .select("id, recommendation_id, user_id, body, created_at")
+      .in("recommendation_id", recIds.split(","))
+      .order("created_at")
+      .then(({ data }) => {
+        const map: Record<string, Reply[]> = {};
+        for (const r of (data as unknown as Reply[]) || []) (map[r.recommendation_id] ||= []).push(r);
+        setReplies(map);
+      });
+  }, [recIds]);
+  const addReply = (r: Reply) =>
+    setReplies((m) => ({ ...m, [r.recommendation_id]: [...(m[r.recommendation_id] || []), r] }));
 
   useEffect(() => {
     if (view !== "sent" || sent) return;
@@ -160,6 +182,15 @@ const ForYouTab = ({ received, loaded, onReceivedChange, myUsername, view: contr
                           </button>
                         ))}
                       </div>
+                      {user && (
+                        <RecReplies
+                          recId={rec.id}
+                          myId={user.id}
+                          otherName={`@${from}`}
+                          replies={replies[rec.id] || []}
+                          onAdd={addReply}
+                        />
+                      )}
                     </div>
                   }
                 />
@@ -207,6 +238,17 @@ const ForYouTab = ({ received, loaded, onReceivedChange, myUsername, view: contr
                   )}
                   {r.reaction && <span aria-label={`reacted ${r.reaction}`}>{r.reaction}</span>}
                   {!r.saved && !r.reaction && r.source !== "link" && <span>{r.seen ? "seen" : "not seen yet"}</span>}
+                  {user && r.source !== "link" && (
+                    <div className="w-full">
+                      <RecReplies
+                        recId={r.id}
+                        myId={user.id}
+                        otherName={`@${r.to_username}`}
+                        replies={replies[r.id] || []}
+                        onAdd={addReply}
+                      />
+                    </div>
+                  )}
                 </div>
               }
             />

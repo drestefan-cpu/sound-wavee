@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import JournalAdmin from "@/components/admin/JournalAdmin";
+import PeopleAdmin from "@/components/admin/PeopleAdmin";
 
 
 const Admin = () => {
@@ -22,7 +23,7 @@ const Admin = () => {
   const [newPick, setNewPick] = useState({ spotify_track_id: "", title: "", artist: "", album: "", note: "" });
   const [showAddPick, setShowAddPick] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"taglines" | "picks" | "journal" | "releases">("taglines");
+  const [activeTab, setActiveTab] = useState<"people" | "taglines" | "picks" | "journal" | "releases">("people");
   const [releasesMock, setReleasesMock] = useState(() => localStorage.getItem("plai-releases-mock") === "1");
 
   useEffect(() => {
@@ -118,14 +119,16 @@ const Admin = () => {
 
       <div className="mx-auto max-w-3xl px-4 py-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}>
         <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
-          {(["taglines", "picks", "journal", "releases"] as const).map(t => (
+          {(["people", "taglines", "picks", "journal", "releases"] as const).map(t => (
             <button key={t} onClick={() => setActiveTab(t)} className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${activeTab === t ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground"}`}>
-              {t === "taglines" ? "Taglines" : t === "picks" ? "PLAI Picks" : t === "journal" ? "Journal" : "Releases"}
+              {t === "people" ? "People" : t === "taglines" ? "Taglines" : t === "picks" ? "PLAI Picks" : t === "journal" ? "Journal" : "Releases"}
             </button>
           ))}
         </div>
 
-        {activeTab === "taglines" ? (
+        {activeTab === "people" ? (
+          <PeopleAdmin />
+        ) : activeTab === "taglines" ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm text-muted-foreground">{taglines.length} taglines</p>

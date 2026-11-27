@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       app_admins: {
@@ -41,34 +66,72 @@ export type Database = {
         Row: {
           album: string | null
           album_art_url: string | null
+          album_type: string | null
           artist_name: string
           created_at: string
           id: string
           release_date: string
+          spotify_album_id: string | null
           spotify_track_id: string | null
           title: string
+          total_tracks: number | null
         }
         Insert: {
           album?: string | null
           album_art_url?: string | null
+          album_type?: string | null
           artist_name: string
           created_at?: string
           id?: string
           release_date: string
+          spotify_album_id?: string | null
           spotify_track_id?: string | null
           title: string
+          total_tracks?: number | null
         }
         Update: {
           album?: string | null
           album_art_url?: string | null
+          album_type?: string | null
           artist_name?: string
           created_at?: string
           id?: string
           release_date?: string
+          spotify_album_id?: string | null
           spotify_track_id?: string | null
           title?: string
+          total_tracks?: number | null
         }
         Relationships: []
+      }
+      chart_tracks: {
+        Row: {
+          chart: string
+          fetched_at: string
+          position: number
+          track_id: string
+        }
+        Insert: {
+          chart?: string
+          fetched_at?: string
+          position: number
+          track_id: string
+        }
+        Update: {
+          chart?: string
+          fetched_at?: string
+          position?: number
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_tracks_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collection_exclusions: {
         Row: {
@@ -300,6 +363,7 @@ export type Database = {
           created_at: string
           data: Json | null
           id: string
+          pushed_at: string | null
           read: boolean
           track_id: string | null
           type: string
@@ -310,6 +374,7 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          pushed_at?: string | null
           read?: boolean
           track_id?: string | null
           type: string
@@ -320,6 +385,7 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          pushed_at?: string | null
           read?: boolean
           track_id?: string | null
           type?: string
@@ -348,6 +414,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pin_login_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          ok: boolean
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          ok: boolean
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          ok?: boolean
+          username?: string
+        }
+        Relationships: []
       }
       plai_picks: {
         Row: {
@@ -437,18 +524,27 @@ export type Database = {
           current_mood: string | null
           display_name: string | null
           id: string
+          invited_by: string | null
+          last_seen_at: string | null
           last_synced_at: string | null
           login_pin: string | null
           mood_set_at: string | null
           onboarding_complete: boolean | null
+          pick_note: string | null
+          pick_set_at: string | null
+          pick_track_id: string | null
           plai_playlist_id: string | null
           platform: string | null
           preferred_platform: string | null
           profile_color: string | null
           public: boolean | null
+          releases_synced_at: string | null
           spotify_access_token: string | null
           spotify_backfilled_at: string | null
           spotify_id: string | null
+          spotify_playlist_id: string | null
+          spotify_playlist_name: string | null
+          spotify_playlist_synced_at: string | null
           spotify_refresh_token: string | null
           status: string | null
           sync_apple_music: boolean
@@ -472,18 +568,27 @@ export type Database = {
           current_mood?: string | null
           display_name?: string | null
           id: string
+          invited_by?: string | null
+          last_seen_at?: string | null
           last_synced_at?: string | null
           login_pin?: string | null
           mood_set_at?: string | null
           onboarding_complete?: boolean | null
+          pick_note?: string | null
+          pick_set_at?: string | null
+          pick_track_id?: string | null
           plai_playlist_id?: string | null
           platform?: string | null
           preferred_platform?: string | null
           profile_color?: string | null
           public?: boolean | null
+          releases_synced_at?: string | null
           spotify_access_token?: string | null
           spotify_backfilled_at?: string | null
           spotify_id?: string | null
+          spotify_playlist_id?: string | null
+          spotify_playlist_name?: string | null
+          spotify_playlist_synced_at?: string | null
           spotify_refresh_token?: string | null
           status?: string | null
           sync_apple_music?: boolean
@@ -507,18 +612,27 @@ export type Database = {
           current_mood?: string | null
           display_name?: string | null
           id?: string
+          invited_by?: string | null
+          last_seen_at?: string | null
           last_synced_at?: string | null
           login_pin?: string | null
           mood_set_at?: string | null
           onboarding_complete?: boolean | null
+          pick_note?: string | null
+          pick_set_at?: string | null
+          pick_track_id?: string | null
           plai_playlist_id?: string | null
           platform?: string | null
           preferred_platform?: string | null
           profile_color?: string | null
           public?: boolean | null
+          releases_synced_at?: string | null
           spotify_access_token?: string | null
           spotify_backfilled_at?: string | null
           spotify_id?: string | null
+          spotify_playlist_id?: string | null
+          spotify_playlist_name?: string | null
+          spotify_playlist_synced_at?: string | null
           spotify_refresh_token?: string | null
           status?: string | null
           sync_apple_music?: boolean
@@ -533,7 +647,75 @@ export type Database = {
           youtube_refresh_token?: string | null
           youtube_user_id?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_pick_track_id_fkey"
+            columns: ["pick_track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protected_artist_names: {
+        Row: {
+          name: string
+        }
+        Insert: {
+          name: string
+        }
+        Update: {
+          name?: string
+        }
         Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          device: string | null
+          endpoint: string
+          id: string
+          last_sent_at: string | null
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          device?: string | null
+          endpoint: string
+          id?: string
+          last_sent_at?: string | null
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          device?: string | null
+          endpoint?: string
+          id?: string
+          last_sent_at?: string | null
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       radar_access: {
         Row: {
@@ -849,13 +1031,55 @@ export type Database = {
           },
         ]
       }
+      recommendation_replies: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          recommendation_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          recommendation_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          recommendation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_replies_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_replies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recommendations: {
         Row: {
           created_at: string | null
           from_user_id: string | null
           id: string
           message: string | null
+          reacted_at: string | null
+          reaction: string | null
           seen: boolean | null
+          source: string
           to_user_id: string | null
           track_id: string | null
         }
@@ -864,7 +1088,10 @@ export type Database = {
           from_user_id?: string | null
           id?: string
           message?: string | null
+          reacted_at?: string | null
+          reaction?: string | null
           seen?: boolean | null
+          source?: string
           to_user_id?: string | null
           track_id?: string | null
         }
@@ -873,7 +1100,10 @@ export type Database = {
           from_user_id?: string | null
           id?: string
           message?: string | null
+          reacted_at?: string | null
+          reaction?: string | null
           seen?: boolean | null
+          source?: string
           to_user_id?: string | null
           track_id?: string | null
         }
@@ -990,6 +1220,7 @@ export type Database = {
           id: string
           opened_at: string | null
           referrer: string | null
+          sharer_id: string | null
           track_id: string | null
           user_agent: string | null
         }
@@ -997,6 +1228,7 @@ export type Database = {
           id?: string
           opened_at?: string | null
           referrer?: string | null
+          sharer_id?: string | null
           track_id?: string | null
           user_agent?: string | null
         }
@@ -1004,15 +1236,58 @@ export type Database = {
           id?: string
           opened_at?: string | null
           referrer?: string | null
+          sharer_id?: string | null
           track_id?: string | null
           user_agent?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "share_opens_sharer_id_fkey"
+            columns: ["sharer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "share_opens_track_id_fkey"
             columns: ["track_id"]
             isOneToOne: false
             referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_log: {
+        Row: {
+          created_at: string
+          detail: string | null
+          id: number
+          platform: string
+          status: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          id?: never
+          platform: string
+          status?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          id?: never
+          platform?: string
+          status?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1109,6 +1384,35 @@ export type Database = {
           },
         ]
       }
+      track_details: {
+        Row: {
+          credits_complete: boolean
+          data: Json
+          fetched_at: string
+          track_id: string
+        }
+        Insert: {
+          credits_complete?: boolean
+          data?: Json
+          fetched_at?: string
+          track_id: string
+        }
+        Update: {
+          credits_complete?: boolean
+          data?: Json
+          fetched_at?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_details_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: true
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       track_views: {
         Row: {
           id: string
@@ -1159,6 +1463,7 @@ export type Database = {
           apple_music_id: string | null
           artist: string | null
           created_at: string | null
+          genres: string[] | null
           id: string
           isrc: string | null
           preview_url: string | null
@@ -1177,6 +1482,7 @@ export type Database = {
           apple_music_id?: string | null
           artist?: string | null
           created_at?: string | null
+          genres?: string[] | null
           id?: string
           isrc?: string | null
           preview_url?: string | null
@@ -1195,6 +1501,7 @@ export type Database = {
           apple_music_id?: string | null
           artist?: string | null
           created_at?: string | null
+          genres?: string[] | null
           id?: string
           isrc?: string | null
           preview_url?: string | null
@@ -1311,6 +1618,41 @@ export type Database = {
           },
         ]
       }
+      weekly_recaps: {
+        Row: {
+          created_at: string
+          data: Json
+          dismissed: boolean
+          id: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          dismissed?: boolean
+          id?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          dismissed?: boolean
+          id?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_recaps_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       feed_likes: {
@@ -1389,6 +1731,44 @@ export type Database = {
       }
     }
     Functions: {
+      accept_invite: { Args: { p_username: string }; Returns: string }
+      admin_activity: {
+        Args: never
+        Returns: {
+          apps: string[]
+          avatar_url: string
+          broken_apps: string[]
+          display_name: string
+          followers: number
+          following: number
+          invited_by: string
+          joined: string
+          last_seen_at: string
+          last_synced_at: string
+          likes_7d: number
+          push_devices: number
+          reactions_7d: number
+          sent_7d: number
+          username: string
+        }[]
+      }
+      build_weekly_recap: {
+        Args: { p_since: string; p_user: string }
+        Returns: Json
+      }
+      build_weekly_recap_base: {
+        Args: { p_since: string; p_user: string }
+        Returns: Json
+      }
+      call_send_push: { Args: { p_body: Json }; Returns: undefined }
+      claim_shared_link: {
+        Args: { p_from_username: string; p_track_id: string }
+        Returns: boolean
+      }
+      clear_connection_issue: {
+        Args: { p_platform: string }
+        Returns: undefined
+      }
       create_notification: {
         Args: {
           p_actor_id: string
@@ -1400,6 +1780,29 @@ export type Database = {
         Returns: undefined
       }
       delete_apple_music_likes: { Args: { p_user_id: string }; Returns: number }
+      friends_picks: {
+        Args: never
+        Returns: {
+          album_art_url: string
+          amazon_music_id: string
+          apple_music_id: string
+          artist: string
+          avatar_url: string
+          display_name: string
+          note: string
+          set_at: string
+          short_id: string
+          spotify_link_id: string
+          spotify_track_id: string
+          tidal_track_id: string
+          title: string
+          track_id: string
+          user_id: string
+          username: string
+        }[]
+      }
+      generate_short_id: { Args: never; Returns: string }
+      generate_weekly_recaps: { Args: never; Returns: number }
       get_my_profile: {
         Args: never
         Returns: {
@@ -1411,18 +1814,27 @@ export type Database = {
           current_mood: string | null
           display_name: string | null
           id: string
+          invited_by: string | null
+          last_seen_at: string | null
           last_synced_at: string | null
           login_pin: string | null
           mood_set_at: string | null
           onboarding_complete: boolean | null
+          pick_note: string | null
+          pick_set_at: string | null
+          pick_track_id: string | null
           plai_playlist_id: string | null
           platform: string | null
           preferred_platform: string | null
           profile_color: string | null
           public: boolean | null
+          releases_synced_at: string | null
           spotify_access_token: string | null
           spotify_backfilled_at: string | null
           spotify_id: string | null
+          spotify_playlist_id: string | null
+          spotify_playlist_name: string | null
+          spotify_playlist_synced_at: string | null
           spotify_refresh_token: string | null
           status: string | null
           sync_apple_music: boolean
@@ -1445,8 +1857,148 @@ export type Database = {
         }
       }
       is_admin: { Args: never; Returns: boolean }
+      is_rec_participant: { Args: { p_rec: string }; Returns: boolean }
+      like_hidden_by_owner: {
+        Args: { p_track_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      my_connection_issues: {
+        Args: never
+        Returns: {
+          platform: string
+          since: string
+        }[]
+      }
+      my_friend_matches: {
+        Args: never
+        Returns: {
+          score: number
+          user_id: string
+        }[]
+      }
+      my_sent_recommendations: {
+        Args: { p_limit?: number }
+        Returns: {
+          album: string
+          album_art_url: string
+          amazon_music_id: string
+          apple_music_id: string
+          artist: string
+          created_at: string
+          id: string
+          message: string
+          reaction: string
+          saved: boolean
+          seen: boolean
+          short_id: string
+          source: string
+          spotify_link_id: string
+          spotify_track_id: string
+          tidal_track_id: string
+          title: string
+          to_avatar_url: string
+          to_display_name: string
+          to_id: string
+          to_username: string
+          track_id: string
+        }[]
+      }
+      my_share_stats: {
+        Args: never
+        Returns: {
+          album_art_url: string
+          artist: string
+          last_opened_at: string
+          opens: number
+          opens_7d: number
+          title: string
+          total_opens: number
+          track_id: string
+        }[]
+      }
+      my_taste_match: { Args: { p_other: string }; Returns: Json }
       rebuild_taste_profiles: { Args: never; Returns: Json }
+      recommend_candidates: {
+        Args: { p_track_id?: string }
+        Returns: {
+          already_sent: boolean
+          avatar_url: string
+          display_name: string
+          id: string
+          last_sent_at: string
+          relation: string
+          sent_count: number
+          username: string
+        }[]
+      }
       redeem_radar_invite: { Args: { p_code: string }; Returns: boolean }
+      refresh_taste_compatibility: { Args: never; Returns: number }
+      save_push_subscription: {
+        Args: {
+          p_auth: string
+          p_device: string
+          p_endpoint: string
+          p_p256dh: string
+        }
+        Returns: undefined
+      }
+      set_song_of_week: {
+        Args: { p_note?: string; p_track_id: string }
+        Returns: undefined
+      }
+      split_artists: { Args: { p_artist: string }; Returns: string[] }
+      suggest_people: {
+        Args: { p_limit?: number }
+        Returns: {
+          avatar_url: string
+          current_mood: string
+          display_name: string
+          id: string
+          mutual_follows: number
+          profile_color: string
+          reason: string
+          shared_artists: number
+          shared_songs: number
+          username: string
+        }[]
+      }
+      sync_needs_reconnect: {
+        Args: { p_detail: string; p_status: number }
+        Returns: boolean
+      }
+      taste_match_details: { Args: { p_a: string; p_b: string }; Returns: Json }
+      touch_last_seen: { Args: never; Returns: undefined }
+      tracks_needing_genres: {
+        Args: { p_limit?: number }
+        Returns: {
+          apple_id: string
+          artist: string
+          id: string
+          isrc: string
+          title: string
+        }[]
+      }
+      trending_tracks: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          album: string
+          album_art_url: string
+          amazon_music_id: string
+          apple_music_id: string
+          artist: string
+          likers: number
+          opens: number
+          reactions: number
+          saves: number
+          score: number
+          short_id: string
+          spotify_link_id: string
+          spotify_track_id: string
+          tidal_track_id: string
+          title: string
+          track_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -1575,6 +2127,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

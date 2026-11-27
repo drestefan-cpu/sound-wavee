@@ -54,6 +54,15 @@ function describe(n: Note): Message {
       };
     case "follow":
       return { title: `${who} followed you`, body: "tap to see their music", url: profile, tag: `follow-${n.id}` };
+    case "invite_joined":
+      return { title: `${who} joined PLAI from your invite 🎉`, body: "you follow each other now — say hi with a song", url: profile, tag: `inv-${n.id}` };
+    case "rec_reply":
+      return {
+        title: d.sent_by_me ? `${who} replied to the song you sent` : `${who} replied about the song they sent you`,
+        body: [d.message ? `“${d.message}”` : "", song].filter(Boolean).join("\n"),
+        url: d.sent_by_me ? "/profile?tab=sent" : "/profile?tab=foryou",
+        tag: `reply-${n.id}`,
+      };
     case "weekly_recap":
       return { title: "your week on PLAI", body: d.summary || "tap to see your week", url: "/feed?recap=1", tag: "recap" };
     case "new_music": {

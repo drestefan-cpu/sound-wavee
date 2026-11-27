@@ -76,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const triggerAutoSync = async (userId: string) => {
+    // "last opened PLAI" for the activity overview (the database keeps one update per 10 minutes)
+    (supabase as any).rpc("touch_last_seen").then(() => {}, () => {});
     try {
       // Don't sync for anonymous users
       const { data: { user: currentUser } } = await supabase.auth.getUser();

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
-import { Bell, UserPlus, Heart, Disc, Send, Music, CalendarHeart } from "lucide-react";
+import { Bell, UserPlus, Heart, Disc, Send, Music, CalendarHeart, MessageCircle } from "lucide-react";
 
 interface Notification {
   id: string;
@@ -24,6 +24,8 @@ const ICONS: Record<string, any> = {
   rec_reaction: Send,
   new_music: Music,
   weekly_recap: CalendarHeart,
+  invite_joined: UserPlus,
+  rec_reply: MessageCircle,
 };
 
 const typeLabel = (type: string, data: any) => {
@@ -40,6 +42,10 @@ const typeLabel = (type: string, data: any) => {
       return "recommended you a song";
     case "weekly_recap":
       return "is ready";
+    case "invite_joined":
+      return "joined PLAI from your invite — you follow each other now";
+    case "rec_reply":
+      return data?.sent_by_me ? "replied to the song you sent" : "replied about the song they sent you";
     case "new_music": {
       const count = Number(data?.count) || 1;
       return count === 1 ? "added a new song" : `added ${count} new songs`;
@@ -162,7 +168,7 @@ const Notifications = () => {
                     {n.type === "weekly_recap" && n.data?.summary && (
                       <p className="text-xs text-muted-foreground/70 mt-0.5">{n.data.summary}</p>
                     )}
-                    {n.type === "recommendation" && n.data?.message && (
+                    {(n.type === "recommendation" || n.type === "rec_reply") && n.data?.message && (
                       <p className="text-xs text-foreground/80 mt-1 italic truncate">“{n.data.message}”</p>
                     )}
                   </div>

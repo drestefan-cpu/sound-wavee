@@ -24,6 +24,7 @@ type Recap = {
     friend_songs?: number;
     top_friend?: { username: string; name: string; count: number };
     shared?: { title: string; artist: string; friends: string[] };
+    picks?: { username: string; name: string; title: string; artist: string }[];
   };
 };
 
@@ -100,6 +101,18 @@ const WeeklyRecapCard = () => {
             {" "}
             · added {d.top_friend.count} {d.top_friend.count === 1 ? "song" : "songs"} →
           </span>
+        </Link>
+      ),
+    });
+  }
+
+  for (const p of d.picks || []) {
+    rows.push({
+      label: `${p.name}'s song of the week`,
+      value: (
+        <Link to={`/profile/${p.username}`} className="hover:text-primary">
+          {p.title}
+          <span className="text-muted-foreground"> · {p.artist}</span>
         </Link>
       ),
     });

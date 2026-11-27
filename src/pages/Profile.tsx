@@ -8,7 +8,7 @@ import { useSavedTracks } from "@/contexts/SavedTracksContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PUBLIC_PROFILE_COLUMNS } from "@/lib/profileColumns";
 import { getTrackPlatform } from "@/lib/trackLinks";
-import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library, Users, Radar } from "lucide-react";
+import { RefreshCw, QrCode, X, Copy, Bell, Heart, Send, Sparkle, Library, Users, Radar, UserPlus } from "lucide-react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import BottomNav from "@/components/BottomNav";
@@ -19,6 +19,8 @@ import PageHeader from "@/components/PageHeader";
 import FlappyBird from "@/components/FlappyBird";
 import UnifiedTrackCard from "@/components/UnifiedTrackCard";
 import ForYouTab from "@/components/profile/ForYouTab";
+import { shareInvite } from "@/lib/invite";
+import SongOfWeek from "@/components/SongOfWeek";
 import TasteMatchSheet, { type TasteMatch } from "@/components/TasteMatchSheet";
 import ShareStats from "@/components/profile/ShareStats";
 import FollowersModal from "@/components/FollowersModal";
@@ -144,14 +146,17 @@ const Profile = () => {
   // ?tab=foryou etc. opens a specific tab (e.g. from "added to your for you" on a shared song)
   const [tab, setTab] = useState<TabType>(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "foryou") return "finds"; // "for you" is now a view inside finds
+    if (t === "foryou" || t === "sent") return "finds"; // "for you" / "sent" are views inside finds
     if ((["finds", "collection", "friends", "activity"] as string[]).includes(t || "")) return t as TabType;
     // Your library (/profile) opens on your collection; other people's profiles on their finds.
     return username ? "finds" : "collection";
   });
   // Inside finds (own library): songs you saved · songs sent to you · songs you sent
   const [findsView, setFindsView] = useState<"saved" | "received" | "sent">(() =>
-    new URLSearchParams(window.location.search).get("tab") === "foryou" ? "received" : "saved",
+  {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return t === "foryou" ? "received" : t === "sent" ? "sent" : "saved";
+  },
   );
   const [collectionFilter, setCollectionFilter] = useState<"timeline" | "hidden">("timeline");
   const [collectionPlatformFilter, setCollectionPlatformFilter] = useState<"all" | "spotify" | "youtube" | "apple" | "tidal">("all");
@@ -1206,6 +1211,16 @@ const Profile = () => {
             )}
           </div>
 
+          <div className="w-full max-w-md">
+            <SongOfWeek
+              trackId={(profile as any).pick_track_id}
+              setAt={(profile as any).pick_set_at}
+              note={(profile as any).pick_note}
+              isOwn={isOwnProfile}
+              sharerUsername={myUsername ?? undefined}
+            />
+          </div>
+
           <div className="w-full relative flex items-end justify-center">
             <div className="flex gap-5 text-center text-xs">
               {isOwnProfile ? (
@@ -1462,6 +1477,21 @@ const Profile = () => {
           </div>
         ) : tab === "friends" ? (
           <div className="space-y-2">
+            {isOwnProfile && profile?.username && (
+              <button
+                onClick={() => shareInvite(profile.username!)}
+                className="flex w-full items-center gap-3 rounded-xl border border-dashed border-primary/40 p-3 text-left transition-colors hover:bg-primary/5"
+                style={{ touchAction: "manipulation" }}
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <UserPlus className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground">invite a friend</span>
+                  <span className="block text-xs text-muted-foreground">they join, you follow each other automatically</span>
+                </span>
+              </button>
+            )}
             {!friendsLoaded ? (
               <div className="flex justify-center py-6">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />

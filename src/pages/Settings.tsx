@@ -1,3 +1,4 @@
+import { inviteLink, shareInvite } from "@/lib/invite";
 import PushSettings from "@/components/PushSettings";
 import { useConnectionIssues, clearConnectionIssue } from "@/components/ConnectionNotice";
 import { uploadAvatar } from "@/lib/avatarUpload";
@@ -599,6 +600,25 @@ const SettingsPage = () => {
             >
               link Google
             </button>
+          </div>
+        )}
+
+        {username && (
+          <div className="border-t border-border pt-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-1">invite friends</h3>
+            <p className="text-[11px] leading-relaxed text-muted-foreground mb-3">
+              When someone joins from your link, you follow each other automatically.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => shareInvite(username)}
+                className="rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+                style={{ touchAction: "manipulation" }}
+              >
+                share invite link
+              </button>
+              <span className="text-[11px] text-muted-foreground">{inviteLink(username).replace("https://", "")}</span>
+            </div>
           </div>
         )}
 

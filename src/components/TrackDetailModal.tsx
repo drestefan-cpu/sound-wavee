@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Heart, Send, X, Play, Pause, FileText, ArrowUpRight } from "lucide-react";
+import { Heart, Send, X, Play, Pause, FileText, ArrowUpRight, Pin } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
 import Artwork from "@/components/Artwork";
@@ -173,6 +173,34 @@ const TrackDetailModal = ({
   };
 
   const canHide = !!user && !!track.likeId && !!track.trackDbId && isOwnTrack !== false;
+
+  // Song of the week: one pinned song on your profile, in friends' feeds and their Friday recap
+  const [isPick, setIsPick] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user || !trackDbId) return;
+    supabase
+      .from("profiles")
+      .select("pick_track_id, pick_set_at")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const d = data as unknown as { pick_track_id: string | null; pick_set_at: string | null } | null;
+        const current = !!d?.pick_set_at && Date.now() - new Date(d.pick_set_at).getTime() < 7 * 86400_000;
+        setIsPick(current && d?.pick_track_id === trackDbId);
+      });
+  }, [user, trackDbId]);
+  const togglePick = async () => {
+    if (!trackDbId) return;
+    const next = !isPick;
+    setIsPick(next);
+    const { error } = await (supabase as any).rpc("set_song_of_week", { p_track_id: next ? trackDbId : null });
+    if (error) {
+      setIsPick(!next);
+      toast.error("couldn't save — try again");
+      return;
+    }
+    toast(next ? "pinned as your song of the week 📌" : "song of the week removed");
+  };
 
   // Song details (cached on the server and for this session)
   useEffect(() => {
@@ -368,6 +396,19 @@ const TrackDetailModal = ({
               <Send className="h-[18px] w-[18px] text-foreground/70" strokeWidth={2} />
             </button>
           </div>
+
+          {user && trackDbId && isPick !== null && (
+            <button
+              onClick={togglePick}
+              className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-xs font-medium transition-colors ${
+                isPick ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-foreground/80 hover:border-primary/40"
+              }`}
+              aria-pressed={isPick}
+            >
+              <Pin className={`h-3.5 w-3.5 ${isPick ? "fill-current" : ""}`} />
+              {isPick ? "your song of the week · tap to remove" : "make this my song of the week"}
+            </button>
+          )}
 
           {/* other apps */}
           <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1 gap-y-1.5 text-xs">

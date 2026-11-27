@@ -9,6 +9,7 @@ import { getRandomTagline } from "@/lib/taglines";
 import { supabase } from "@/integrations/supabase/client";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { uploadAvatar } from "@/lib/avatarUpload";
+import { pendingInvite } from "@/lib/invite";
 import { Camera } from "lucide-react";
 
 const APIKEY = SUPABASE_PUBLISHABLE_KEY;
@@ -739,6 +740,11 @@ const Landing = () => {
         ) : (
           /* ── Default: platform buttons ── */
           <>
+            {pendingInvite() && (
+              <p className="-mb-2 text-center text-xs text-muted-foreground">
+                invited by <span className="font-medium text-primary">@{pendingInvite()}</span> · pick your music app
+              </p>
+            )}
             <div className="flex w-full flex-col gap-3">
               <button
                 onClick={signInWithSpotify}

@@ -1,5 +1,7 @@
 import PushPrompt from "@/components/PushPrompt";
 import WeeklyRecapCard from "@/components/WeeklyRecapCard";
+import FriendsPicks from "@/components/FriendsPicks";
+import { applyPendingInvite } from "@/lib/invite";
 import ConnectionNotice from "@/components/ConnectionNotice";
 import PageTip from "@/components/PageTip";
 import { FRIENDS_TIPS, DISCOVER_TIPS } from "@/lib/tips";
@@ -241,6 +243,8 @@ const Feed = () => {
         navigate("/", { replace: true });
         return;
       }
+      // Came from someone's invite link: follow each other now that the account is set up
+      if ((data as any)?.username) applyPendingInvite();
       if (data && !(data as any).onboarding_complete) {
         setShowWelcome(true);
         await supabase
@@ -966,6 +970,7 @@ const Feed = () => {
       <main className="mx-auto max-w-feed px-4 py-4">
         {tab === "following" && <ConnectionNotice />}
         {tab === "following" && <WeeklyRecapCard />}
+        {tab === "following" && <FriendsPicks />}
         {tab === "following" && <PushPrompt />}
         {tab === "following" ? (
           <PageTip id="friends" steps={FRIENDS_TIPS} className="mb-4" />
