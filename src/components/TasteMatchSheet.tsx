@@ -88,7 +88,11 @@ const TasteMatchSheet = ({ match, otherName, myUsername, otherUsername, otherAva
         score: match.score,
         me: { username: mine, avatarUrl: me?.avatar_url },
         them: { username: otherUsername, avatarUrl: otherAvatar },
+        genres: match.shared_genres || [],
         artists: match.shared_artists.map((a) => a.name),
+        artistCount: match.shared_artist_count,
+        songs: match.shared_songs.map((s) => ({ title: s.title, artist: s.artist, artUrl: s.album_art_url })),
+        songCount: match.shared_song_count,
       });
       const text = `me and @${otherUsername} are ${match.score}% taste matched on PLAI 🎧 find yours: https://plai.delaneyprojects.xyz/profile/${mine}`;
       const file = new File([blob], `plai-taste-match-${otherUsername}.png`, { type: "image/png" });

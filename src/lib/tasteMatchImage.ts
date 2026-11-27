@@ -91,35 +91,47 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, weight: number, si
   } while (ctx.measureText(text).width > maxWidth && s > 20);
 }
 
-function pills(ctx: CanvasRenderingContext2D, labels: string[], y: number) {
-  ctx.font = `500 38px ${SANS}`;
-  const padX = 34;
-  const h = 78;
-  const gap = 18;
-  const widths = labels.map((l) => Math.min(ctx.measureText(l).width + padX * 2, W - 160));
-  // lay out in rows that fit
+/** Centered rows of rounded labels; returns the y below them */
+function pills(
+  ctx: CanvasRenderingContext2D,
+  labels: string[],
+  y: number,
+  opts: { size?: number; tinted?: boolean; maxRows?: number } = {},
+): number {
+  const size = opts.size ?? 34;
+  ctx.font = `500 ${size}px ${SANS}`;
+  const padX = Math.round(size * 0.85);
+  const h = Math.round(size * 2);
+  const gap = 14;
+  const maxW = W - 160;
   const rows: { label: string; w: number }[][] = [[]];
   let rowW = 0;
-  labels.forEach((l, i) => {
-    const w = widths[i];
-    if (rowW + w > W - 160 && rows[rows.length - 1].length) {
+  for (const l of labels) {
+    const w = Math.min(ctx.measureText(l).width + padX * 2, maxW);
+    if (rowW + w > maxW && rows[rows.length - 1].length) {
       rows.push([]);
       rowW = 0;
     }
     rows[rows.length - 1].push({ label: l, w });
     rowW += w + gap;
-  });
-  rows.slice(0, 2).forEach((row, ri) => {
-    const total = row.reduce((s, p) => s + p.w, 0) + gap * (row.length - 1);
+  }
+  const shown = rows.slice(0, opts.maxRows ?? 2);
+  shown.forEach((row, ri) => {
+    const total = row.reduce((sum, p) => sum + p.w, 0) + gap * (row.length - 1);
     let x = (W - total) / 2;
     const top = y + ri * (h + gap);
     for (const p of row) {
-      ctx.strokeStyle = "rgba(240,235,227,0.28)";
-      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.roundRect(x, top, p.w, h, h / 2);
-      ctx.stroke();
-      ctx.fillStyle = C.cream;
+      if (opts.tinted) {
+        ctx.fillStyle = "rgba(255,45,120,0.16)";
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = "rgba(240,235,227,0.28)";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+      ctx.fillStyle = opts.tinted ? C.pink : C.cream;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       let label = p.label;
@@ -129,15 +141,83 @@ function pills(ctx: CanvasRenderingContext2D, labels: string[], y: number) {
       x += p.w + gap;
     }
   });
+  return y + shown.length * (h + gap) - gap;
+}
+
+function heading(ctx: CanvasRenderingContext2D, text: string, y: number) {
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = C.muted;
+  ctx.font = `500 26px ${SANS}`;
+  ctx.letterSpacing = "6px";
+  ctx.fillText(text.toUpperCase(), W / 2 + 3, y);
+  ctx.letterSpacing = "0px";
+}
+
+function clip(ctx: CanvasRenderingContext2D, text: string, maxW: number) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+  return t.trimEnd() + "…";
+}
+
+export interface MatchSong {
+  title: string;
+  artist: string;
+  artUrl?: string | null;
+}
+
+/** Song rows: artwork, title, artist. Returns the y below them. */
+async function songRows(ctx: CanvasRenderingContext2D, songs: MatchSong[], y: number): Promise<number> {
+  const art = 104;
+  const rowH = art + 22;
+  const left = 140;
+  const textX = left + art + 30;
+  const maxText = W - 140 - textX;
+  const images = await Promise.all(songs.map((s) => (s.artUrl ? loadImage(s.artUrl) : Promise.resolve(null))));
+  songs.forEach((song, i) => {
+    const top = y + i * rowH;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(left, top, art, art, 16);
+    ctx.clip();
+    const img = images[i];
+    if (img) {
+      ctx.drawImage(img, left, top, art, art);
+    } else {
+      ctx.fillStyle = C.card;
+      ctx.fillRect(left, top, art, art);
+      ctx.fillStyle = C.muted;
+      ctx.font = `400 44px ${SANS}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("♪", left + art / 2, top + art / 2 + 2);
+    }
+    ctx.restore();
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = C.cream;
+    ctx.font = `500 38px ${SANS}`;
+    ctx.fillText(clip(ctx, song.title, maxText), textX, top + 46);
+    ctx.fillStyle = C.muted;
+    ctx.font = `400 32px ${SANS}`;
+    ctx.fillText(clip(ctx, song.artist, maxText), textX, top + 90);
+  });
+  return y + songs.length * rowH - 22;
 }
 
 export async function makeTasteMatchImage(opts: {
   score: number;
   me: MatchPerson;
   them: MatchPerson;
+  genres: string[];
   artists: string[];
+  artistCount: number;
+  songs: MatchSong[];
+  songCount: number;
 }): Promise<Blob> {
   try {
+    await document.fonts.load(`400 40px "DM Sans"`);
     await document.fonts.load(`500 40px "DM Sans"`);
     await document.fonts.load(`900 40px "Unbounded"`);
   } catch {}
@@ -148,12 +228,11 @@ export async function makeTasteMatchImage(opts: {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("couldn't make the picture");
 
-  // background, stars, pink glow behind the ring
+  const ringY = 700;
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
   stars(ctx);
-  const ringY = 1010;
-  const glow = ctx.createRadialGradient(W / 2, ringY, 40, W / 2, ringY, 560);
+  const glow = ctx.createRadialGradient(W / 2, ringY, 30, W / 2, ringY, 460);
   glow.addColorStop(0, "rgba(255,45,120,0.22)");
   glow.addColorStop(1, "rgba(255,45,120,0)");
   ctx.fillStyle = glow;
@@ -161,36 +240,34 @@ export async function makeTasteMatchImage(opts: {
 
   // PLAI logo
   ctx.textBaseline = "alphabetic";
-  ctx.font = `900 120px ${DISPLAY}`;
+  ctx.font = `900 84px ${DISPLAY}`;
   const pl = ctx.measureText("PL").width;
   const ai = ctx.measureText("AI").width;
   const logoX = (W - pl - ai) / 2;
   ctx.textAlign = "left";
   ctx.fillStyle = C.cream;
-  ctx.fillText("PL", logoX, 290);
+  ctx.fillText("PL", logoX, 190);
   ctx.save();
   ctx.shadowColor = "rgba(255,45,120,0.7)";
-  ctx.shadowBlur = 40;
+  ctx.shadowBlur = 32;
   ctx.fillStyle = C.pink;
-  ctx.fillText("AI", logoX + pl, 290);
+  ctx.fillText("AI", logoX + pl, 190);
   ctx.restore();
 
-  // label
   ctx.textAlign = "center";
   ctx.fillStyle = C.pink;
-  ctx.font = `500 34px ${SANS}`;
-  ctx.letterSpacing = "10px";
-  ctx.fillText("TASTE MATCH", W / 2 + 5, 400);
+  ctx.font = `500 28px ${SANS}`;
+  ctx.letterSpacing = "9px";
+  ctx.fillText("TASTE MATCH", W / 2 + 4, 262);
   ctx.letterSpacing = "0px";
 
-  // photos, overlapping
-  await avatar(ctx, opts.me, W / 2 - 92, 560, 112);
-  await avatar(ctx, opts.them, W / 2 + 92, 560, 112);
+  await avatar(ctx, opts.me, W / 2 - 78, 395, 92);
+  await avatar(ctx, opts.them, W / 2 + 78, 395, 92);
 
-  // ring
-  const r = 250;
+  // ring + number
+  const r = 175;
   ctx.lineCap = "round";
-  ctx.lineWidth = 34;
+  ctx.lineWidth = 26;
   ctx.strokeStyle = C.ring;
   ctx.beginPath();
   ctx.arc(W / 2, ringY, r, 0, Math.PI * 2);
@@ -201,46 +278,53 @@ export async function makeTasteMatchImage(opts: {
     ctx.arc(W / 2, ringY, r, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * Math.min(opts.score, 100)) / 100);
     ctx.stroke();
   }
-
-  // the number
-  ctx.fillStyle = C.cream;
   ctx.textBaseline = "middle";
-  ctx.font = `500 200px ${SANS}`;
+  ctx.font = `500 140px ${SANS}`;
   const num = String(opts.score);
   const numW = ctx.measureText(num).width;
-  ctx.font = `500 80px ${SANS}`;
+  ctx.font = `500 56px ${SANS}`;
   const pctW = ctx.measureText("%").width;
-  const startX = W / 2 - (numW + pctW + 8) / 2;
+  const startX = W / 2 - (numW + pctW + 6) / 2;
   ctx.textAlign = "left";
-  ctx.font = `500 200px ${SANS}`;
-  ctx.fillText(num, startX, ringY + 6);
+  ctx.fillStyle = C.cream;
+  ctx.font = `500 140px ${SANS}`;
+  ctx.fillText(num, startX, ringY + 4);
   ctx.fillStyle = C.muted;
-  ctx.font = `500 80px ${SANS}`;
-  ctx.fillText("%", startX + numW + 8, ringY + 40);
+  ctx.font = `500 56px ${SANS}`;
+  ctx.fillText("%", startX + numW + 6, ringY + 30);
 
   // names
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = C.cream;
   const names = `@${opts.me.username} & @${opts.them.username}`;
-  fitText(ctx, names, 500, 54, W - 140);
-  ctx.fillText(names, W / 2, 1380);
+  fitText(ctx, names, 500, 46, W - 140);
+  ctx.fillText(names, W / 2, 966);
 
-  // artists in common
-  if (opts.artists.length) {
-    ctx.fillStyle = C.muted;
-    ctx.font = `400 34px ${SANS}`;
-    ctx.fillText("both into", W / 2, 1470);
-    pills(ctx, opts.artists.slice(0, 4), 1505);
+  // details, top to bottom, stopping before the footer
+  let y = 1010;
+  const bottom = 1800;
+  if (opts.genres.length) {
+    y = pills(ctx, opts.genres.slice(0, 4), y, { size: 28, tinted: true, maxRows: 1 }) + 70;
+  } else {
+    y += 30;
+  }
+  if (opts.artists.length && y < bottom - 200) {
+    heading(ctx, `${opts.artistCount} ${opts.artistCount === 1 ? "artist" : "artists"} in common`, y);
+    y = pills(ctx, opts.artists.slice(0, 6), y + 30, { size: 32, maxRows: 2 }) + 76;
+  }
+  if (opts.songs.length && y < bottom - 160) {
+    heading(ctx, `${opts.songCount} ${opts.songCount === 1 ? "song" : "songs"} you both love`, y);
+    const room = Math.max(1, Math.floor((bottom - (y + 34)) / 126));
+    y = await songRows(ctx, opts.songs.slice(0, Math.min(3, room)), y + 34);
   }
 
-  // footer
+  // footer, small
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
   ctx.fillStyle = C.muted;
-  ctx.font = `400 36px ${SANS}`;
-  ctx.fillText("find your match on", W / 2, 1772);
-  ctx.fillStyle = C.cream;
-  ctx.font = `500 40px ${SANS}`;
-  ctx.fillText("plai.delaneyprojects.xyz", W / 2, 1830);
+  ctx.font = `400 26px ${SANS}`;
+  ctx.fillText("plai.delaneyprojects.xyz", W / 2, 1868);
 
   return await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("couldn't make the picture"))), "image/png"),
