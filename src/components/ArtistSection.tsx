@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { openUrl } from "@/lib/openUrl";
+import ImageViewer from "@/components/ImageViewer";
+import ReleaseSheet from "@/components/ReleaseSheet";
 
 /**
  * Song screen → "the artist": a swipeable gallery (photos, then their latest releases), a short bio
@@ -12,7 +14,7 @@ type Details = {
   name: string;
   genres: string[];
   photos: { url: string; source: string }[];
-  releases: { title: string; year: string | null; art: string; url: string | null }[];
+  releases: { id?: string; title: string; year: string | null; art: string; url: string | null }[];
   bio: { text: string; url: string } | null;
   links: Partial<Record<string, string>>;
 };
@@ -31,22 +33,37 @@ const LINK_LABELS: [string, string][] = [
   ["apple_music", "apple music"],
 ];
 
-const ArtistSection = ({ trackId }: { trackId: string }) => {
-  const [d, setD] = useState<Details | null | undefined>(cache.has(trackId) ? cache.get(trackId) : undefined);
+/**
+ * trackId for songs in PLAI; otherwise artist (+ spotifyTrackId) — e.g. the song playing on Spotify
+ * that PLAI hasn't seen before.
+ */
+interface Props {
+  trackId?: string;
+  artist?: string;
+  spotifyTrackId?: string;
+}
+
+const ArtistSection = ({ trackId, artist, spotifyTrackId }: Props) => {
+  const key = trackId || `${artist}|${spotifyTrackId || ""}`;
+  const [d, setD] = useState<Details | null | undefined>(cache.has(key) ? cache.get(key) : undefined);
   const [bioOpen, setBioOpen] = useState(false);
   const [broken, setBroken] = useState<Set<string>>(new Set());
+  const [viewing, setViewing] = useState<number | null>(null);
+  const [release, setRelease] = useState<Details["releases"][number] | null>(null);
 
   useEffect(() => {
-    if (cache.has(trackId)) return;
+    if (cache.has(key)) return;
     supabase.functions
-      .invoke("artist-details", { body: { track_id: trackId } })
+      .invoke("artist-details", {
+        body: trackId ? { track_id: trackId } : { artist, spotify_track_id: spotifyTrackId },
+      })
       .then(({ data, error }) => {
         const result = error || !data || (data as { error?: string }).error ? null : (data as Details);
-        cache.set(trackId, result);
+        cache.set(key, result);
         setD(result);
       })
       .catch(() => setD(null));
-  }, [trackId]);
+  }, [key, trackId, artist, spotifyTrackId]);
 
   if (d === undefined) {
     return (
@@ -80,18 +97,24 @@ const ArtistSection = ({ trackId }: { trackId: string }) => {
           className="-mx-5 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onTouchStart={(e) => e.stopPropagation()} // swiping the gallery shouldn't drag the sheet
         >
-          {photos.map((p) => (
-            <figure key={p.url} className="relative aspect-[4/5] w-[58%] max-w-[210px] shrink-0 snap-start overflow-hidden rounded-2xl bg-secondary">
+          {photos.map((p, i) => (
+            <button
+              key={p.url}
+              onClick={() => setViewing(i)}
+              aria-label={`view photo of ${d.name} larger`}
+              className="relative aspect-[4/5] w-[58%] max-w-[210px] shrink-0 snap-start overflow-hidden rounded-2xl bg-secondary"
+              style={{ touchAction: "pan-x" }}
+            >
               <img src={p.url} alt={d.name} loading="lazy" onError={() => hide(p.url)} className="h-full w-full object-cover" />
-              <figcaption className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[9px] text-white/90 backdrop-blur-sm">
+              <span className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[9px] text-white/90 backdrop-blur-sm">
                 {p.source}
-              </figcaption>
-            </figure>
+              </span>
+            </button>
           ))}
           {d.releases.map((r) => (
             <button
               key={r.art}
-              onClick={() => r.url && openUrl(r.url)}
+              onClick={() => (r.id ? setRelease(r) : r.url && openUrl(r.url))}
               className="w-32 shrink-0 snap-start text-left"
               style={{ touchAction: "pan-x" }}
             >
@@ -135,6 +158,16 @@ const ArtistSection = ({ trackId }: { trackId: string }) => {
             </button>
           ))}
         </div>
+      )}
+      {viewing !== null && (
+        <ImageViewer
+          images={photos.map((p) => ({ url: p.url, caption: `${d.name} · ${p.source}` }))}
+          start={viewing}
+          onClose={() => setViewing(null)}
+        />
+      )}
+      {release?.id && (
+        <ReleaseSheet appleAlbumId={release.id} preview={{ title: release.title, art: release.art }} onClose={() => setRelease(null)} />
       )}
     </section>
   );

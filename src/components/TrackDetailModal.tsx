@@ -55,6 +55,8 @@ const PLATFORMS: { key: string; label: string }[] = [
 ];
 
 const detailsCache = new Map<string, SongDetails>();
+// songs PLAI has stored have an id like this; a song playing on Spotify that PLAI hasn't seen doesn't
+const isUuid = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
 const formatDate = (d: string) => {
   // Apple gives "2026-10-15"; some releases only have a year
@@ -440,7 +442,7 @@ const TrackDetailModal = ({
             </div>
           )}
 
-          {trackDbId && <TrackActivity trackId={trackDbId} />}
+          {isUuid(trackDbId) && <TrackActivity trackId={trackDbId!} />}
 
           {/* about */}
           {trackDbId && (detailsLoading || hasAbout) && (
@@ -472,7 +474,11 @@ const TrackDetailModal = ({
             </section>
           )}
 
-          {trackDbId && <ArtistSection trackId={trackDbId} />}
+          {isUuid(trackDbId) ? (
+            <ArtistSection trackId={trackDbId!} />
+          ) : (
+            track.artist && <ArtistSection artist={track.artist} spotifyTrackId={track.spotifyTrackId} />
+          )}
 
           {/* lyrics */}
           <button

@@ -19,7 +19,7 @@ const MB_HEADERS = { "User-Agent": "PLAI/1.0 ( https://plai.delaneyprojects.xyz 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 type Photo = { url: string; source: string }
-type Release = { title: string; year: string | null; art: string; url: string | null }
+type Release = { id: string; title: string; year: string | null; art: string; url: string | null }
 type Links = Partial<Record<"instagram" | "tiktok" | "x" | "youtube" | "soundcloud" | "bandcamp" | "website" | "spotify" | "apple_music", string>>
 type ArtistDetails = {
   name: string
@@ -76,7 +76,7 @@ async function fromApple(name: string, appleSongId: string | null, isrc: string 
   // newest first; one entry per title (Apple lists clean / explicit / deluxe versions separately)
   const seen = new Set<string>()
   const releases: Release[] = ((albums?.data || []) as any[])
-    .map((al) => al.attributes)
+    .map((al) => ({ ...al.attributes, _id: String(al.id) }))
     .filter((x) => x?.artwork?.url && !x.isCompilation)
     .sort((x, y) => String(y.releaseDate || "").localeCompare(String(x.releaseDate || "")))
     .map((x) => {
@@ -92,6 +92,7 @@ async function fromApple(name: string, appleSongId: string | null, isrc: string 
     })
     .slice(0, 8)
     .map(({ x, title, kind }) => ({
+      id: x._id,
       title,
       year: [x.releaseDate ? String(x.releaseDate).slice(0, 4) : null, kind].filter(Boolean).join(" · ") || null,
       art: art(x.artwork.url, 500)!,
@@ -192,15 +193,22 @@ async function fromWikipedia(qid: string) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
   try {
-    const { track_id } = await req.json().catch(() => ({}))
-    if (!track_id || !/^[0-9a-f-]{36}$/i.test(track_id)) return jsonResponse({ error: "track_id required" }, 400)
+    // { track_id } for songs in PLAI, or { artist, spotify_track_id } for a song playing on Spotify
+    // that PLAI hasn't seen yet
+    const body = await req.json().catch(() => ({}))
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-
-    const { data: track } = await admin
-      .from("tracks")
-      .select("artist, spotify_track_id, spotify_link_id, apple_music_id, isrc")
-      .eq("id", track_id)
-      .maybeSingle()
+    let track: { artist: string; spotify_track_id: string | null; spotify_link_id: string | null; apple_music_id: string | null; isrc: string | null } | null = null
+    if (body.track_id && /^[0-9a-f-]{36}$/i.test(body.track_id)) {
+      const { data } = await admin
+        .from("tracks")
+        .select("artist, spotify_track_id, spotify_link_id, apple_music_id, isrc")
+        .eq("id", body.track_id)
+        .maybeSingle()
+      track = data
+    } else if (typeof body.artist === "string" && body.artist.trim()) {
+      const sid = typeof body.spotify_track_id === "string" && /^[A-Za-z0-9]{22}$/.test(body.spotify_track_id) ? body.spotify_track_id : null
+      track = { artist: body.artist.trim().slice(0, 200), spotify_track_id: sid, spotify_link_id: null, apple_music_id: null, isrc: null }
+    }
     if (!track?.artist) return jsonResponse({ error: "song not found" }, 404)
 
     // Main artist ("Future, Young Thug, Gunna" → "Future"; keeps names like "Tyler, The Creator")
