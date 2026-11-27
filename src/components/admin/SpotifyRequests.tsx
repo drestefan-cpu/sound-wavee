@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Admin → people → Spotify access: people Spotify turned away while PLAI is in development mode.
- * Add their email in Spotify's dashboard (User Management, max 25 people), then mark them added;
+ * Add their email in Spotify's dashboard (User Management, max 5 people), then mark them added;
  * they're notified if they've made a PLAI account meanwhile.
  */
 
@@ -54,7 +54,7 @@ const SpotifyRequests = () => {
       </div>
       {pending.length === 0 ? (
         <p className="text-[11px] text-muted-foreground">
-          No one waiting. {added.length > 0 && `${added.length} added so far (Spotify allows 25).`}
+          No one waiting. {added.length > 0 && `${added.length} added so far (Spotify allows 5).`}
         </p>
       ) : (
         <div className="space-y-2">
@@ -82,7 +82,7 @@ const SpotifyRequests = () => {
             </div>
           ))}
           <p className="pt-1 text-[10px] leading-relaxed text-muted-foreground">
-            Add each email in Spotify's user list (name + email), then tap mark added. {added.length} of 25 spots used.
+            Add each email in Spotify's user list (name + email), then tap mark added. {added.length} of 5 spots used.
           </p>
         </div>
       )}
