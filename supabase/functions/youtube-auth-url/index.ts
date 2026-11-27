@@ -17,7 +17,7 @@ serve(async (req) => {
       client_id: clientId,
       redirect_uri,
       response_type: 'code',
-      scope: 'https://www.googleapis.com/auth/youtube',
+      scope: 'https://www.googleapis.com/auth/youtube.readonly',
       access_type: 'offline',
       prompt: 'consent',
     })

@@ -118,7 +118,7 @@ const Landing = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        scopes: "https://www.googleapis.com/auth/youtube",
+        scopes: "https://www.googleapis.com/auth/youtube.readonly",
         redirectTo: window.location.origin + "/auth/google/callback",
         queryParams: {
           access_type: "offline",
@@ -814,6 +814,15 @@ const Landing = () => {
             >
               set a PIN? <span className="font-medium text-primary">sign in with your username + PIN</span>
             </button>
+            <footer className="mt-2 flex flex-col items-center gap-1.5 text-center">
+              <p className="max-w-xs text-[11px] leading-relaxed text-muted-foreground/70">
+                PLAI shows you the songs your friends love on Spotify, Apple Music, Tidal and YouTube Music.
+              </p>
+              <p className="text-[10px] text-muted-foreground/60">
+                <a href="/privacy" className="hover:text-foreground">privacy</a> ·{" "}
+                <a href="/terms" className="hover:text-foreground">terms</a>
+              </p>
+            </footer>
           </>
         )}
       </div>

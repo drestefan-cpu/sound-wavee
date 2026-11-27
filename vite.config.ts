@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         navigateFallback: "/index.html",
         // server routes on the same site: shortcut install page, shortcut endpoint, functions
-        navigateFallbackDenylist: [/^\/api\//, /^\/new/, /^\/shortcut/],
+        navigateFallbackDenylist: [/^\/api\//, /^\/new/, /^\/shortcut/, /^\/privacy/, /^\/terms/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {

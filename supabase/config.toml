@@ -40,3 +40,6 @@ verify_jwt = false
 
 [functions.send-push]
 verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false

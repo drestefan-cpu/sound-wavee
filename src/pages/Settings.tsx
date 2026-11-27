@@ -1,3 +1,4 @@
+import DeleteAccount from "@/components/DeleteAccount";
 import { inviteLink, shareInvite } from "@/lib/invite";
 import PushSettings from "@/components/PushSettings";
 import { useConnectionIssues, clearConnectionIssue } from "@/components/ConnectionNotice";
@@ -1054,6 +1055,13 @@ const SettingsPage = () => {
             <LogOut className="h-4 w-4" />
             sign out
           </button>
+          <div className="mt-6">
+            <DeleteAccount username={username} />
+          </div>
+          <p className="mt-4 text-center text-[10px] text-muted-foreground/60">
+            <a href="/privacy" className="hover:text-foreground">privacy</a> ·{" "}
+            <a href="/terms" className="hover:text-foreground">terms</a>
+          </p>
         </div>
 
         <div className="pt-2 pb-6 text-center">

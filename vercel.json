@@ -10,6 +10,14 @@
       "destination": "/shortcut/index.html"
     },
     {
+      "source": "/privacy",
+      "destination": "/privacy/index.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms/index.html"
+    },
+    {
       "source": "/new",
       "destination": "/api/new"
     },
@@ -47,7 +55,7 @@
       "destination": "/api/preview?join=:username"
     },
     {
-      "source": "/((?!api/|shortcut/|assets/).*)",
+      "source": "/((?!api/|shortcut/|assets/|privacy|terms).*)",
       "destination": "/index.html"
     }
   ],
