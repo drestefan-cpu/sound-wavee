@@ -18,7 +18,7 @@ export const SPOTIFY_REQUEST_EMAIL_KEY = "plai-spotify-request-email";
 const CONTACT = "andre@delaneyprojects.xyz";
 
 const SpotifyAccessSheet = () => {
-  const { user } = useAuth();
+  const { user, signInWithSpotify } = useAuth();
   const navigate = useNavigate();
   const [reason, setReason] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -37,6 +37,10 @@ const SpotifyAccessSheet = () => {
         toast("Spotify sign-in cancelled");
       } else setReason(r);
     } catch {}
+    // opened from the app (e.g. "continue with Spotify" when the spots are full)
+    const open = (e: Event) => setReason((e as CustomEvent<string>).detail || "blocked");
+    window.addEventListener("plai-spotify-access", open);
+    return () => window.removeEventListener("plai-spotify-access", open);
   }, []);
 
   const { panelRef, handlers, sheetStyle, backdropStyle, close } = useSheetDrag(() => {
@@ -48,6 +52,7 @@ const SpotifyAccessSheet = () => {
   if (!reason) return null;
 
   const signedIn = !!user && !user.is_anonymous;
+  const full = reason === "full";
 
   const request = async () => {
     setSending(true);
@@ -117,13 +122,45 @@ const SpotifyAccessSheet = () => {
           </button>
         </div>
 
+        {full && (
+          <>
+            <h2 className="text-base font-semibold text-foreground">Spotify accounts are full right now</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+              While PLAI is new, Spotify only lets 5 accounts connect, and they're all taken. You can still join with a
+              public Spotify playlist of your favourite songs. It works straight away.
+            </p>
+            <button
+              onClick={joinWithPlaylist}
+              disabled={joining}
+              className="mt-4 w-full rounded-full bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-60"
+            >
+              {joining ? "one sec…" : signedIn ? "connect a playlist →" : "join with a playlist →"}
+            </button>
+            <button
+              onClick={() => {
+                close();
+                signInWithSpotify({ force: true });
+              }}
+              className="mt-2.5 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+            >
+              already one of the 5? continue with Spotify
+            </button>
+            <div className="my-5 border-t border-border" />
+            <p className="text-xs font-medium text-foreground">Want a spot when one opens?</p>
+          </>
+        )}
+
         {!sent ? (
           <>
-            <h2 className="text-base font-semibold text-foreground">Spotify needs to approve you first</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-              PLAI is new, so Spotify only lets people André has added connect. Leave the email you use for Spotify
-              and he'll add you, usually within a day.
-            </p>
+            {!full && (
+              <>
+                <h2 className="text-base font-semibold text-foreground">Spotify needs to approve you first</h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  PLAI is new, so Spotify only lets people André has added connect. Leave the email you use for Spotify
+                  and he'll add you, usually within a day.
+                </p>
+              </>
+            )}
             <div className="mt-4 space-y-2.5">
               <input
                 id="spotify-request-email"
@@ -149,20 +186,22 @@ const SpotifyAccessSheet = () => {
                 disabled={sending || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())}
                 className="w-full rounded-full bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-50"
               >
-                {sending ? "sending…" : "request access"}
+                {sending ? "sending…" : full ? "join the waitlist" : "request access"}
               </button>
             </div>
           </>
         ) : (
           <>
-            <h2 className="text-base font-semibold text-foreground">Request sent ✓</h2>
+            <h2 className="text-base font-semibold text-foreground">{full ? "You're on the waitlist ✓" : "Request sent ✓"}</h2>
             <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-              André's been told. Once he's added <span className="text-foreground">{email.trim().toLowerCase()}</span>,
-              continue with Spotify will work.
+              {full ? "When a spot opens, André can add " : "André's been told. Once he's added "}
+              <span className="text-foreground">{email.trim().toLowerCase()}</span>
+              {full ? " and you'll be told." : ", continue with Spotify will work."}
             </p>
           </>
         )}
 
+        {!full && (
         <div className="mt-5 rounded-2xl border border-border p-4">
           <p className="text-sm font-medium text-foreground">Don't want to wait?</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -178,6 +217,7 @@ const SpotifyAccessSheet = () => {
             {joining ? "one sec…" : signedIn ? "connect a playlist →" : "join with a playlist →"}
           </button>
         </div>
+        )}
 
         <p className="mt-4 text-center text-[11px] leading-relaxed text-muted-foreground">
           Questions? <span className="text-foreground">{CONTACT}</span> ·{" "}

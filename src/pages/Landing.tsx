@@ -750,7 +750,7 @@ const Landing = () => {
             )}
             <div className="flex w-full flex-col gap-3">
               <button
-                onClick={signInWithSpotify}
+                onClick={() => signInWithSpotify()}
                 className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground transition-all duration-150 hover:bg-primary/80"
                 style={{ touchAction: "manipulation" }}
               >

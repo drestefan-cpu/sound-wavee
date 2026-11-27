@@ -768,7 +768,7 @@ const SettingsPage = () => {
                 <span className={`h-2 w-2 rounded-full ${spotifyConnected || spotifyPlaylist.name ? "bg-green-500" : "bg-muted"}`} />
                 <span className="text-sm text-foreground">Spotify</span>
                 {spotifyConnected && connectionIssues.includes("spotify") ? (
-                  <button onClick={() => signInWithSpotify()} className="ml-auto text-xs font-medium text-primary">
+                  <button onClick={() => signInWithSpotify({ force: true })} className="ml-auto text-xs font-medium text-primary">
                     expired · reconnect
                   </button>
                 ) : (

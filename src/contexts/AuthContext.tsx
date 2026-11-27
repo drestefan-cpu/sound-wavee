@@ -3,13 +3,14 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { disablePush, refreshPushSubscription } from "@/lib/push";
-import { markSpotifyAttempt } from "@/lib/oauthReturn";
+import { markSpotifyAttempt, openSpotifyAccess, SPOTIFY_MEMBER_KEY } from "@/lib/oauthReturn";
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signInWithSpotify: () => Promise<void>;
+  /** force: skip the "Spotify spots are full" check (reconnecting an account that's already approved) */
+  signInWithSpotify: (opts?: { force?: boolean }) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -66,6 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } as any)
       .eq("id", userId);
 
+    if (!upsertError) {
+      try {
+        localStorage.setItem(SPOTIFY_MEMBER_KEY, "1");
+      } catch {}
+    }
     if (upsertError) console.error("Profile upsert failed:", upsertError.message, upsertError);
     // Fresh Spotify sign-in → any "connection expired" notice is out of date
     else (supabase as any).rpc("clear_connection_issue", { p_platform: "spotify" }).then(() => {}, () => {});
@@ -234,10 +240,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [session?.user?.id]);
 
-  const signInWithSpotify = async () => {
+  const signInWithSpotify = async (opts?: { force?: boolean }) => {
     if (isLocalDev) {
       setLoading(false);
       return;
+    }
+
+    // Spotify only lets 5 people connect while PLAI is new. When they're taken, offer the playlist
+    // route instead (unless this device already signed in with Spotify, or it's a reconnect).
+    let member = false;
+    try {
+      member = localStorage.getItem(SPOTIFY_MEMBER_KEY) === "1";
+    } catch {}
+    if (!opts?.force && !member) {
+      const { data } = await (supabase as any).rpc("spotify_status").then((r: any) => r, () => ({ data: null }));
+      if (data?.full) {
+        openSpotifyAccess("full");
+        return;
+      }
     }
 
     markSpotifyAttempt();

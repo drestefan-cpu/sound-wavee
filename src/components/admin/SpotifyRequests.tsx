@@ -23,9 +23,17 @@ const SPOTIFY_USERS_URL = "https://developer.spotify.com/dashboard/88d4b29365354
 
 const SpotifyRequests = () => {
   const [rows, setRows] = useState<Request[] | null>(null);
+  const [status, setStatus] = useState<{ used: number; limit: number; full: boolean; manual: boolean | null } | null>(null);
 
-  const load = () =>
+  const load = () => {
     (supabase as any).rpc("admin_spotify_requests").then(({ data }: { data: Request[] | null }) => setRows(data || []));
+    (supabase as any).rpc("spotify_status").then(({ data }: { data: any }) => setStatus(data));
+  };
+  const setFull = async (full: boolean | null) => {
+    const { error } = await (supabase as any).rpc("admin_set_spotify_full", { p_full: full });
+    if (error) toast.error("couldn't save");
+    load();
+  };
   useEffect(() => {
     load();
   }, []);
@@ -52,9 +60,39 @@ const SpotifyRequests = () => {
           open Spotify's user list ↗
         </a>
       </div>
+      {status && (
+        <div className="mb-3 rounded-lg bg-secondary/60 px-3 py-2">
+          <p className="text-[11px] text-foreground">
+            <span className="font-medium tabular-nums">{status.used} of {status.limit}</span> Spotify accounts connected ·{" "}
+            {status.full ? (
+              <span className="text-primary">full: new people get the playlist option</span>
+            ) : (
+              "open"
+            )}
+            {status.manual !== null && <span className="text-muted-foreground"> (set by you)</span>}
+          </p>
+          <div className="mt-1.5 flex gap-1.5 text-[10px]">
+            {([
+              [null, "automatic"],
+              [true, "mark full"],
+              [false, "mark open"],
+            ] as const).map(([v, label]) => (
+              <button
+                key={label}
+                onClick={() => setFull(v)}
+                className={`rounded-full px-2.5 py-0.5 ${
+                  status.manual === v ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {pending.length === 0 ? (
         <p className="text-[11px] text-muted-foreground">
-          No one waiting. {added.length > 0 && `${added.length} added so far (Spotify allows 5).`}
+          No one waiting.
         </p>
       ) : (
         <div className="space-y-2">

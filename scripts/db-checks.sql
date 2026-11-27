@@ -161,6 +161,19 @@ RESET ROLE;
 INSERT INTO results SELECT 'admins are told about Spotify requests',
   EXISTS (SELECT 1 FROM ids, notifications n WHERE n.user_id = ids.dre AND n.type = 'spotify_request' AND n.data->>'email' = 'db-check@example.com'), '';
 
+-- ── song screen + Spotify spots (as someone not signed in) ─────────────────
+SET LOCAL ROLE anon;
+DO $$
+DECLARE st jsonb; act jsonb;
+BEGIN
+  st := spotify_status();
+  INSERT INTO results VALUES ('Spotify spots status works', st ? 'full' AND (st->>'limit')::int = 5, st::text);
+  act := track_activity((SELECT dre_track FROM ids));
+  INSERT INTO results VALUES ('song activity leaves out songs people hid', (act->>'loved')::int = 0 OR NOT EXISTS (
+    SELECT 1 FROM ids, likes l WHERE l.track_id = ids.dre_track AND l.user_id <> ids.dre), act::text);
+END $$;
+RESET ROLE;
+
 -- ── account deletion removes everything (as the database owner) ────────────
 DELETE FROM auth.users WHERE id = (SELECT newbie FROM ids);
 INSERT INTO results SELECT 'deleting an account removes it and its follows',

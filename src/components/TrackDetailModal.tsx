@@ -11,6 +11,8 @@ import { openUrl } from "@/lib/openUrl";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import FriendAvatars, { loadFriendLikes, type FriendLike } from "@/components/discover/FriendAvatars";
+import TrackActivity from "@/components/TrackActivity";
+import ArtistSection from "@/components/ArtistSection";
 
 /**
  * The song screen: full title and artist, a 30-second preview, play / save / share, the other
@@ -438,6 +440,8 @@ const TrackDetailModal = ({
             </div>
           )}
 
+          {trackDbId && <TrackActivity trackId={trackDbId} />}
+
           {/* about */}
           {trackDbId && (detailsLoading || hasAbout) && (
             <section className="mt-6 border-t border-border pt-4">
@@ -467,6 +471,8 @@ const TrackDetailModal = ({
               )}
             </section>
           )}
+
+          {trackDbId && <ArtistSection trackId={trackDbId} />}
 
           {/* lyrics */}
           <button

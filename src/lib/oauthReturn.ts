@@ -8,6 +8,17 @@
 export const OAUTH_ATTEMPT_KEY = "plai-oauth-attempt";
 export const SPOTIFY_BLOCKED_KEY = "plai-spotify-blocked";
 
+/** This device has signed in with Spotify before (so it's one of the approved accounts) */
+export const SPOTIFY_MEMBER_KEY = "plai-spotify-member";
+
+/** Opens the Spotify access sheet ("blocked" = Spotify refused; "full" = PLAI's Spotify spots are taken) */
+export function openSpotifyAccess(reason: "blocked" | "full") {
+  try {
+    sessionStorage.setItem(SPOTIFY_BLOCKED_KEY, reason);
+  } catch {}
+  window.dispatchEvent(new CustomEvent("plai-spotify-access", { detail: reason }));
+}
+
 /** Call right before sending someone to Spotify's sign-in */
 export function markSpotifyAttempt() {
   try {

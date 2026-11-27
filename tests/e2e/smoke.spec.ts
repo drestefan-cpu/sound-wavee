@@ -72,6 +72,18 @@ test.describe("signed out", () => {
     noCrash();
   });
 
+  test("when Spotify's spots are full, new people are offered the playlist route", async ({ page }) => {
+    const noCrash = watchForCrashes(page);
+    await page.goto(SIGNED_OUT + "/");
+    await skipInstallOverlay(page);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent("plai-spotify-access", { detail: "full" })));
+    await expect(page.getByText("Spotify accounts are full right now")).toBeVisible();
+    await page.getByRole("button", { name: /join with a playlist/ }).click({ trial: true });
+    await expect(page.getByText("already one of the 5? continue with Spotify")).toBeVisible();
+    await expect(page.getByRole("button", { name: "join the waitlist" })).toBeVisible();
+    noCrash();
+  });
+
   test("privacy policy and terms pages load", async ({ page }) => {
     await page.goto(SIGNED_OUT + "/privacy/index.html");
     await expect(page.getByRole("heading", { name: "Privacy policy" })).toBeVisible();
