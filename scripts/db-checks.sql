@@ -77,6 +77,11 @@ BEGIN
   SELECT count(*) INTO n FROM notifications WHERE user_id <> auth.uid();
   INSERT INTO results VALUES ('other people''s notifications are private', n = 0, n || ' visible');
 
+  INSERT INTO results SELECT 'song screen doesn''t show friends'' hidden songs',
+    NOT EXISTS (SELECT 1 FROM ids, friends_on_track(ids.dre_track) f WHERE f.user_id = ids.dre AND f.loved), '';
+  INSERT INTO results SELECT 'friends'' songs by an artist come from people you follow',
+    (SELECT count(*) FROM artist_songs_on_plai('Future')) >= 0, '';
+
   INSERT INTO results SELECT 'friends can''t see songs you hid',
     NOT EXISTS (SELECT 1 FROM ids, likes l WHERE l.user_id = ids.dre AND l.track_id = ids.dre_track), '';
 

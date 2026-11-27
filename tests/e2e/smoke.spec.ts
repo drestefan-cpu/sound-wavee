@@ -111,6 +111,14 @@ test.describe("signed in", () => {
     });
   }
 
+  test("artist page opens", async ({ page }) => {
+    const noCrash = watchForCrashes(page);
+    await page.goto(SIGNED_IN + "/artist/Future");
+    await expect(page.getByRole("heading", { name: "Future", level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "back" })).toBeVisible();
+    noCrash();
+  });
+
   test("settings has notifications, invite and delete account", async ({ page }) => {
     await page.goto(SIGNED_IN + "/settings");
     await expect(page.getByText("notifications", { exact: true }).first()).toBeVisible({ timeout: 15_000 });

@@ -23,6 +23,7 @@ const YouTubeCallback = lazy(() => import("./pages/YouTubeCallback"));
 const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const Artist = lazy(() => import("./pages/Artist"));
 const Radar = lazy(() => import("./pages/Radar"));
 const RadarArtist = lazy(() => import("./pages/RadarArtist"));
 const RadarNew = lazy(() => import("./pages/RadarNew"));
@@ -69,6 +70,7 @@ const App = () => (
                 <Route path="/song/:trackId" element={<SongShare />} />
                 <Route path="/s/:shortId" element={<ShortLink />} />
                 <Route path="/join/:username" element={<Join />} />
+                <Route path="/artist/:name" element={<Artist />} />
                 <Route path="/share" element={<SharePage />} />
                 <Route path="/share-target" element={<ShareTarget />} />
                 <Route path="/feed" element={<Feed />} />

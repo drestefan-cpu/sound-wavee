@@ -54,6 +54,13 @@ function describe(n: Note): Message {
       };
     case "follow":
       return { title: `${who} followed you`, body: "tap to see their music", url: profile, tag: `follow-${n.id}` };
+    case "pick_reminder":
+      return {
+        title: "pick your song of the week 📌",
+        body: "what's on repeat? open any song and tap “make this my song of the week” — your friends will see it",
+        url: "/profile",
+        tag: "pick-reminder",
+      };
     case "spotify_request":
       return {
         title: `${d.name || d.email || "someone"} wants to connect Spotify`,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { Heart, Send, X, Play, Pause, FileText, ArrowUpRight, Pin } from "lucide-react";
 import type { UnifiedTrackData } from "./UnifiedTrackCard";
 import RecommendModal from "./RecommendModal";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import FriendAvatars, { loadFriendLikes, type FriendLike } from "@/components/discover/FriendAvatars";
 import TrackActivity from "@/components/TrackActivity";
+import FriendsOnTrack from "@/components/FriendsOnTrack";
 import ArtistSection from "@/components/ArtistSection";
 
 /**
@@ -177,6 +179,20 @@ const TrackDetailModal = ({
   };
 
   const canHide = !!user && !!track.likeId && !!track.trackDbId && isOwnTrack !== false;
+
+  // Each artist on the song opens their page ("Future, Young Thug, Gunna" → three links)
+  const navigate = useNavigate();
+  const [artistNames, setArtistNames] = useState<string[]>([]);
+  useEffect(() => {
+    if (!track.artist) return;
+    (supabase as any)
+      .rpc("split_artists", { p_artist: track.artist })
+      .then(({ data }: { data: string[] | null }) => setArtistNames(Array.isArray(data) && data.length ? data : [track.artist]));
+  }, [track.artist]);
+  const openArtist = (name: string) => {
+    close();
+    setTimeout(() => navigate(`/artist/${encodeURIComponent(name)}`), 230);
+  };
 
   // Song of the week: one pinned song on your profile, in friends' feeds and their Friday recap
   const [isPick, setIsPick] = useState<boolean | null>(null);
@@ -358,7 +374,18 @@ const TrackDetailModal = ({
             <h2 className="break-words text-xl font-semibold leading-tight text-foreground" style={{ textWrap: "balance" } as React.CSSProperties}>
               {track.title}
             </h2>
-            <p className="break-words text-[15px] text-foreground/80">{track.artist}</p>
+            <p className="break-words text-[15px] text-foreground/80">
+              {artistNames.length > 0
+                ? artistNames.map((n, i) => (
+                    <span key={n}>
+                      {i > 0 && ", "}
+                      <button onClick={() => openArtist(n)} className="underline-offset-4 hover:text-primary hover:underline">
+                        {n}
+                      </button>
+                    </span>
+                  ))
+                : track.artist}
+            </p>
             {(track.album || year || details?.explicit) && (
               <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-xs text-muted-foreground">
                 {track.album && <span className="break-words">{track.album}</span>}
@@ -436,10 +463,14 @@ const TrackDetailModal = ({
             )}
           </div>
 
-          {friends.length > 0 && (
-            <div className="mt-3 flex justify-center">
-              <FriendAvatars friends={friends} verb="loved by" />
-            </div>
+          {isUuid(trackDbId) ? (
+            <FriendsOnTrack trackId={trackDbId!} onNavigate={close} />
+          ) : (
+            friends.length > 0 && (
+              <div className="mt-3 flex justify-center">
+                <FriendAvatars friends={friends} verb="loved by" />
+              </div>
+            )
           )}
 
           {isUuid(trackDbId) && <TrackActivity trackId={trackDbId!} />}
@@ -475,9 +506,9 @@ const TrackDetailModal = ({
           )}
 
           {isUuid(trackDbId) ? (
-            <ArtistSection trackId={trackDbId!} />
+            <ArtistSection trackId={trackDbId!} onOpenArtist={openArtist} />
           ) : (
-            track.artist && <ArtistSection artist={track.artist} spotifyTrackId={track.spotifyTrackId} />
+            track.artist && <ArtistSection artist={track.artist} spotifyTrackId={track.spotifyTrackId} onOpenArtist={openArtist} />
           )}
 
           {/* lyrics */}

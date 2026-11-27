@@ -26,6 +26,7 @@ const ICONS: Record<string, any> = {
   weekly_recap: CalendarHeart,
   invite_joined: UserPlus,
   spotify_request: Music,
+  pick_reminder: Music,
   spotify_approved: Music,
   rec_reply: MessageCircle,
 };
@@ -44,6 +45,8 @@ const typeLabel = (type: string, data: any) => {
       return "recommended you a song";
     case "weekly_recap":
       return "is ready";
+    case "pick_reminder":
+      return "— what's on repeat? open any song and tap “make this my song of the week”";
     case "spotify_request":
       return `asked to connect Spotify${data?.email ? ` (${data.email})` : ""}: add them in Spotify, then mark them added`;
     case "spotify_approved":
@@ -128,7 +131,9 @@ const Notifications = () => {
               const Icon = ICONS[n.type] || Bell;
               const actorName = n.type === "weekly_recap"
                 ? "your week on PLAI"
-                : n.type === "spotify_request"
+                : n.type === "pick_reminder"
+                  ? "pick your song of the week"
+                  : n.type === "spotify_request"
                   ? n.data?.name || n.data?.email || "someone"
                   : n.type === "spotify_approved"
                     ? "Spotify"
@@ -162,6 +167,10 @@ const Notifications = () => {
                         </Link>
                       ) : n.type === "weekly_recap" ? (
                         <Link to="/feed?recap=1" className="font-medium hover:underline">
+                          {actorName}
+                        </Link>
+                      ) : n.type === "pick_reminder" ? (
+                        <Link to="/profile" className="font-medium hover:underline">
                           {actorName}
                         </Link>
                       ) : n.type === "spotify_request" || n.type === "spotify_approved" ? (

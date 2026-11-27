@@ -41,9 +41,11 @@ interface Props {
   trackId?: string;
   artist?: string;
   spotifyTrackId?: string;
+  /** opens the artist's full page */
+  onOpenArtist?: (name: string) => void;
 }
 
-const ArtistSection = ({ trackId, artist, spotifyTrackId }: Props) => {
+const ArtistSection = ({ trackId, artist, spotifyTrackId, onOpenArtist }: Props) => {
   const key = trackId || `${artist}|${spotifyTrackId || ""}`;
   const [d, setD] = useState<Details | null | undefined>(cache.has(key) ? cache.get(key) : undefined);
   const [bioOpen, setBioOpen] = useState(false);
@@ -86,7 +88,14 @@ const ArtistSection = ({ trackId, artist, spotifyTrackId }: Props) => {
 
   return (
     <section className="mt-6 border-t border-border pt-4" aria-label={`about ${d.name}`}>
-      <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">the artist</h3>
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">the artist</h3>
+        {onOpenArtist && (
+          <button onClick={() => onOpenArtist(d.name)} className="text-[11px] font-medium text-primary">
+            see all →
+          </button>
+        )}
+      </div>
       <p className="mt-1 text-base font-semibold text-foreground">
         {d.name}
         {d.genres.length > 0 && <span className="ml-2 text-xs font-normal text-muted-foreground">{d.genres.join(" · ")}</span>}

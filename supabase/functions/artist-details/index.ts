@@ -19,7 +19,7 @@ const MB_HEADERS = { "User-Agent": "PLAI/1.0 ( https://plai.delaneyprojects.xyz 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 type Photo = { url: string; source: string }
-type Release = { id: string; title: string; year: string | null; art: string; url: string | null }
+type Release = { id: string; title: string; year: string | null; kind: string; art: string; url: string | null }
 type Links = Partial<Record<"instagram" | "tiktok" | "x" | "youtube" | "soundcloud" | "bandcamp" | "website" | "spotify" | "apple_music", string>>
 type ArtistDetails = {
   name: string
@@ -67,10 +67,12 @@ async function fromApple(name: string, appleSongId: string | null, isrc: string 
   }
   if (!artistId) return null
 
-  const [artist, albums] = await Promise.all([
-    getJson(`${base}/artists/${artistId}`, h),
-    getJson(`${base}/artists/${artistId}/albums?limit=25`, h),
-  ])
+  // their releases (Apple pages them 25 at a time; up to 75 is plenty)
+  const albumPages = await Promise.all(
+    [0, 25, 50].map((offset) => getJson(`${base}/artists/${artistId}/albums?limit=25&offset=${offset}`, h)),
+  )
+  const albums = { data: albumPages.flatMap((p) => p?.data || []) }
+  const artist = await getJson(`${base}/artists/${artistId}`, h)
   const a = artist?.data?.[0]?.attributes
   const art = (t?: string, size = 800) => (t ? t.replace("{w}", String(size)).replace("{h}", String(size)).replace("{f}", "jpg") : null)
   // newest first; one entry per title (Apple lists clean / explicit / deluxe versions separately)
@@ -90,9 +92,15 @@ async function fromApple(name: string, appleSongId: string | null, isrc: string 
       seen.add(k)
       return true
     })
-    .slice(0, 8)
+    // keep every album (up to 30) and the 20 newest singles / EPs, newest first overall
+    .filter((() => {
+      let albumsKept = 0
+      let singlesKept = 0
+      return ({ kind }: { kind: string | null }) => (kind ? singlesKept++ < 20 : albumsKept++ < 30)
+    })())
     .map(({ x, title, kind }) => ({
       id: x._id,
+      kind: kind || "album",
       title,
       year: [x.releaseDate ? String(x.releaseDate).slice(0, 4) : null, kind].filter(Boolean).join(" · ") || null,
       art: art(x.artwork.url, 500)!,
