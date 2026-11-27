@@ -54,6 +54,8 @@ function describe(n: Note): Message {
       };
     case "follow":
       return { title: `${who} followed you`, body: "tap to see their music", url: profile, tag: `follow-${n.id}` };
+    case "weekly_recap":
+      return { title: "your week on PLAI", body: d.summary || "tap to see your week", url: "/feed?recap=1", tag: "recap" };
     case "new_music": {
       const count = Number(d.count) || 1;
       return {

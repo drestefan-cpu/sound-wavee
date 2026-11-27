@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
-import { Bell, UserPlus, Heart, Disc, Send, Music } from "lucide-react";
+import { Bell, UserPlus, Heart, Disc, Send, Music, CalendarHeart } from "lucide-react";
 
 interface Notification {
   id: string;
@@ -23,6 +23,7 @@ const ICONS: Record<string, any> = {
   recommendation: Send,
   rec_reaction: Send,
   new_music: Music,
+  weekly_recap: CalendarHeart,
 };
 
 const typeLabel = (type: string, data: any) => {
@@ -37,6 +38,8 @@ const typeLabel = (type: string, data: any) => {
       return `reacted ${data?.emoji || ""} to the song you sent`;
     case "recommendation":
       return "recommended you a song";
+    case "weekly_recap":
+      return "is ready";
     case "new_music": {
       const count = Number(data?.count) || 1;
       return count === 1 ? "added a new song" : `added ${count} new songs`;
@@ -111,7 +114,9 @@ const Notifications = () => {
           <div className="space-y-1">
             {notifications.map((n) => {
               const Icon = ICONS[n.type] || Bell;
-              const actorName = n.data?.actor_username ? `@${n.data.actor_username}` : "someone";
+              const actorName = n.type === "weekly_recap"
+                ? "your week on PLAI"
+                : n.data?.actor_username ? `@${n.data.actor_username}` : "someone";
               const trackInfo = n.data?.track_title ? ` · ${n.data.track_title}` : "";
               return (
                 <div
@@ -139,6 +144,10 @@ const Notifications = () => {
                         <Link to={`/profile/${n.data.actor_username}`} className="font-medium hover:underline">
                           {actorName}
                         </Link>
+                      ) : n.type === "weekly_recap" ? (
+                        <Link to="/feed?recap=1" className="font-medium hover:underline">
+                          {actorName}
+                        </Link>
                       ) : (
                         <span className="font-medium">{actorName}</span>
                       )}{" "}
@@ -149,6 +158,9 @@ const Notifications = () => {
                         {n.type === "new_music" && Number(n.data?.count) > 1 ? "latest: " : ""}
                         {n.data.track_title} — {n.data.track_artist}
                       </p>
+                    )}
+                    {n.type === "weekly_recap" && n.data?.summary && (
+                      <p className="text-xs text-muted-foreground/70 mt-0.5">{n.data.summary}</p>
                     )}
                     {n.type === "recommendation" && n.data?.message && (
                       <p className="text-xs text-foreground/80 mt-1 italic truncate">“{n.data.message}”</p>
