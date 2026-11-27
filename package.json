@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:browser": "playwright test",
+    "test:db": "node scripts/db-checks.mjs",
+    "check": "tsc --noEmit -p tsconfig.app.json && vitest run && playwright test"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",

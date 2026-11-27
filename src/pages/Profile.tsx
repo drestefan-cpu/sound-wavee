@@ -1689,7 +1689,7 @@ const Profile = () => {
                     >
                       {loadingMoreLikes
                         ? "loading…"
-                        : `show more · ${Math.max(0, likesCount - likes.length)} older songs`}
+                        : "show more"}
                     </button>
                   </div>
                 )}

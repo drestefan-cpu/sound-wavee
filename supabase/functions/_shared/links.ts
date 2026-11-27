@@ -12,6 +12,8 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { getSpotifyAppToken } from "./spotify.ts"
 
+/** Songs looked up on the other apps are re-checked after this many days */
+const RECHECK_DAYS = 7
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const b64url = (s: string) => btoa(s).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_")
 
@@ -52,6 +54,22 @@ export async function resolveTrackLinks(
   const spotifyLimit = opts.spotifyLimit ?? 60
   const result: LinkResult = { checked: 0, spotifyFound: 0, appleFound: 0, tidalFound: 0 }
   if (trackIds.length === 0) return result
+
+  // Skip songs looked up in the last 7 days (most unmatched songs stay unmatched; no need to ask every sync)
+  {
+    const recent = new Set<string>()
+    const since = new Date(Date.now() - RECHECK_DAYS * 86_400_000).toISOString()
+    for (let i = 0; i < trackIds.length; i += 200) {
+      const { data } = await admin
+        .from("tracks")
+        .select("id")
+        .in("id", trackIds.slice(i, i + 200))
+        .gte("links_checked_at", since)
+      for (const r of (data || []) as { id: string }[]) recent.add(r.id)
+    }
+    trackIds = trackIds.filter((id) => !recent.has(id))
+    if (trackIds.length === 0) return result
+  }
 
   // ── Step 0: older Apple Music songs were saved without an ISRC — get it from Apple's catalogue ──
   {
@@ -102,7 +120,10 @@ export async function resolveTrackLinks(
   result.checked = rows.length
 
   // ── Spotify: songs from other platforms without a Spotify link yet ──
-  const needSpotify = rows.filter((r) => isPlaceholderSpotifyId(r.spotify_track_id) && !r.spotify_link_id).slice(0, spotifyLimit)
+  const wantSpotify = rows.filter((r) => isPlaceholderSpotifyId(r.spotify_track_id) && !r.spotify_link_id)
+  const needSpotify = wantSpotify.slice(0, spotifyLimit)
+  // songs left for next time because of the Spotify limit aren't marked as checked
+  const deferred = new Set(wantSpotify.slice(spotifyLimit).map((r) => r.id))
   if (needSpotify.length > 0) {
     const token = await getSpotifyAppToken()
     if (token) {
@@ -190,6 +211,12 @@ export async function resolveTrackLinks(
         await sleep(600)
       }
     }
+  }
+
+  // Remember these were looked up (songs without an ISRC count too: there's nothing to match them by)
+  const checkedIds = trackIds.filter((id) => !deferred.has(id))
+  for (let i = 0; i < checkedIds.length; i += 200) {
+    await admin.from("tracks").update({ links_checked_at: new Date().toISOString() }).in("id", checkedIds.slice(i, i + 200))
   }
 
   return result

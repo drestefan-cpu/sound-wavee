@@ -10,20 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { uploadAvatar } from "@/lib/avatarUpload";
 import { pendingInvite } from "@/lib/invite";
+import { suggestUsername } from "@/lib/username";
 import { Camera } from "lucide-react";
 
 const APIKEY = SUPABASE_PUBLISHABLE_KEY;
-
-/** "André Delaney" → "andre.delaney" */
-const suggestUsername = (name: string) =>
-  name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ".")
-    .replace(/[^a-z0-9._-]/g, "")
-    .slice(0, 24);
 
 const Landing = () => {
   const { user, loading, signInWithSpotify } = useAuth();
