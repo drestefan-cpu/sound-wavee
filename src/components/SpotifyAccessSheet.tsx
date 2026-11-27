@@ -31,11 +31,10 @@ const SpotifyAccessSheet = () => {
     try {
       // (kept until they close the sheet: the app may reload once right after arriving)
       const r = sessionStorage.getItem(SPOTIFY_BLOCKED_KEY);
-      if (!r) return;
       if (r === "cancelled") {
         sessionStorage.removeItem(SPOTIFY_BLOCKED_KEY);
         toast("Spotify sign-in cancelled");
-      } else setReason(r);
+      } else if (r) setReason(r);
     } catch {}
     // opened from the app (e.g. "continue with Spotify" when the spots are full)
     const open = (e: Event) => setReason((e as CustomEvent<string>).detail || "blocked");

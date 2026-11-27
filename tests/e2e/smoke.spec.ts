@@ -76,6 +76,7 @@ test.describe("signed out", () => {
     const noCrash = watchForCrashes(page);
     await page.goto(SIGNED_OUT + "/");
     await skipInstallOverlay(page);
+    // a tap on "continue with Spotify" while the page is open and the spots are full
     await page.evaluate(() => window.dispatchEvent(new CustomEvent("plai-spotify-access", { detail: "full" })));
     await expect(page.getByText("Spotify accounts are full right now")).toBeVisible();
     await page.getByRole("button", { name: /join with a playlist/ }).click({ trial: true });
